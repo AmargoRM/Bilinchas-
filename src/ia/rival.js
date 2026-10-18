@@ -73,12 +73,17 @@ function azarCampana() {
 //   blancos:    posiciones de las bolinchas que quedan en el círculo
 //   obstaculos: otras bolinchas en el suelo (por ejemplo, la del rival)
 // ---------------------------------------------------------------
-export function planificarTiro({ tirador, radioBolincha, blancos, obstaculos = [], nivel, radioCirculo, superficie = 'tierra' }) {
+// pesoTirador: gramos de la bolincha que tira (un boliche empuja más fuerte).
+// Las del círculo son siempre bolinchas normales.
+export function planificarTiro({ tirador, radioBolincha, pesoTirador = CONFIG.bolinchas.normal.peso, blancos, obstaculos = [], nivel, radioCirculo, superficie = 'tierra' }) {
   const f = frenos(superficie);
   const n = CONFIG.rival[nivel];
   const vMax = CONFIG.tiro.velocidadMaxima;
   const e = CONFIG.bolinchas.rebote;
-  const contacto = radioBolincha * 2;
+  const normal = CONFIG.bolinchas.normal;
+  const contacto = radioBolincha + normal.diametro / 2;
+  // Qué parte de la velocidad pasa al blanco en un choque de frente (depende de los pesos).
+  const traspaso = ((1 + e) * pesoTirador) / (pesoTirador + normal.peso);
   const opciones = [];
 
   for (const blanco of blancos) {
@@ -108,7 +113,7 @@ export function planificarTiro({ tirador, radioBolincha, blancos, obstaculos = [
       const recorrido = distanciaASalir(blanco, salidaBlanco, radioCirculo) + 4;
       const vBlanco = buscar((v) => distanciaHastaParar(v, f), recorrido, vMax * 3);
       if (vBlanco === null) continue;
-      const vChoque = vBlanco / (Math.cos(corte) * ((1 + e) / 2));
+      const vChoque = vBlanco / (Math.cos(corte) * traspaso);
       const v0 = buscar((v) => velocidadTras(v, largo, f), vChoque, vMax * 1.5);
       if (v0 === null) continue;
       const fuerza = (v0 * n.margenFuerza) / vMax;
@@ -153,12 +158,12 @@ export function planificarTiro({ tirador, radioBolincha, blancos, obstaculos = [
 //   2. Si un rival va adelante y tiene un hueco cerca, intenta meterlo en el hueco.
 //   3. Si no, avanza hasta el punto más lejano que ve sin chocar paredes ni piedras.
 // ---------------------------------------------------------------
-export function planificarTiroCanal({ traza, tirador, radioBolincha, otros, nivel }) {
+//   otros[i] puede traer { radio, peso } (si es un boliche); si no, se supone bolincha normal.
+export function planificarTiroCanal({ traza, tirador, radioBolincha, pesoTirador = CONFIG.bolinchas.normal.peso, otros, nivel }) {
   const f = frenos('concreto');
   const n = CONFIG.rival[nivel];
   const vMax = CONFIG.tiro.velocidadMaxima;
   const e = CONFIG.bolinchas.rebote;
-  const contacto = radioBolincha * 2;
   const alcance = distanciaHastaParar(vMax, f) * 0.92;
   const miRecorrido = traza.proyectar(tirador.x, tirador.z).s;
   const piedras = traza.obstaculos.filter((o) => o.tipo === 'piedra');
@@ -175,7 +180,10 @@ export function planificarTiroCanal({ traza, tirador, radioBolincha, otros, nive
       if (!traza.dentro(x, z, -(radioBolincha + 0.6))) return false;
     }
     for (const p of piedras) if (distanciaASegmento(p, a, b) < p.radio + radioBolincha + 0.5) return false;
-    for (const o of otros) if (o.pos !== ignorar && distanciaASegmento(o.pos, a, b) < contacto * 0.98) return false;
+    for (const o of otros) {
+      const choque = radioBolincha + (o.radio ?? CONFIG.bolinchas.normal.diametro / 2);
+      if (o.pos !== ignorar && distanciaASegmento(o.pos, a, b) < choque * 0.98) return false;
+    }
     return true;
   }
   const cercaDeHueco = (p) => huecos.some((h) => Math.hypot(p.x - h.x, p.z - h.z) < h.radio + 4);
@@ -206,10 +214,12 @@ export function planificarTiroCanal({ traza, tirador, radioBolincha, otros, nive
         const distHueco = haciaHueco.length();
         if (distHueco > 70 || distHueco < 1) continue;
         haciaHueco.divideScalar(distHueco);
-        const fantasma = o.pos.clone().addScaledVector(haciaHueco, -contacto);
+        const contactoRival = radioBolincha + (o.radio ?? CONFIG.bolinchas.normal.diametro / 2);
+        const traspaso = ((1 + e) * pesoTirador) / (pesoTirador + (o.peso ?? CONFIG.bolinchas.normal.peso));
+        const fantasma = o.pos.clone().addScaledVector(haciaHueco, -contactoRival);
         const camino = new THREE.Vector3().subVectors(fantasma, tirador).setY(0);
         const largo = camino.length();
-        if (largo < contacto || largo > 160) continue;
+        if (largo < contactoRival || largo > 160) continue;
         const dir = camino.clone().divideScalar(largo);
         const corte = dir.angleTo(haciaHueco);
         if (corte > THREE.MathUtils.degToRad(55)) continue;
@@ -217,7 +227,7 @@ export function planificarTiroCanal({ traza, tirador, radioBolincha, otros, nive
         // Que el rival llegue al hueco ya casi sin velocidad (si va rápido, lo salta).
         const vBlanco = buscar((v) => distanciaHastaParar(v, f), distHueco + 1, vMax);
         if (vBlanco === null) continue;
-        const v0 = buscar((v) => velocidadTras(v, largo, f), vBlanco / (Math.cos(corte) * ((1 + e) / 2)), vMax * 1.5);
+        const v0 = buscar((v) => velocidadTras(v, largo, f), vBlanco / (Math.cos(corte) * traspaso), vMax * 1.5);
         if (v0 === null || v0 > vMax) continue;
         const costo = corte + largo / 100;
         if (!mejor || costo < mejor.costo) mejor = { direccion: dir, fuerza: v0 / vMax, objetivo: o.pos, intencion: 'atacar', costo };

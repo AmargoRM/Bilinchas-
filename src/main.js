@@ -11,6 +11,8 @@ import { crearHud } from './ui/hud.js';
 import { cargarAjustesGuardados, crearPanelAjustes } from './ui/ajustes.js';
 import { crearModoCirculo } from './modos/circulo.js';
 import { crearModoCano } from './modos/cano.js';
+import { crearMenu3d } from './escenario/menu3d.js';
+import { crearSonido } from './sonido.js';
 
 async function iniciar() {
   cargarAjustesGuardados();
@@ -35,6 +37,14 @@ async function iniciar() {
   }
 
   const escenarios = { circulo: crearPatio(escena, fisica), cano: crearCanal(escena, fisica) };
+  const menu3d = crearMenu3d({ entorno: escena.environment, fondo: escena.background });
+  const ajustarMenu = () => menu3d.ajustar(window.innerWidth, window.innerHeight);
+  ajustarMenu();
+  window.addEventListener('resize', ajustarMenu);
+  const sonido = crearSonido();
+  // El navegador solo deja sonar después de un toque: se habilita en el primero.
+  window.addEventListener('pointerdown', () => sonido.desbloquear(), { capture: true });
+  const efectos = { hueco: () => sonido.hueco(), victoria: () => sonido.victoria() };
   const controlCamara = crearCamara(camara);
 
   let control = null;
@@ -43,8 +53,8 @@ async function iniciar() {
     hud.fuerza(direccion ? fuerza : null);
   };
   const modos = {
-    circulo: crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria }),
-    cano: crearModoCano({ escena, fisica, hud, controlCamara, canal: escenarios.cano, mostrarPunteria }),
+    circulo: crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria, efectos, alSalir: (a) => irA(a) }),
+    cano: crearModoCano({ escena, fisica, hud, controlCamara, canal: escenarios.cano, mostrarPunteria, efectos, alSalir: (a) => irA(a) }),
   };
   let modo = modos.circulo;
   const todas = [...modos.circulo.todas, ...modos.cano.todas];
@@ -58,7 +68,10 @@ async function iniciar() {
     obtenerBolincha: () => modo.tirador,
     puedeTirar: () => modo.puedeTirar() && !vistaMapa,
     alApuntar: (f) => hud.fuerza(f),
-    alTirar: (direccion, fuerza) => modo.tirar(direccion, fuerza),
+    alTirar: (direccion, fuerza) => {
+      sonido.tiro(fuerza);
+      modo.tirar(direccion, fuerza);
+    },
   });
 
   // Vista de mapa (Caño): cámara desde arriba y un punto de color sobre cada bolincha.
@@ -100,28 +113,96 @@ async function iniciar() {
     modo.nuevaPartida();
   }
 
-  // Elegir juego (el menú completo llega en la etapa 6).
-  function elegirJuego() {
-    hud.tarjeta({
-      titulo: 'Ojo de Gato',
-      subtitulo: 'Bolinchas, canicas, marbles',
-      pregunta: '¿A qué juegas?',
-      botones: [
-        { texto: 'Círculo', alElegir: () => usarJuego('circulo') },
-        { texto: 'Caño', alElegir: () => usarJuego('cano') },
-      ],
-    });
+  // ---------------- Pantallas del menú ----------------
+  const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-reglas'];
+  let enMenu = true;
+  function mostrarPantalla(id) {
+    for (const p of pantallas) document.getElementById(p).hidden = p !== id;
+    enMenu = id !== null;
+    hud.mostrar(!enMenu);
+    if (enMenu) hud.cerrarTarjeta();
   }
-
-  hud.alNuevaPartida(() => {
+  // Salir de una partida: a la lista de modos o al menú principal.
+  function irA(destino) {
     mostrarMapa(false);
-    elegirJuego();
+    hud.fuerza(null);
+    for (const m of Object.values(modos)) m.retirar();
+    mostrarPantalla(destino === 'modos' ? 'pantalla-modos' : 'menu-principal');
+  }
+  const $ = (id) => document.getElementById(id);
+  $('portada').addEventListener('click', () => mostrarPantalla('menu-principal'));
+  $('menu-jugar').addEventListener('click', () => mostrarPantalla('pantalla-modos'));
+  $('menu-ajustes').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
+  $('menu-reglas').addEventListener('click', () => mostrarPantalla('pantalla-reglas'));
+  for (const b of document.querySelectorAll('[data-volver]')) b.addEventListener('click', () => mostrarPantalla('menu-principal'));
+  $('modo-circulo').addEventListener('click', () => {
+    mostrarPantalla(null);
+    usarJuego('circulo');
   });
+  $('modo-cano').addEventListener('click', () => {
+    mostrarPantalla(null);
+    usarJuego('cano');
+  });
+  const botonSonido = $('ajuste-sonido');
+  const mostrarSonido = () => {
+    botonSonido.textContent = sonido.activo ? 'Sí' : 'No';
+    botonSonido.setAttribute('aria-pressed', String(sonido.activo));
+  };
+  mostrarSonido();
+  botonSonido.addEventListener('click', () => {
+    sonido.activar(!sonido.activo);
+    mostrarSonido();
+  });
+
+  hud.alNuevaPartida(() => irA('menu'));
   hud.alCamara(() => hud.modoCamara(control.alternarModoCamara() === 'camara'));
+
+  // ---------------- Sonidos de choques y rodado ----------------
+  // Cada cuadro se mira cuánto cambió la velocidad de cada bolincha: un cambio
+  // brusco es un choque (contra otra bolincha = vidrio; si no, pared o suelo).
+  const anteriores = new Map();
+  const vel = new THREE.Vector3();
+  function sonidosDelCuadro() {
+    const superficie = modo === modos.cano ? 'concreto' : 'tierra';
+    const enJuego = modo.todas.filter((b) => b.cuerpo.isEnabled());
+    const yaSonaron = new Set();
+    let rodando = 0;
+    for (const b of enJuego) {
+      const v = b.cuerpo.linvel();
+      vel.set(v.x, v.y, v.z);
+      const antes = anteriores.get(b);
+      if (b.posicion.y < b.radio + 0.3) rodando += Math.hypot(v.x, v.z);
+      if (antes) {
+        const cambio = vel.distanceTo(antes);
+        if (cambio > 25 && !yaSonaron.has(b)) {
+          const otra = enJuego.find((o) => o !== b && o.posicion.distanceTo(b.posicion) < o.radio + b.radio + 0.4);
+          if (otra) {
+            sonido.choqueVidrio(cambio / 300, b.tipo === 'boliche' || otra.tipo === 'boliche');
+            yaSonaron.add(otra);
+          } else if (antes.length() > 1) {
+            // (si estaba quieta y sale sola, es un tiro: ya sonó el "tic")
+            sonido.golpeSeco(cambio / 300, superficie);
+          }
+          yaSonaron.add(b);
+        }
+        antes.copy(vel);
+      } else {
+        anteriores.set(b, vel.clone());
+      }
+    }
+    for (const b of anteriores.keys()) if (!b.cuerpo.isEnabled()) anteriores.delete(b);
+    sonido.rodar(superficie === 'tierra' ? rodando : 0, superficie === 'concreto' ? rodando : 0);
+  }
 
   const reloj = new THREE.Clock();
   renderer.setAnimationLoop(() => {
     const dt = reloj.getDelta();
+    if (enMenu) {
+      sonido.rodar(0, 0);
+      menu3d.actualizar(dt);
+      renderer.render(menu3d.escena, menu3d.camara);
+      return;
+    }
     fisica.avanzar(dt, (paso) => modo.todas.forEach((b) => b.aplicarRodadura(paso)));
     modo.todas.forEach((b) => b.sincronizar(dt));
     modo.actualizar(dt);
@@ -137,13 +218,13 @@ async function iniciar() {
     });
     seguirSombra(foco);
     control.actualizar();
+    sonidosDelCuadro();
     renderer.render(escena, camara);
   });
 
-  // Mientras se elige el juego, de fondo se ve el patio.
   escenarios.cano.activar(false);
   modos.cano.retirar();
-  elegirJuego();
+  mostrarPantalla('portada');
   hud.listo();
 }
 

@@ -7,7 +7,7 @@
     <title>Ojo de Gato</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;1,700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;1,700&family=Permanent+Marker&display=swap" rel="stylesheet" />
   </head>
   <body>
     <canvas id="lienzo"></canvas>
@@ -19,8 +19,10 @@
           <div id="marcador-quedan" class="marcador-quedan"></div>
         </div>
         <div class="botones-arriba">
-          <button id="btn-ajustes" class="placa boton" type="button" aria-expanded="false" aria-controls="panel-ajustes">Ajustar física</button>
-          <button id="btn-nueva" class="placa boton" type="button">Nueva partida</button>
+          <button id="btn-ajustes" class="placa boton boton-icono" type="button" aria-expanded="false" aria-controls="panel-ajustes" aria-label="Ajustar física">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icono-relleno"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.47.47 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.61zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z" /></svg>
+          </button>
+          <button id="btn-nueva" class="placa boton" type="button">Menú</button>
         </div>
       </div>
 
@@ -57,6 +59,72 @@
         </div>
       </div>
     </div>
+
+    <section id="portada" class="pantalla portada">
+      <div class="pantalla-arriba">
+        <h1 class="titulo"><span class="titulo-linea"><svg class="ojo" viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="vidrio-ojo" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#d8fff8" /><stop offset=".45" stop-color="#3fb6aa" /><stop offset="1" stop-color="#0d4c4a" /></radialGradient></defs><circle cx="50" cy="50" r="46" fill="url(#vidrio-ojo)" /><path d="M18 62C34 30 62 30 84 40 64 46 40 52 18 62Z" fill="#d8402c" /><path d="M20 58C40 44 62 52 82 46 62 60 40 66 20 58Z" fill="#f2cf4a" /><path d="M24 70C44 56 66 62 80 54 64 70 42 76 24 70Z" fill="#3fae5a" opacity=".85" /><ellipse cx="36" cy="28" rx="13" ry="7" fill="#fff" opacity=".7" transform="rotate(-25 36 28)" /></svg>jo</span><span class="titulo-linea titulo-de"><small>de</small> Gato</span></h1>
+        <p class="titulo-sub">(Bolinchas, Canicas, Marbles)</p>
+      </div>
+      <p class="toca">Toca para comenzar</p>
+    </section>
+
+    <section id="menu-principal" class="pantalla" hidden>
+      <div class="pantalla-arriba">
+        <h1 class="titulo"><span class="titulo-linea"><svg class="ojo" viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="vidrio-ojo-2" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#d8fff8" /><stop offset=".45" stop-color="#3fb6aa" /><stop offset="1" stop-color="#0d4c4a" /></radialGradient></defs><circle cx="50" cy="50" r="46" fill="url(#vidrio-ojo-2)" /><path d="M18 62C34 30 62 30 84 40 64 46 40 52 18 62Z" fill="#d8402c" /><path d="M20 58C40 44 62 52 82 46 62 60 40 66 20 58Z" fill="#f2cf4a" /><path d="M24 70C44 56 66 62 80 54 64 70 42 76 24 70Z" fill="#3fae5a" opacity=".85" /><ellipse cx="36" cy="28" rx="13" ry="7" fill="#fff" opacity=".7" transform="rotate(-25 36 28)" /></svg>jo</span><span class="titulo-linea titulo-de"><small>de</small> Gato</span></h1>
+        <p class="titulo-sub">(Bolinchas, Canicas, Marbles)</p>
+      </div>
+      <nav class="menu-botones" aria-label="Menú principal">
+        <button id="menu-jugar" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>Jugar</button>
+        <button id="menu-ajustes" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" class="icono-relleno"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.47.47 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.61zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z" /></svg>Ajustes</button>
+        <button id="menu-reglas" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5c3-1 6-1 9 1v14c-3-2-6-2-9-1zM21 5c-3-1-6-1-9 1v14c3-2 6-2 9-1z" /></svg>Reglas</button>
+      </nav>
+    </section>
+
+    <section id="pantalla-modos" class="pantalla pantalla-lista" hidden>
+      <header class="pantalla-cabeza"><button class="volver" type="button" data-volver aria-label="Volver">←</button><h2>Modos de juego</h2></header>
+      <button id="modo-circulo" class="tarjeta-modo" type="button">
+        <svg viewBox="0 0 320 130" aria-hidden="true"><rect width="320" height="130" fill="#7a4428" /><g fill="#5d321c" opacity=".6"><circle cx="40" cy="30" r="3" /><circle cx="270" cy="100" r="4" /><circle cx="150" cy="115" r="2" /><circle cx="290" cy="25" r="3" /></g><ellipse cx="160" cy="68" rx="118" ry="40" fill="none" stroke="#f3eee2" stroke-width="5" stroke-dasharray="40 3 22 4" opacity=".9" /><g><circle cx="140" cy="62" r="6" fill="#3fae5a" /><circle cx="165" cy="70" r="6" fill="#4fb8d8" /><circle cx="182" cy="58" r="6" fill="#8fd3b0" /><circle cx="150" cy="80" r="6" fill="#2f9e55" /><circle cx="196" cy="76" r="6" fill="#e6f2f0" /><circle cx="122" cy="74" r="6" fill="#6fd3c8" /><circle cx="160" cy="118" r="8" fill="#1f7fd6" /></g></svg>
+        <span class="modo-nombre">Círculo</span>
+        <span class="modo-texto">Saca las bolinchas del círculo de tiza: las que saques son tuyas.</span>
+      </button>
+      <button id="modo-cano" class="tarjeta-modo" type="button">
+        <svg viewBox="0 0 320 130" aria-hidden="true"><rect width="320" height="130" fill="#5d6b2e" /><path d="M120 0h80l70 130H50z" fill="#9b9a93" /><path d="M120 0h80l-6 0 64 130h-14L190 0zM120 0l-70 130h14L126 0z" fill="#6f6e68" /><g stroke="#4a4842" stroke-width="2"><path d="M108 22h104M92 52h136M70 92h180" /></g><path d="M138 30h44" stroke="#f3eee2" stroke-width="3" /><circle cx="160" cy="105" r="8" fill="#1f7fd6" /><circle cx="168" cy="60" r="6" fill="#d23a26" /><circle cx="140" cy="80" r="5" fill="#7a6a5a" /></svg>
+        <span class="modo-nombre">Caño</span>
+        <span class="modo-texto">Llega primero a la meta por un caño con esquinas, piedras y huecos.</span>
+      </button>
+    </section>
+
+    <section id="pantalla-ajustes" class="pantalla pantalla-lista" hidden>
+      <header class="pantalla-cabeza"><button class="volver" type="button" data-volver aria-label="Volver">←</button><h2>Ajustes</h2></header>
+      <div class="placa lista-ajustes">
+        <div class="fila-ajuste"><span>Sonido</span><button id="ajuste-sonido" class="boton selector-boton interruptor" type="button" aria-pressed="true">Sí</button></div>
+        <p class="nota">La fuerza, el frenado y el rebote se ajustan durante el juego, con el botón del engranaje.</p>
+      </div>
+    </section>
+
+    <section id="pantalla-reglas" class="pantalla pantalla-lista" hidden>
+      <header class="pantalla-cabeza"><button class="volver" type="button" data-volver aria-label="Volver">←</button><h2>Reglas</h2></header>
+      <div class="placa lista-reglas">
+        <h3>Cómo tirar</h3>
+        <p>Toca tu bolincha y arrastra el dedo hacia atrás, como estirando una liga. La dirección es el ángulo y el largo es la fuerza. Al soltar, sale.</p>
+        <h3>Círculo</h3>
+        <ul>
+          <li>Tira desde afuera y saca bolinchas del círculo: las que saques son tuyas.</li>
+          <li>Si sacas al menos una, vuelves a tirar desde donde quedó tu bolincha.</li>
+          <li>Si no sacas ninguna, o tu bolincha queda dentro del círculo, pasa el turno.</li>
+          <li>Gana quien tenga más cuando el círculo quede vacío.</li>
+        </ul>
+        <h3>Caño</h3>
+        <ul>
+          <li>Por turnos, cada uno tira su bolincha por el caño. Gana el primero que pase la meta.</li>
+          <li>Puedes pegarle a la bolincha de otro para atrasarla o tirarla a un hueco.</li>
+          <li>Si una bolincha salta la pared, vuelve a donde estaba antes del tiro.</li>
+          <li>Si cae en un hueco, vuelve a la salida.</li>
+        </ul>
+        <h3>Normal o boliche</h3>
+        <p>La normal mide 16 mm. El boliche mide 25 mm y pesa casi cuatro veces más: empuja más fuerte, pero es más difícil de frenar.</p>
+      </div>
+    </section>
 
     <div id="tarjeta" class="tarjeta-fondo" hidden>
       <div class="tarjeta" role="dialog" aria-modal="true" aria-labelledby="tarjeta-titulo">

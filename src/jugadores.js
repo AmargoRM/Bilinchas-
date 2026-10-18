@@ -5,10 +5,16 @@ import { crearBolincha } from './bolincha.js';
 export const MAX_JUGADORES = 4;
 
 export const COLORES_JUGADORES = [
-  { vidrio: 0x2a8fd6, veta: 0xf2cf4a, color: '#3b9be0' }, // azul
-  { vidrio: 0xd8402c, veta: 0xf2cf4a, color: '#e2523d' }, // rojo
-  { vidrio: 0xe8b923, veta: 0xd8402c, color: '#f0c43a' }, // amarillo
-  { vidrio: 0x8a4fd6, veta: 0xf2cf4a, color: '#a46ee6' }, // morado
+  { diseno: 'azul', color: '#3b9be0' },
+  { diseno: 'roja', color: '#e2523d' },
+  { diseno: 'amarilla', color: '#f0c43a' },
+  { diseno: 'morada', color: '#a46ee6' },
+];
+
+// Con qué tira cada lugar: bolincha normal o boliche (más grande y pesado).
+export const TAMANOS = [
+  { valor: 'normal', texto: 'Normal' },
+  { valor: 'boliche', texto: 'Boliche' },
 ];
 
 // Lo que puede haber en cada lugar de la mesa.
@@ -21,20 +27,29 @@ export const ASIENTOS = [
 ];
 
 export const MESA_INICIAL = ['persona', 'medio', 'nadie', 'nadie'];
+export const TAMANOS_INICIALES = ['normal', 'normal', 'normal', 'normal'];
 
-// Crea los 4 jugadores posibles, con su bolincha guardada (fuera del suelo).
+// Crea los 4 jugadores posibles, cada uno con una bolincha normal y un boliche
+// guardados (fuera del suelo). "bolincha" es la que usa en la partida.
 export function crearJugadores({ escena, fisica, superficie = 'tierra' }) {
   return COLORES_JUGADORES.map((c, i) => {
-    const bolincha = crearBolincha({ escena, fisica, posicion: { x: 0, z: 0 }, colorVidrio: c.vidrio, colorVeta: c.veta });
-    bolincha.usarSuperficie(superficie);
-    bolincha.quitar();
-    return { ...c, lugar: i, nombre: '', esTu: false, esComputadora: false, nivel: null, enCancha: false, bolincha };
+    const deTipo = (tipo) => {
+      const b = crearBolincha({ escena, fisica, posicion: { x: 0, z: 0 }, tipo, diseno: c.diseno, aro: c.color });
+      b.usarSuperficie(superficie);
+      b.quitar();
+      return b;
+    };
+    const tipos = { normal: deTipo('normal'), boliche: deTipo('boliche') };
+    return { ...c, lugar: i, nombre: '', esTu: false, esComputadora: false, nivel: null, enCancha: false, tipos, bolincha: tipos.normal };
   });
 }
 
+// Todas las bolinchas de los jugadores (normales y boliches).
+export const bolinchasDe = (todos) => todos.flatMap((j) => [j.tipos.normal, j.tipos.boliche]);
+
 // Prepara los jugadores según la mesa y devuelve solo los que juegan, en orden.
 // Nombres: si hay una sola persona, es "Tú"; si hay varias, "Jugador 1", "Jugador 2"...
-export function sentarJugadores(todos, mesa) {
+export function sentarJugadores(todos, mesa, tamanos = TAMANOS_INICIALES) {
   const personas = mesa.filter((a) => a === 'persona').length;
   const compus = mesa.filter((a) => a !== 'persona' && a !== 'nadie').length;
   let numeroCompu = 0;
@@ -42,7 +57,9 @@ export function sentarJugadores(todos, mesa) {
   todos.forEach((j, i) => {
     const a = mesa[i];
     j.enCancha = false;
-    j.bolincha.quitar();
+    j.tipos.normal.quitar();
+    j.tipos.boliche.quitar();
+    j.bolincha = j.tipos[tamanos[i]] || j.tipos.normal;
     if (a === 'nadie') return;
     j.esComputadora = a !== 'persona';
     j.nivel = j.esComputadora ? a : null;
@@ -67,30 +84,50 @@ export function sujeto(j, mayuscula = true) {
   return j.nombre;
 }
 
-// Selectores de la mesa para la tarjeta de inicio. "alCambiar" recibe la mesa nueva.
-export function selectoresMesa(mesa, alCambiar) {
+// Selectores de la mesa para la tarjeta de inicio: quién juega en cada lugar y con qué tira.
+// "alCambiar" se llama después de cada cambio (para guardar las preferencias).
+export function selectoresMesa(preferencias, alCambiar) {
   return COLORES_JUGADORES.map((c, i) => ({
-    etiqueta: `Lugar ${i + 1}`,
+    etiqueta: `${i + 1}`,
     color: c.color,
     // Los dos primeros lugares siempre juegan: tiene que haber al menos dos jugadores.
     opciones: i < 2 ? ASIENTOS.filter((a) => a.valor !== 'nadie') : ASIENTOS,
-    valor: mesa[i],
+    valor: preferencias.mesa[i],
     alCambiar: (v) => {
-      mesa[i] = v;
-      alCambiar(mesa);
+      preferencias.mesa[i] = v;
+      alCambiar();
+    },
+    extra: {
+      opciones: TAMANOS,
+      valor: preferencias.tamanos[i],
+      alCambiar: (v) => {
+        preferencias.tamanos[i] = v;
+        alCambiar();
+      },
     },
   }));
 }
 
 // Recuerda la mesa y el mapa elegidos en este teléfono (comodidad; si falla, no pasa nada).
 const CLAVE = 'ojo-de-gato.mesa';
+let preferencias = null; // una sola copia, compartida por todos los modos
 export function leerPreferencias() {
+  if (!preferencias) preferencias = cargar();
+  return preferencias;
+}
+function cargar() {
   try {
     const p = JSON.parse(localStorage.getItem(CLAVE)) || {};
     const valida = Array.isArray(p.mesa) && p.mesa.length === MAX_JUGADORES && p.mesa.every((a) => ASIENTOS.some((x) => x.valor === a));
-    return { mesa: valida ? p.mesa : [...MESA_INICIAL], mapa: typeof p.mapa === 'string' ? p.mapa : null };
+    const tamanosValidos =
+      Array.isArray(p.tamanos) && p.tamanos.length === MAX_JUGADORES && p.tamanos.every((t) => TAMANOS.some((x) => x.valor === t));
+    return {
+      mesa: valida ? p.mesa : [...MESA_INICIAL],
+      tamanos: tamanosValidos ? p.tamanos : [...TAMANOS_INICIALES],
+      mapa: typeof p.mapa === 'string' ? p.mapa : null,
+    };
   } catch {
-    return { mesa: [...MESA_INICIAL], mapa: null };
+    return { mesa: [...MESA_INICIAL], tamanos: [...TAMANOS_INICIALES], mapa: null };
   }
 }
 export function guardarPreferencias(p) {

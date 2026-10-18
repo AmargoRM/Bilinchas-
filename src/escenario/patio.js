@@ -43,7 +43,7 @@ export function crearSueloPatio(fisica) {
 // ---------------------------------------------------------------
 // Tierra café rojiza con piedritas
 // ---------------------------------------------------------------
-function crearTierra() {
+export function crearTierra() {
   const azar = azarFijo(7);
   const tam = 1024;
   const color = document.createElement('canvas');
@@ -138,7 +138,7 @@ function crearTierra() {
 // ---------------------------------------------------------------
 // Círculo de tiza: trazo irregular, como dibujado a mano
 // ---------------------------------------------------------------
-function crearTiza(radio) {
+export function crearTiza(radio) {
   const azar = azarFijo(21);
   const margen = 8;
   const ladoCm = (radio + margen) * 2;

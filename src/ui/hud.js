@@ -94,8 +94,9 @@ export function crearHud() {
 
     // Tarjeta en el centro que espera a que el jugador toque un botón.
     // botones: [{ texto, alElegir, secundario }]
-    // selectores: [{ etiqueta, color, opciones: [{ valor, texto }], valor, alCambiar }]
+    // selectores: [{ etiqueta, color, opciones: [{ valor, texto }], valor, alCambiar, extra }]
     //   cada selector es un botón que pasa a la opción siguiente al tocarlo.
+    //   "extra" (opcional) es un segundo botón más chico con sus propias opciones.
     tarjeta({ titulo, subtitulo = '', texto = '', lista = [], pregunta = '', selectores = [], botones, color = null }) {
       $('tarjeta-titulo').textContent = titulo;
       $('tarjeta-titulo').style.color = color || '';
@@ -126,22 +127,39 @@ export function crearHud() {
             etiqueta.appendChild(punto);
           }
           etiqueta.append(s.etiqueta);
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.id = 'selector-' + k;
-          btn.className = 'boton selector-boton';
-          let i = Math.max(s.opciones.findIndex((o) => o.valor === s.valor), 0);
-          const mostrar = () => {
-            btn.textContent = s.opciones[i].texto;
-            btn.classList.toggle('apagado', s.opciones[i].valor === 'nadie');
-          };
-          mostrar();
-          btn.addEventListener('click', () => {
-            i = (i + 1) % s.opciones.length;
+          // Un botón que recorre las opciones; devuelve también cómo saber qué tiene elegido.
+          const boton = (def, id, clase) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.id = id;
+            btn.className = 'boton ' + clase;
+            let i = Math.max(def.opciones.findIndex((o) => o.valor === def.valor), 0);
+            const mostrar = () => {
+              btn.textContent = def.opciones[i].texto;
+              btn.classList.toggle('apagado', def.opciones[i].valor === 'nadie');
+            };
             mostrar();
-            s.alCambiar(s.opciones[i].valor);
-          });
-          fila.append(etiqueta, btn);
+            btn.addEventListener('click', () => {
+              i = (i + 1) % def.opciones.length;
+              mostrar();
+              def.alCambiar(def.opciones[i].valor);
+              if (alCambiarFila) alCambiarFila();
+            });
+            return { btn, valor: () => def.opciones[i].valor };
+          };
+          let alCambiarFila = null;
+          const principal = boton(s, 'selector-' + k, 'selector-boton');
+          fila.append(etiqueta, principal.btn);
+          if (s.extra) {
+            const extra = boton(s.extra, 'selector-' + k + '-extra', 'selector-boton selector-extra');
+            fila.append(extra.btn);
+            fila.classList.add('con-extra');
+            // Si el lugar queda vacío, el tamaño no importa: se apaga.
+            alCambiarFila = () => {
+              extra.btn.disabled = principal.valor() === 'nadie';
+            };
+            alCambiarFila();
+          }
           return fila;
         })
       );
@@ -184,7 +202,20 @@ export function crearHud() {
       $('btn-mapa').addEventListener('click', fn);
     },
 
-    // "Nueva partida" pide un segundo toque para confirmar.
+    cerrarTarjeta() {
+      tarjeta.hidden = true;
+    },
+
+    // Muestra u oculta todo lo del juego (marcador, botones) mientras se ve el menú.
+    mostrar(si) {
+      $('hud').hidden = !si;
+      if (!si) {
+        aviso.hidden = true;
+        fuerza.hidden = true;
+      }
+    },
+
+    // "Menú" pide un segundo toque para confirmar (se pierde la partida).
     alNuevaPartida(fn) {
       const btn = $('btn-nueva');
       let reloj = 0;
@@ -192,7 +223,7 @@ export function crearHud() {
         if (btn.dataset.confirmar) {
           clearTimeout(reloj);
           delete btn.dataset.confirmar;
-          btn.textContent = 'Nueva partida';
+          btn.textContent = 'Menú';
           fn();
           return;
         }
@@ -200,7 +231,7 @@ export function crearHud() {
         btn.textContent = '¿Seguro? Toca otra vez';
         reloj = setTimeout(() => {
           delete btn.dataset.confirmar;
-          btn.textContent = 'Nueva partida';
+          btn.textContent = 'Menú';
         }, 3000);
       });
     },

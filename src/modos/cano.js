@@ -5,16 +5,16 @@ import { CONFIG } from '../config.js';
 import { resolverTiroCano } from './reglas-cano.js';
 import { planificarTiroCanal } from '../ia/rival.js';
 import { MAPAS, buscarMapa } from '../mapas.js';
-import { crearJugadores, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
+import { crearJugadores, bolinchasDe, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 
 const DURACION_PUNTERIA = 0.9; // segundos que se ve a la computadora apuntando
 const metros = (cm) => `${(Math.max(cm, 0) / 100).toFixed(1).replace('.', ',')} m`;
 
 // canal: el escenario (src/escenario/canal.js), que arma el mapa elegido.
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
-export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostrarPunteria = () => {} }) {
+export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {} }) {
   const todos = crearJugadores({ escena, fisica, superficie: 'concreto' });
-  const todas = todos.map((j) => j.bolincha);
+  const todas = bolinchasDe(todos);
   const preferencias = leerPreferencias();
   let mapa = buscarMapa(preferencias.mapa);
   let traza = null;
@@ -92,7 +92,10 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
         traza,
         tirador: j.bolincha.posicion.clone(),
         radioBolincha: j.bolincha.radio,
-        otros: jugadores.filter((o) => o !== j && o.enCancha).map((o) => ({ pos: o.bolincha.posicion.clone(), recorrido: recorrido(o) })),
+        pesoTirador: j.bolincha.peso,
+        otros: jugadores
+          .filter((o) => o !== j && o.enCancha)
+          .map((o) => ({ pos: o.bolincha.posicion.clone(), recorrido: recorrido(o), radio: o.bolincha.radio, peso: o.bolincha.peso })),
         nivel: j.nivel,
       });
       controlCamara.mirarDesde(j.bolincha.posicion, planComputadora.objetivo || adelanteDe(j.bolincha.posicion));
@@ -107,7 +110,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
 
   function empezarPartida() {
     traza = canal.usarMapa(mapa);
-    jugadores = sentarJugadores(todos, preferencias.mesa);
+    jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos);
     turno = CONFIG.reglasCano.sorteoDeQuienEmpieza ? Math.floor(Math.random() * jugadores.length) : 0;
     colocarEn(jugadores[turno], traza.sSalida);
     enfocada = jugadores[turno].bolincha;
@@ -141,9 +144,12 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
             guardarPreferencias(preferencias);
           },
         },
-        ...selectoresMesa(preferencias.mesa, () => guardarPreferencias(preferencias)),
+        ...selectoresMesa(preferencias, () => guardarPreferencias(preferencias)),
       ],
-      botones: [{ texto: 'Jugar', alElegir: () => empezarPartida() }],
+      botones: [
+        { texto: 'Jugar', alElegir: () => empezarPartida() },
+        { texto: 'Volver', secundario: true, alElegir: () => alSalir('modos') },
+      ],
     });
   }
 
@@ -161,6 +167,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
         if (o.tipo !== 'hueco') continue;
         if (Math.hypot(p.x - o.x, p.z - o.z) < o.radio - 0.3 && j.bolincha.velocidad() < CONFIG.canal.velocidadParaCaerEnHueco) {
           j.enHueco = true;
+          efectos.hueco?.();
           j.bolincha.congelar(o.x, -j.bolincha.radio * 0.9, o.z); // se ve hundida en el hueco
           break;
         }
@@ -236,6 +243,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
 
   function terminar(ganador) {
     fase = 'fin';
+    efectos.victoria?.();
     mostrarPunteria(null);
     actualizarMarcador();
     let titulo;
@@ -249,6 +257,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
       botones: [
         { texto: 'Jugar otra vez', alElegir: () => empezarPartida() },
         { texto: 'Cambiar mapa o jugadores', secundario: true, alElegir: () => nuevaPartida() },
+        { texto: 'Menú', secundario: true, alElegir: () => alSalir('menu') },
       ],
     });
   }

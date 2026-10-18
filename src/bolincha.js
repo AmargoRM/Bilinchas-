@@ -1,57 +1,25 @@
-// Una bolincha: la esfera de vidrio que se ve y su cuerpo en la física.
-// En la etapa 6 se cambia el aspecto por el "ojo de gato" completo.
+// Una bolincha: su aspecto (aspecto.js) y su cuerpo en la física.
 import * as THREE from 'three';
 import { CONFIG } from './config.js';
+import { crearAspecto } from './aspecto.js';
 
-// Formas compartidas entre todas las bolinchas del mismo tamaño (ahorra memoria).
-const formas = new Map();
-function formasPara(radio) {
-  if (!formas.has(radio)) {
-    formas.set(radio, {
-      vidrio: new THREE.SphereGeometry(radio, 48, 32),
-      veta: new THREE.SphereGeometry(radio * 0.62, 24, 12),
-    });
-  }
-  return formas.get(radio);
-}
-
-export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', colorVidrio = 0x2fb7b0, colorVeta = 0xd8402c }) {
+// diseno: uno de src/disenos.js. aro: color del aro en el piso que marca de quién es (o null).
+export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', diseno = 'clasica', aro = null }) {
   const { RAPIER, mundo } = fisica;
   const datos = CONFIG.bolinchas[tipo];
   const radio = datos.diametro / 2;
-  const forma = formasPara(radio);
 
   // --- Aspecto ---
-  const grupo = new THREE.Group();
-  const vidrio = new THREE.Mesh(
-    forma.vidrio,
-    new THREE.MeshPhysicalMaterial({
-      color: new THREE.Color(colorVidrio).lerp(new THREE.Color(0xffffff), 0.35),
-      metalness: 0,
-      roughness: 0.04,
-      transmission: 1,
-      thickness: radio * 2,
-      ior: 1.5,
-      attenuationColor: new THREE.Color(colorVidrio),
-      attenuationDistance: radio * 5,
-      clearcoat: 1,
-      clearcoatRoughness: 0.02,
-      specularIntensity: 1,
-      envMapIntensity: 1.4,
-    })
-  );
-  vidrio.castShadow = true;
-  grupo.add(vidrio);
-
-  // Veta provisoria dentro del vidrio (sirve también para ver cómo gira).
-  const veta = new THREE.Mesh(
-    forma.veta,
-    new THREE.MeshStandardMaterial({ color: colorVeta, roughness: 0.35, emissive: colorVeta, emissiveIntensity: 0.15 })
-  );
-  veta.scale.set(1, 0.18, 0.55);
-  veta.rotation.set(0.3, 0, 0.5);
-  grupo.add(veta);
+  const grupo = crearAspecto(radio, diseno);
   escena.add(grupo);
+  let anillo = null;
+  if (aro) {
+    anillo = new THREE.Mesh(
+      new THREE.RingGeometry(radio * 1.25, radio * 1.65, 32).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ color: aro, transparent: true, opacity: 0.6, depthWrite: false })
+    );
+    escena.add(anillo);
+  }
 
   // --- Cuerpo físico ---
   const cuerpo = mundo.createRigidBody(
@@ -85,6 +53,8 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', color
 
   const bolincha = {
     radio,
+    tipo,
+    peso: datos.peso,
     grupo,
     cuerpo,
 
@@ -122,6 +92,7 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', color
     colocar(x, z) {
       cuerpo.setEnabled(true);
       grupo.visible = true;
+      if (anillo) anillo.visible = true;
       cuerpo.setTranslation({ x, y: radio, z }, true);
       cuerpo.setLinvel({ x: 0, y: 0, z: 0 }, true);
     },
@@ -157,18 +128,21 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', color
       cuerpo.setLinvel({ x: 0, y: 0, z: 0 }, false);
       cuerpo.setEnabled(false);
       grupo.visible = true;
+      if (anillo) anillo.visible = true;
     },
 
     // Saca la bolincha del juego (por ejemplo, si se cayó fuera del patio).
     quitar() {
       cuerpo.setEnabled(false);
       grupo.visible = false;
+      if (anillo) anillo.visible = false;
     },
 
     // Copia la posición de la física al dibujo y la hace girar como si rodara.
     sincronizar(dt) {
       const t = cuerpo.translation();
       grupo.position.set(t.x, t.y, t.z);
+      if (anillo) anillo.position.set(t.x, t.y - radio + 0.04, t.z);
       const v = cuerpo.linvel();
       const rapidez = Math.hypot(v.x, v.z);
       if (rapidez > 0.01) {

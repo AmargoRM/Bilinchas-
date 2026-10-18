@@ -3,19 +3,12 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { crearBolincha } from '../bolincha.js';
+import { DISENOS_CIRCULO } from '../disenos.js';
 import { resolverTiro, ganador } from './reglas-circulo.js';
 import { planificarTiro } from '../ia/rival.js';
-import { crearJugadores, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
+import { crearJugadores, bolinchasDe, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 
-// Colores de las bolinchas del círculo (verdes y claras, para no confundirlas con las de tiro).
-const COLORES_CIRCULO = [
-  [0x3fae5a, 0xd8402c],
-  [0xd9eef0, 0x2a8fd6],
-  [0x1f9e9a, 0xf2cf4a],
-  [0x6fcf6a, 0xd8402c],
-  [0xbfe3dc, 0x2a8fd6],
-  [0x8fd3c8, 0xd8402c],
-];
+
 
 const LIMITE_PATIO = 280; // cm: más allá de esto, la bolincha se cayó del patio
 const DURACION_PUNTERIA = 0.9; // segundos que se ve a la computadora apuntando
@@ -45,7 +38,7 @@ function frases(j) {
 }
 
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
-export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria = () => {} }) {
+export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {} }) {
   const radio = CONFIG.circulo.radio;
   const centro = new THREE.Vector3(0, 0, 0);
   const salida = new THREE.Vector3(0, 0, CONFIG.circulo.distanciaSalida);
@@ -55,10 +48,11 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
   let jugadores = []; // los que juegan esta partida
   const blancos = [];
   for (let i = 0; i < CONFIG.circulo.cantidadBolinchas; i++) {
-    const [colorVidrio, colorVeta] = COLORES_CIRCULO[i % COLORES_CIRCULO.length];
-    blancos.push({ enCirculo: true, bolincha: crearBolincha({ escena, fisica, posicion: centro, colorVidrio, colorVeta }) });
+    // Diseños clásicos de barrio (verdes y claros, para no confundirlas con las de tiro).
+    const diseno = DISENOS_CIRCULO[i % DISENOS_CIRCULO.length];
+    blancos.push({ enCirculo: true, bolincha: crearBolincha({ escena, fisica, posicion: centro, diseno }) });
   }
-  const todas = [...todos.map((j) => j.bolincha), ...blancos.map((b) => b.bolincha)];
+  const todas = [...bolinchasDe(todos), ...blancos.map((b) => b.bolincha)];
 
   let turno = 0;
   let fase = 'espera'; // 'apuntar' | 'computadora' | 'rodando' | 'espera' | 'fin'
@@ -143,6 +137,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
       planComputadora = planificarTiro({
         tirador: j.bolincha.posicion.clone(),
         radioBolincha: j.bolincha.radio,
+        pesoTirador: j.bolincha.peso,
         blancos: blancos.filter((b) => b.enCirculo).map((b) => b.bolincha.posicion.clone()),
         obstaculos: otros,
         nivel: j.nivel,
@@ -161,7 +156,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
 
   // Sienta a los jugadores de la mesa y arranca con las bolinchas en su lugar.
   function empezarPartida() {
-    jugadores = sentarJugadores(todos, preferencias.mesa);
+    jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos);
     for (const j of jugadores) j.puntos = 0;
     acomodar(blancos);
     turno = Math.floor(Math.random() * jugadores.length); // se sortea quién empieza
@@ -176,6 +171,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
   function nuevaPartida() {
     fase = 'espera';
     mostrarPunteria(null);
+    acomodar(blancos); // que se vean en el círculo detrás de la mesa
     hud.tarjeta({
       titulo: 'Círculo',
       lista: [
@@ -184,8 +180,11 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
         'Si no sacas ninguna, o tu bolincha queda dentro del círculo, pasa el turno.',
         'Gana quien tenga más cuando el círculo quede vacío.',
       ],
-      selectores: selectoresMesa(preferencias.mesa, () => guardarPreferencias(preferencias)),
-      botones: [{ texto: 'Jugar', alElegir: () => empezarPartida() }],
+      selectores: selectoresMesa(preferencias, () => guardarPreferencias(preferencias)),
+      botones: [
+        { texto: 'Jugar', alElegir: () => empezarPartida() },
+        { texto: 'Volver', secundario: true, alElegir: () => alSalir('modos') },
+      ],
     });
   }
 
@@ -251,6 +250,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
 
   function terminar() {
     fase = 'fin';
+    efectos.victoria?.();
     mostrarPunteria(null);
     actualizarMarcador();
     const g = ganador(jugadores);
@@ -266,6 +266,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
       botones: [
         { texto: 'Jugar otra vez', alElegir: () => empezarPartida() },
         { texto: 'Cambiar jugadores', secundario: true, alElegir: () => nuevaPartida() },
+        { texto: 'Menú', secundario: true, alElegir: () => alSalir('menu') },
       ],
     });
   }
