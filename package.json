@@ -1,0 +1,32 @@
+{
+  "name": "ojo-de-gato",
+  "version": "1.0.0",
+  "description": "Ojo de Gato (Bolinchas, Canicas, Marbles)",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "build:prueba": "vite build --mode prueba && node scripts/preparar-prueba.mjs",
+    "preview": "vite preview --host"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AmargoRM/Bilinchas-.git"
+  },
+  "bugs": {
+    "url": "https://github.com/AmargoRM/Bilinchas-/issues"
+  },
+  "homepage": "https://github.com/AmargoRM/Bilinchas-#readme",
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.21.0",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4",
+    "vite-plugin-singlefile": "^2.3.4"
+  },
+  "private": true,
+  "type": "module"
+}
