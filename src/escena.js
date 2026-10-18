@@ -58,7 +58,14 @@ export function crearEscena(lienzo) {
   ajustarTamano();
   window.addEventListener('resize', ajustarTamano);
 
-  return { renderer, escena, camara };
+  // La sombra solo se calcula cerca de la cámara: el sol se mueve con lo que se mira.
+  const desdeSol = sol.position.clone();
+  function seguirSombra(pos) {
+    sol.target.position.copy(pos);
+    sol.position.copy(pos).add(desdeSol);
+  }
+
+  return { renderer, escena, camara, seguirSombra };
 }
 
 function lienzo(ancho, alto) {

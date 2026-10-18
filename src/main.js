@@ -4,11 +4,13 @@ import './ui/estilos.css';
 import { crearEscena } from './escena.js';
 import { crearFisica } from './fisica.js';
 import { crearPatio } from './escenario/patio.js';
+import { crearCano } from './escenario/cano.js';
 import { crearCamara } from './camara.js';
 import { crearControlTiro } from './control/tiro.js';
 import { crearHud } from './ui/hud.js';
 import { cargarAjustesGuardados, crearPanelAjustes } from './ui/ajustes.js';
 import { crearModoCirculo } from './modos/circulo.js';
+import { crearModoCano } from './modos/cano.js';
 
 async function iniciar() {
   cargarAjustesGuardados();
@@ -22,8 +24,7 @@ async function iniciar() {
     hud.error('Este navegador no puede mostrar gráficos 3D (WebGL). ' + e.message);
     return;
   }
-  const { renderer, escena, camara } = mundo3d;
-  crearPatio(escena);
+  const { renderer, escena, camara, seguirSombra } = mundo3d;
 
   let fisica;
   try {
@@ -33,19 +34,21 @@ async function iniciar() {
     return;
   }
 
+  const escenarios = { circulo: crearPatio(escena, fisica), cano: crearCano(escena, fisica) };
   const controlCamara = crearCamara(camara);
+
   let control = null;
-  const modo = crearModoCirculo({
-    escena,
-    fisica,
-    hud,
-    controlCamara,
-    mostrarPunteria: (direccion, fuerza) => {
-      control.mostrarPunteriaExterna(direccion, fuerza);
-      hud.fuerza(direccion ? fuerza : null);
-    },
-  });
-  crearPanelAjustes({ alCambiar: () => modo.todas.forEach((b) => b.aplicarConfig()) });
+  const mostrarPunteria = (direccion, fuerza) => {
+    control.mostrarPunteriaExterna(direccion, fuerza);
+    hud.fuerza(direccion ? fuerza : null);
+  };
+  const modos = {
+    circulo: crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria }),
+    cano: crearModoCano({ escena, fisica, hud, controlCamara, mostrarPunteria }),
+  };
+  let modo = modos.circulo;
+  const todas = [...modos.circulo.todas, ...modos.cano.todas];
+  crearPanelAjustes({ alCambiar: () => todas.forEach((b) => b.aplicarConfig()) });
 
   control = crearControlTiro({
     lienzo,
@@ -53,12 +56,34 @@ async function iniciar() {
     camara,
     controlCamara,
     obtenerBolincha: () => modo.tirador,
-    puedeTirar: modo.puedeTirar,
+    puedeTirar: () => modo.puedeTirar(),
     alApuntar: (f) => hud.fuerza(f),
     alTirar: (direccion, fuerza) => modo.tirar(direccion, fuerza),
   });
 
-  hud.alNuevaPartida(() => modo.nuevaPartida());
+  function usarJuego(nombre) {
+    for (const [clave, m] of Object.entries(modos)) {
+      if (clave !== nombre) m.retirar();
+      escenarios[clave].activar(clave === nombre);
+    }
+    modo = modos[nombre];
+    modo.nuevaPartida();
+  }
+
+  // Elegir juego (el menú completo llega en la etapa 6).
+  function elegirJuego() {
+    hud.tarjeta({
+      titulo: 'Ojo de Gato',
+      subtitulo: 'Bolinchas, canicas, marbles',
+      pregunta: '¿A qué juegas?',
+      botones: [
+        { texto: 'Círculo', alElegir: () => usarJuego('circulo') },
+        { texto: 'Caño', alElegir: () => usarJuego('cano') },
+      ],
+    });
+  }
+
+  hud.alNuevaPartida(elegirJuego);
   hud.alCamara(() => hud.modoCamara(control.alternarModoCamara() === 'camara'));
 
   const reloj = new THREE.Clock();
@@ -67,12 +92,17 @@ async function iniciar() {
     fisica.avanzar(dt, (paso) => modo.todas.forEach((b) => b.aplicarRodadura(paso)));
     modo.todas.forEach((b) => b.sincronizar(dt));
     modo.actualizar(dt);
-    controlCamara.actualizar(dt, modo.enfoque.posicion);
+    const foco = modo.enfoque.posicion;
+    controlCamara.actualizar(dt, foco);
+    seguirSombra(foco);
     control.actualizar();
     renderer.render(escena, camara);
   });
 
-  modo.nuevaPartida();
+  // Mientras se elige el juego, de fondo se ve el patio.
+  escenarios.cano.activar(false);
+  modos.cano.retirar();
+  elegirJuego();
   hud.listo();
 }
 

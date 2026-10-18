@@ -65,6 +65,20 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', color
   const colisionador = mundo.createCollider(RAPIER.ColliderDesc.ball(radio).setMass(datos.peso), cuerpo);
 
   let superficie = 'tierra';
+
+  // ¿Está apoyada en el suelo o en una pared (algo que no se mueve)?
+  function apoyada() {
+    let si = false;
+    mundo.contactPairsWith(colisionador, (otro) => {
+      if (si) return;
+      const padre = otro.parent();
+      if (padre && !padre.isFixed()) return;
+      mundo.contactPair(colisionador, otro, (m) => {
+        if (m.numContacts() > 0) si = true;
+      });
+    });
+    return si;
+  }
   const tmp = new THREE.Vector3();
   const eje = new THREE.Vector3();
   const giro = new THREE.Quaternion();
@@ -116,7 +130,7 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', color
     // por segundo, así frena parejo y se detiene en vez de arrastrarse sin fin.
     aplicarRodadura(dt) {
       if (!cuerpo.isEnabled() || cuerpo.isSleeping()) return;
-      if (cuerpo.translation().y > radio + 0.15) return; // en el aire no hay roce con el suelo
+      if (!apoyada()) return; // en el aire no hay roce con el suelo
       const v = cuerpo.linvel();
       const rapidez = Math.hypot(v.x, v.z);
       if (rapidez < 1e-6) return;
@@ -128,7 +142,7 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', color
     // Frena del todo cuando ya casi no se mueve. Devuelve true si está quieta.
     frenarSiCasiQuieta() {
       if (!cuerpo.isEnabled() || cuerpo.isSleeping()) return true;
-      if (bolincha.velocidad() < CONFIG.velocidadParada && cuerpo.translation().y < radio + 0.05) {
+      if (bolincha.velocidad() < CONFIG.velocidadParada && apoyada()) {
         // Solo se frena; no se duerme a la fuerza. Si se duerme mientras toca otra
         // bolincha despierta, Rapier la sigue moviendo sin el suelo y se hunde.
         cuerpo.setLinvel({ x: 0, y: 0, z: 0 }, false);

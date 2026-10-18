@@ -10,20 +10,22 @@ export async function crearFisica() {
   // Trabajamos en centímetros: 100 unidades = 1 metro.
   mundo.lengthUnit = 100;
 
-  // Suelo de tierra: una losa plana de 6 x 6 metros.
-  // No tiene roce: Rapier no deja girar un objeto a más de ~94 radianes por
-  // segundo, y una bolincha de 16 mm rodando a 3,5 m/s necesita unos 440.
-  // Por eso el frenado del suelo lo calcula cada bolincha (aplicarRodadura)
-  // y el giro que se ve se dibuja a partir de la velocidad.
-  mundo.createCollider(
-    RAPIER.ColliderDesc.cuboid(300, 5, 300)
-      .setTranslation(0, -5, 0)
-      .setFriction(0)
-      .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min)
-      .setRestitution(CONFIG.superficies.tierra.rebote)
-      // El rebote contra el suelo lo decide la tierra, no el vidrio.
-      .setRestitutionCombineRule(RAPIER.CoefficientCombineRule.Min)
-  );
+  // El suelo y las paredes los crea cada escenario (patio.js, cano.js).
+  // Notas importantes para quien los cree:
+  //   - El suelo no tiene roce: Rapier no deja girar un objeto a más de ~94
+  //     radianes por segundo, y una bolincha de 16 mm rodando a 3,5 m/s
+  //     necesita unos 440. Por eso el frenado lo calcula cada bolincha
+  //     (aplicarRodadura) y el giro que se ve se dibuja a partir de la velocidad.
+  //   - El rebote contra el suelo lo decide el suelo, no el vidrio.
+  function crearFijo(desc, rebote) {
+    return mundo.createCollider(
+      desc
+        .setFriction(0)
+        .setFrictionCombineRule(RAPIER.CoefficientCombineRule.Min)
+        .setRestitution(rebote)
+        .setRestitutionCombineRule(RAPIER.CoefficientCombineRule.Min)
+    );
+  }
 
   // Avanza la física al ritmo del reloj real, en pasos fijos (más estable).
   let acumulado = 0;
@@ -39,5 +41,5 @@ export async function crearFisica() {
     }
   }
 
-  return { RAPIER, mundo, avanzar };
+  return { RAPIER, mundo, avanzar, crearFijo };
 }

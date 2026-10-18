@@ -142,3 +142,87 @@ export function planificarTiro({ tirador, radioBolincha, blancos, obstaculos = [
   const fuerza = THREE.MathUtils.clamp(elegido.fuerza * (1 + azarCampana() * n.errorFuerza), 0.08, 1);
   return { direccion, fuerza, objetivo: elegido.objetivo };
 }
+
+// ---------------------------------------------------------------
+// Modo Caño: planificarTiroCano devuelve { direccion, fuerza, objetivo, intencion }.
+//   tirador: posición propia; rival: posición del rival (o null si todavía no está en el caño)
+//   medidas: las de medidasCano() (ancho, alto de las paredes, dónde está la meta)
+// Decide en este orden:
+//   1. Si llega a la meta de un tiro, va a la meta.
+//   2. Si puede sacar al rival trepándolo por la pared, lo ataca.
+//   3. Si no, avanza hacia la meta.
+// ---------------------------------------------------------------
+export function planificarTiroCano({ tirador, rival, radioBolincha, nivel, medidas }) {
+  const f = frenos('concreto');
+  const n = CONFIG.rival[nivel];
+  const vMax = CONFIG.tiro.velocidadMaxima;
+  const e = CONFIG.bolinchas.rebote;
+  const contacto = radioBolincha * 2;
+  const adelante = new THREE.Vector3(0, 0, -1);
+  const alcanceMaximo = distanciaHastaParar(vMax, f);
+  const faltaMeta = tirador.z - medidas.zMeta;
+
+  let elegido = null;
+
+  // 1. ¿Llega a la meta? Apunta a pasarla por 40 cm.
+  if (faltaMeta + 40 < alcanceMaximo * 0.95) {
+    const v0 = buscar((v) => distanciaHastaParar(v, f), faltaMeta + 40, vMax);
+    elegido = { direccion: adelante.clone(), fuerza: v0 / vMax, objetivo: null, intencion: 'meta' };
+  }
+
+  // 2. Atacar: mandar al rival en diagonal contra una pared, rápido para que trepe y salga.
+  if (!elegido && rival) {
+    // Velocidad de costado que necesita para trepar la pared y salir. La teoría da
+    // raíz(2·g·alto) / cos(inclinación), pero al pasar del piso a la pared se pierde
+    // energía: medido en el juego, hace falta ~1,55 veces eso (unos 2,4 m/s con 6 cm).
+    const inclinacion = THREE.MathUtils.degToRad(CONFIG.cano.inclinacionPared);
+    const costadoNecesario = ((Math.sqrt(2 * CONFIG.gravedad * medidas.alto) / Math.cos(inclinacion)) * 1.55) * 1.08;
+    let mejor = null;
+    for (const lado of [1, -1]) {
+      for (const angulo of [35, 45, 55, 65, 75]) {
+        const a = THREE.MathUtils.degToRad(angulo);
+        const salidaRival = new THREE.Vector3(lado * Math.sin(a), 0, -Math.cos(a));
+        const fantasma = rival.clone().addScaledVector(salidaRival, -contacto);
+        // El fantasma tiene que caber en el piso del caño.
+        if (Math.abs(fantasma.x) > medidas.mitadFondo - radioBolincha * 0.5) continue;
+        const camino = new THREE.Vector3().subVectors(fantasma, tirador).setY(0);
+        const largo = camino.length();
+        if (largo < contacto) continue;
+        const dir = camino.clone().divideScalar(largo);
+        const corte = dir.angleTo(salidaRival);
+        if (corte > THREE.MathUtils.degToRad(65)) continue;
+        // El rival sale con: velocidad de choque × cos(corte) × (1+e)/2; de eso, sin(ángulo) va de costado.
+        const vChoque = costadoNecesario / (Math.cos(corte) * ((1 + e) / 2) * Math.sin(a));
+        const v0 = buscar((v) => velocidadTras(v, largo, f), vChoque, vMax * 1.5);
+        if (v0 === null) continue;
+        const fuerza = (v0 * n.margenFuerza) / vMax;
+        if (fuerza > 1) continue;
+        const costo = corte + largo / 100;
+        if (!mejor || costo < mejor.costo) mejor = { direccion: dir, fuerza, objetivo: rival, intencion: 'atacar', costo };
+      }
+    }
+    // Ataca si lo tiene a tiro (o casi siempre, si el rival está por llegar a la meta).
+    const rivalCerca = rival.z - medidas.zMeta < alcanceMaximo;
+    if (mejor && (Math.random() >= n.despiste || rivalCerca)) elegido = mejor;
+  }
+
+  // 3. Avanzar: un tiro largo por el centro del caño, sin pasarse de 4 m.
+  if (!elegido) {
+    const distancia = Math.min(faltaMeta * 0.6, alcanceMaximo * 0.8, 400);
+    const v0 = buscar((v) => distanciaHastaParar(v, f), Math.max(distancia, 30), vMax);
+    // Apunta hacia el centro del caño un poco más adelante.
+    const destino = new THREE.Vector3(0, 0, tirador.z - Math.max(distancia, 30));
+    elegido = {
+      direccion: destino.sub(tirador).setY(0).normalize(),
+      fuerza: v0 / vMax,
+      objetivo: null,
+      intencion: 'avanzar',
+    };
+  }
+
+  const direccion = elegido.direccion
+    .clone()
+    .applyAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(azarCampana() * n.errorAngulo));
+  const fuerza = THREE.MathUtils.clamp(elegido.fuerza * (1 + azarCampana() * n.errorFuerza), 0.08, 1);
+  return { direccion, fuerza, objetivo: elegido.objetivo, intencion: elegido.intencion };
+}

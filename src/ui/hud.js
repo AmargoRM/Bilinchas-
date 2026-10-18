@@ -61,8 +61,8 @@ export function crearHud() {
       mostrarAyuda();
     },
 
-    // Puntos de cada jugador, de quién es el turno y cuántas quedan en el círculo.
-    marcador({ jugadores, turno, quedan }) {
+    // Puntos de cada jugador, de quién es el turno y una línea de detalle abajo.
+    marcador({ jugadores, turno, detalle }) {
       jugadores.forEach((j, i) => {
         const fila = $('marcador-j' + (i + 1));
         fila.querySelector('.marcador-punto').style.background = j.color;
@@ -70,7 +70,7 @@ export function crearHud() {
         fila.querySelector('.marcador-puntos').textContent = j.puntos;
         fila.classList.toggle('activo', i === turno);
       });
-      $('marcador-quedan').textContent = `Quedan ${quedan} en el círculo`;
+      $('marcador-quedan').textContent = detalle;
     },
 
     // Mensaje corto que desaparece solo.

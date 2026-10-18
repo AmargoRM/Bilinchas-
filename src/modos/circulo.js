@@ -84,7 +84,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
   const contraComputadora = () => rival !== null;
 
   function actualizarMarcador() {
-    hud.marcador({ jugadores, turno: fase === 'fin' ? null : turno, quedan: quedan() });
+    hud.marcador({ jugadores, turno: fase === 'fin' ? null : turno, detalle: `Quedan ${quedan()} en el círculo` });
   }
 
   // ¿Hay lugar en (x, z) sin tocar ninguna bolincha en juego?
@@ -294,6 +294,10 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     });
   }
 
+  // Al crearse, las bolinchas nacen todas en el centro: acomodarlas para que no se encimen.
+  for (const j of jugadores) j.bolincha.quitar();
+  acomodar(blancos);
+
   function tirar(direccion, fuerza) {
     jugadores[turno].bolincha.tirar(direccion, fuerza);
     fase = 'rodando';
@@ -304,6 +308,14 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     todas,
     nuevaPartida,
     empezarPartida,
+
+    // Saca todas las bolinchas del suelo (al cambiar de juego).
+    retirar() {
+      fase = 'espera';
+      mostrarPunteria(null);
+      for (const b of todas) b.quitar();
+      for (const j of jugadores) j.enCancha = false;
+    },
 
     get tirador() {
       return jugadores[turno].bolincha;

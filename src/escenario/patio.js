@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 
 // Números al azar pero siempre los mismos, para que el patio no cambie en cada carga.
-function azarFijo(semilla) {
+export function azarFijo(semilla) {
   let s = semilla >>> 0;
   return () => {
     s = (s + 0x6d2b79f5) >>> 0;
@@ -15,11 +15,29 @@ function azarFijo(semilla) {
   };
 }
 
-export function crearPatio(escena) {
-  escena.add(crearTierra());
-  escena.add(crearTiza(CONFIG.circulo.radio));
-  escena.add(crearZacate());
-  escena.add(crearCerca());
+export function crearPatio(escena, fisica) {
+  const grupo = new THREE.Group();
+  grupo.add(crearTierra(), crearTiza(CONFIG.circulo.radio), crearZacate(), crearCerca());
+  escena.add(grupo);
+
+  const suelo = crearSueloPatio(fisica);
+
+  return {
+    // Muestra u oculta el patio, y prende o apaga su suelo.
+    activar(si) {
+      grupo.visible = si;
+      suelo.setEnabled(si);
+    },
+  };
+}
+
+// Suelo de tierra para la física: una losa plana de 6 x 6 metros.
+// (Separado del dibujo para poder probar la física sin pantalla.)
+export function crearSueloPatio(fisica) {
+  return fisica.crearFijo(
+    fisica.RAPIER.ColliderDesc.cuboid(300, 5, 300).setTranslation(0, -5, 0),
+    CONFIG.superficies.tierra.rebote
+  );
 }
 
 // ---------------------------------------------------------------
@@ -228,7 +246,7 @@ function crearZacate() {
 // ---------------------------------------------------------------
 // Cerca de tablas de madera al fondo
 // ---------------------------------------------------------------
-function crearCerca() {
+export function crearCerca() {
   const azar = azarFijo(5);
   const grupo = new THREE.Group();
   const ancho = 14;
