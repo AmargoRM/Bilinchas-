@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Ícono de Ojo de Gato</title>
+    <style>
+      html, body { margin: 0; background: #0c2422; overflow: hidden; }
+      svg { display: block; width: 100vw; height: 100vh; }
+    </style>
+  </head>
+  <body>
+    <!-- Página de herramienta: dibuja el ícono y la pantalla de arranque para sacarles foto.
+         ?tipo=icono (fondo de tierra) o ?tipo=arranque (fondo verde oscuro). No forma parte del juego. -->
+    <svg id="dibujo" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="tierra" cx="50%" cy="45%" r="75%">
+          <stop offset="0" stop-color="#a65a35" />
+          <stop offset="0.7" stop-color="#7d3f22" />
+          <stop offset="1" stop-color="#55291a" />
+        </radialGradient>
+        <radialGradient id="vidrio" cx="36%" cy="30%" r="78%">
+          <stop offset="0" stop-color="#e6fffa" />
+          <stop offset="0.35" stop-color="#6fd3c8" />
+          <stop offset="0.75" stop-color="#1f8f86" />
+          <stop offset="1" stop-color="#0a3f3c" />
+        </radialGradient>
+        <radialGradient id="sombra" cx="50%" cy="50%" r="50%">
+          <stop offset="0" stop-color="#1a0c06" stop-opacity="0.75" />
+          <stop offset="1" stop-color="#1a0c06" stop-opacity="0" />
+        </radialGradient>
+        <linearGradient id="borde" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#ffffff" stop-opacity="0.7" />
+          <stop offset="0.5" stop-color="#ffffff" stop-opacity="0" />
+          <stop offset="1" stop-color="#ffd9a8" stop-opacity="0.45" />
+        </linearGradient>
+        <clipPath id="dentro"><circle cx="512" cy="480" r="292" /></clipPath>
+        <filter id="suave"><feGaussianBlur stdDeviation="14" /></filter>
+        <filter id="tiza"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" result="r" /><feDisplacementMap in="SourceGraphic" in2="r" scale="10" /></filter>
+      </defs>
+      <rect id="fondo" width="1024" height="1024" fill="url(#tierra)" />
+      <g id="piedritas"></g>
+      <!-- Línea de tiza del círculo, detrás de la bolincha -->
+      <path id="linea-tiza" d="M-40 640 C 200 560, 820 560, 1064 640" fill="none" stroke="#f3eee2" stroke-width="44" stroke-linecap="round" opacity="0.92" filter="url(#tiza)" />
+      <!-- Sombra en el suelo -->
+      <ellipse cx="560" cy="790" rx="300" ry="70" fill="url(#sombra)" />
+      <!-- La bolincha ojo de gato -->
+      <circle cx="512" cy="480" r="292" fill="url(#vidrio)" />
+      <g clip-path="url(#dentro)">
+        <path d="M250 560 C 380 380, 560 520, 780 360 C 700 520, 520 470, 300 620 Z" fill="#d8402c" opacity="0.95" />
+        <path d="M240 520 C 400 470, 560 600, 800 470 C 690 600, 470 560, 260 600 Z" fill="#f2cf4a" opacity="0.95" />
+        <path d="M280 640 C 440 560, 620 640, 760 560 C 680 690, 470 700, 300 680 Z" fill="#3fae5a" opacity="0.9" />
+        <!-- vidrio por encima de la veta: la hace ver adentro -->
+        <circle cx="512" cy="480" r="292" fill="#6fd3c8" opacity="0.18" />
+      </g>
+      <circle cx="512" cy="480" r="290" fill="none" stroke="url(#borde)" stroke-width="10" />
+      <ellipse cx="400" cy="330" rx="96" ry="52" fill="#ffffff" opacity="0.75" transform="rotate(-28 400 330)" filter="url(#suave)" />
+      <ellipse cx="392" cy="322" rx="44" ry="20" fill="#ffffff" opacity="0.95" transform="rotate(-28 392 322)" />
+    </svg>
+    <script>
+      const tipo = new URLSearchParams(location.search).get('tipo') || 'icono';
+      // Piedritas en la tierra, siempre en el mismo lugar.
+      let s = 7;
+      const azar = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+      const g = document.getElementById('piedritas');
+      for (let i = 0; i < 260; i++) {
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+        const r = 3 + azar() * 9;
+        c.setAttribute('cx', azar() * 1024);
+        c.setAttribute('cy', azar() * 1024);
+        c.setAttribute('rx', r);
+        c.setAttribute('ry', r * 0.75);
+        c.setAttribute('fill', azar() > 0.5 ? '#c99a7c' : '#4a2414');
+        c.setAttribute('opacity', 0.35 + azar() * 0.4);
+        g.appendChild(c);
+      }
+      if (tipo === 'arranque') {
+        // Pantalla de arranque: sin tierra, la bolincha sola sobre verde oscuro y más chica.
+        document.getElementById('fondo').setAttribute('fill', '#0c2422');
+        g.remove();
+        document.getElementById('linea-tiza').remove();
+        const svg = document.getElementById('dibujo');
+        svg.setAttribute('viewBox', '-1300 -1300 3624 3624');
+      }
+      document.title = 'listo';
+    </script>
+  </body>
+</html>

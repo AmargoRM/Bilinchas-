@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Ojo de Gato</string>
+    <string name="title_activity_main">Ojo de Gato</string>
+    <string name="package_name">com.ojodegato.bolinchas</string>
+    <string name="custom_url_scheme">com.ojodegato.bolinchas</string>
+</resources>

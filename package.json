@@ -9,7 +9,8 @@
     "dev": "vite --host",
     "build": "vite build",
     "build:prueba": "vite build --mode prueba && node scripts/preparar-prueba.mjs",
-    "preview": "vite preview --host"
+    "preview": "vite preview --host",
+    "android": "vite build && npx cap sync android"
   },
   "repository": {
     "type": "git",
@@ -20,10 +21,17 @@
   },
   "homepage": "https://github.com/AmargoRM/Bilinchas-#readme",
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3",
     "@dimforge/rapier3d-compat": "^0.21.0",
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource/permanent-marker": "^5.3.0",
     "three": "^0.180.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.5.3",
     "vite": "^8.3.4",
     "vite-plugin-singlefile": "^2.3.4"
   },

@@ -1,6 +1,13 @@
 // Punto de arranque: une todas las piezas y pone el juego en marcha.
 import * as THREE from 'three';
+// Letras incluidas en la app (funcionan sin internet).
+import '@fontsource/barlow-condensed/500.css';
+import '@fontsource/barlow-condensed/600.css';
+import '@fontsource/barlow-condensed/700-italic.css';
+import '@fontsource/permanent-marker/400.css';
 import './ui/estilos.css';
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 import { crearEscena } from './escena.js';
 import { crearFisica } from './fisica.js';
 import { crearPatio } from './escenario/patio.js';
@@ -140,7 +147,9 @@ async function iniciar() {
   // ---------------- Pantallas del menú ----------------
   const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-logros', 'pantalla-reglas', 'pantalla-paises'];
   let enMenu = true;
+  let pantallaActual = 'portada';
   function mostrarPantalla(id) {
+    pantallaActual = id;
     for (const p of pantallas) document.getElementById(p).hidden = p !== id;
     enMenu = id !== null;
     hud.mostrar(!enMenu);
@@ -217,6 +226,32 @@ async function iniciar() {
   $('paises-volver').addEventListener('click', () => mostrarPantalla(despuesDePais));
   aplicarTextos();
   mostrarPais();
+
+  // ---------------- Solo en la app de Android ----------------
+  if (Capacitor.isNativePlatform()) {
+    $('menu-salir').hidden = false;
+    $('menu-salir').addEventListener('click', () => App.exitApp());
+    // Flecha "atrás" del teléfono: vuelve una pantalla; en el juego pide confirmar.
+    let reloj = 0;
+    let apretoUnaVez = false;
+    App.addListener('backButton', () => {
+      if (pantallaActual === 'portada' || pantallaActual === 'menu-principal') {
+        App.exitApp();
+      } else if (pantallaActual === 'pantalla-paises') {
+        mostrarPantalla(despuesDePais);
+      } else if (enMenu) {
+        mostrarPantalla('menu-principal');
+      } else if (apretoUnaVez) {
+        clearTimeout(reloj);
+        apretoUnaVez = false;
+        irA('menu');
+      } else {
+        apretoUnaVez = true;
+        hud.aviso('Toca atrás otra vez para salir al menú.');
+        reloj = setTimeout(() => (apretoUnaVez = false), 2500);
+      }
+    });
+  }
 
   hud.alNuevaPartida(() => irA('menu'));
   hud.alCamara(() => hud.modoCamara(control.alternarModoCamara() === 'camara'));

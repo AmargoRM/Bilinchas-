@@ -1,0 +1,8 @@
+{
+  "appId": "com.ojodegato.bolinchas",
+  "appName": "Ojo de Gato",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#0c2422"
+  }
+}
