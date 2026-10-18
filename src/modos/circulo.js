@@ -1,23 +1,19 @@
-// Modo Círculo: contra la computadora o dos jugadores en el mismo teléfono.
+// Modo Círculo: de 2 a 4 jugadores (personas o computadora) en el mismo teléfono.
 // Maneja bolinchas, turnos, marcador y fin de partida.
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { crearBolincha } from '../bolincha.js';
 import { resolverTiro, ganador } from './reglas-circulo.js';
 import { planificarTiro } from '../ia/rival.js';
+import { crearJugadores, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 
-const COLORES_JUGADORES = [
-  { vidrio: 0x2a8fd6, veta: 0xf2cf4a, color: '#3b9be0' },
-  { vidrio: 0xd8402c, veta: 0xf2cf4a, color: '#e2523d' },
-];
-
-// Colores de las bolinchas del círculo (sin azul ni rojo puro, para no confundirlas con las de tiro).
+// Colores de las bolinchas del círculo (verdes y claras, para no confundirlas con las de tiro).
 const COLORES_CIRCULO = [
   [0x3fae5a, 0xd8402c],
   [0xd9eef0, 0x2a8fd6],
   [0x1f9e9a, 0xf2cf4a],
   [0x6fcf6a, 0xd8402c],
-  [0xc9a23a, 0x2a8fd6],
+  [0xbfe3dc, 0x2a8fd6],
   [0x8fd3c8, 0xd8402c],
 ];
 
@@ -36,8 +32,8 @@ function frases(j) {
       repite: (n) => `¡Sacaste ${n}! Tira otra vez desde donde quedó tu bolincha.`,
     };
   }
-  const quien = j.esComputadora ? 'La computadora' : j.nombre;
-  const deQuien = j.esComputadora ? 'de la computadora' : `de ${j.nombre}`;
+  const quien = sujeto(j);
+  const deQuien = `de ${sujeto(j, false)}`;
   return {
     ninguna: `${quien} no sacó ninguna.`,
     saco: (n) => `${quien} sacó ${n}.`,
@@ -54,37 +50,33 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
   const centro = new THREE.Vector3(0, 0, 0);
   const salida = new THREE.Vector3(0, 0, CONFIG.circulo.distanciaSalida);
 
-  const jugadores = COLORES_JUGADORES.map((c) => ({
-    ...c,
-    nombre: '',
-    esTu: false,
-    esComputadora: false,
-    puntos: 0,
-    enCancha: false,
-    bolincha: crearBolincha({ escena, fisica, posicion: salida, colorVidrio: c.vidrio, colorVeta: c.veta }),
-  }));
+  const todos = crearJugadores({ escena, fisica });
+  const preferencias = leerPreferencias();
+  let jugadores = []; // los que juegan esta partida
   const blancos = [];
   for (let i = 0; i < CONFIG.circulo.cantidadBolinchas; i++) {
     const [colorVidrio, colorVeta] = COLORES_CIRCULO[i % COLORES_CIRCULO.length];
     blancos.push({ enCirculo: true, bolincha: crearBolincha({ escena, fisica, posicion: centro, colorVidrio, colorVeta }) });
   }
-  const todas = [...jugadores.map((j) => j.bolincha), ...blancos.map((b) => b.bolincha)];
+  const todas = [...todos.map((j) => j.bolincha), ...blancos.map((b) => b.bolincha)];
 
-  let rival = null; // null = dos jugadores; si no, el nivel de la computadora
   let turno = 0;
   let fase = 'espera'; // 'apuntar' | 'computadora' | 'rodando' | 'espera' | 'fin'
   let tiempoQuieta = 0;
-  let enfocada = jugadores[0].bolincha; // la que sigue la cámara
+  let enfocada = todos[0].bolincha; // la que sigue la cámara
   let planComputadora = null;
   let relojComputadora = 0;
 
   const enJuego = (b) => b.cuerpo.isEnabled();
   const dentro = (b) => enJuego(b) && Math.hypot(b.posicion.x, b.posicion.z) <= radio;
   const quedan = () => blancos.filter((b) => b.enCirculo).length;
-  const contraComputadora = () => rival !== null;
 
   function actualizarMarcador() {
-    hud.marcador({ jugadores, turno: fase === 'fin' ? null : turno, detalle: `Quedan ${quedan()} en el círculo` });
+    hud.marcador({
+      jugadores: jugadores.map((j) => ({ nombre: j.nombre, color: j.color, valor: j.puntos })),
+      turno: fase === 'fin' ? null : turno,
+      detalle: `Quedan ${quedan()} en el círculo`,
+    });
   }
 
   // ¿Hay lugar en (x, z) sin tocar ninguna bolincha en juego?
@@ -153,7 +145,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
         radioBolincha: j.bolincha.radio,
         blancos: blancos.filter((b) => b.enCirculo).map((b) => b.bolincha.posicion.clone()),
         obstaculos: otros,
-        nivel: rival,
+        nivel: j.nivel,
         radioCirculo: radio,
       });
       controlCamara.mirarDesde(j.bolincha.posicion, planComputadora.objetivo);
@@ -167,48 +159,33 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     hud.ayudaDeTiro(true);
   }
 
-  // Elige rival y arranca con las bolinchas en su lugar.
-  function empezarPartida(nivel) {
-    rival = nivel;
-    if (rival) {
-      Object.assign(jugadores[0], { nombre: 'Tú', esTu: true, esComputadora: false });
-      Object.assign(jugadores[1], { nombre: 'Computadora', esTu: false, esComputadora: true });
-    } else {
-      Object.assign(jugadores[0], { nombre: 'Jugador 1', esTu: false, esComputadora: false });
-      Object.assign(jugadores[1], { nombre: 'Jugador 2', esTu: false, esComputadora: false });
-    }
-    for (const j of jugadores) {
-      j.puntos = 0;
-      j.enCancha = false;
-      j.bolincha.quitar();
-    }
+  // Sienta a los jugadores de la mesa y arranca con las bolinchas en su lugar.
+  function empezarPartida() {
+    jugadores = sentarJugadores(todos, preferencias.mesa);
+    for (const j of jugadores) j.puntos = 0;
     acomodar(blancos);
-    turno = 0;
-    ponerEnSalida(jugadores[0]);
-    enfocada = jugadores[0].bolincha;
+    turno = Math.floor(Math.random() * jugadores.length); // se sortea quién empieza
+    ponerEnSalida(jugadores[turno]);
+    enfocada = jugadores[turno].bolincha;
     controlCamara.mirarDesde(enfocada.posicion, centro, true);
+    hud.aviso(`Se sorteó quién empieza: ${sujeto(jugadores[turno])}.`);
     seguirTirando();
   }
 
-  // Muestra las reglas y la elección de rival.
+  // Reglas y mesa de jugadores.
   function nuevaPartida() {
     fase = 'espera';
     mostrarPunteria(null);
     hud.tarjeta({
-      titulo: 'Modo Círculo',
+      titulo: 'Círculo',
       lista: [
         'Tira desde afuera y saca bolinchas del círculo: las que saques son tuyas.',
         'Si sacas al menos una, vuelves a tirar desde donde quedó tu bolincha.',
         'Si no sacas ninguna, o tu bolincha queda dentro del círculo, pasa el turno.',
         'Gana quien tenga más cuando el círculo quede vacío.',
       ],
-      pregunta: '¿Contra quién juegas?',
-      botones: [
-        { texto: 'Computadora · Fácil', alElegir: () => empezarPartida('facil') },
-        { texto: 'Computadora · Medio', alElegir: () => empezarPartida('medio') },
-        { texto: 'Computadora · Difícil', alElegir: () => empezarPartida('dificil') },
-        { texto: 'Dos jugadores en este teléfono', secundario: true, alElegir: () => empezarPartida(null) },
-      ],
+      selectores: selectoresMesa(preferencias.mesa, () => guardarPreferencias(preferencias)),
+      botones: [{ texto: 'Jugar', alElegir: () => empezarPartida() }],
     });
   }
 
@@ -258,9 +235,9 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     fase = 'espera';
     actualizarMarcador();
 
-    if (contraComputadora()) {
-      // No hay que pasar el teléfono: un aviso y sigue el juego.
-      hud.aviso(`${motivo} ${siguiente.esTu ? 'Tu turno.' : 'Turno de la computadora.'}`);
+    if (!hayVariasPersonas(jugadores) || siguiente.esComputadora) {
+      // Nadie tiene que pasar el teléfono: un aviso y sigue el juego.
+      hud.aviso(`${motivo} ${siguiente.esTu ? 'Tu turno.' : `Turno de ${sujeto(siguiente, false)}.`}`);
       empezarTurno();
       return;
     }
@@ -277,25 +254,23 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     mostrarPunteria(null);
     actualizarMarcador();
     const g = ganador(jugadores);
-    const [a, b] = jugadores;
     let titulo;
     if (g === null) titulo = 'Empate';
     else if (jugadores[g].esTu) titulo = '¡Ganaste!';
-    else if (jugadores[g].esComputadora) titulo = 'Ganó la computadora';
+    else if (jugadores[g].nombre === 'Computadora') titulo = 'Ganó la computadora';
     else titulo = `¡Ganó ${jugadores[g].nombre}!`;
     hud.tarjeta({
       titulo,
       color: g === null ? null : jugadores[g].color,
-      texto: `${a.nombre}: ${a.puntos} · ${b.nombre}: ${b.puntos}`,
+      texto: jugadores.map((x) => `${x.nombre}: ${x.puntos}`).join(' · '),
       botones: [
-        { texto: 'Jugar otra vez', alElegir: () => empezarPartida(rival) },
-        { texto: 'Cambiar rival', secundario: true, alElegir: () => nuevaPartida() },
+        { texto: 'Jugar otra vez', alElegir: () => empezarPartida() },
+        { texto: 'Cambiar jugadores', secundario: true, alElegir: () => nuevaPartida() },
       ],
     });
   }
 
   // Al crearse, las bolinchas nacen todas en el centro: acomodarlas para que no se encimen.
-  for (const j of jugadores) j.bolincha.quitar();
   acomodar(blancos);
 
   function tirar(direccion, fuerza) {
@@ -314,11 +289,11 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
       fase = 'espera';
       mostrarPunteria(null);
       for (const b of todas) b.quitar();
-      for (const j of jugadores) j.enCancha = false;
+      for (const j of todos) j.enCancha = false;
     },
 
     get tirador() {
-      return jugadores[turno].bolincha;
+      return (jugadores[turno] || todos[0]).bolincha;
     },
 
     // La bolincha que sigue la cámara (la del último que tiró, hasta que empiece el turno siguiente).
@@ -348,7 +323,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
       if (fase === 'computadora') {
         // Piensa, muestra cómo apunta llenando la barra de fuerza, y tira.
         relojComputadora += dt;
-        const pensar = CONFIG.rival[rival].pensar;
+        const pensar = CONFIG.rival[jugadores[turno].nivel].pensar;
         const avance = (relojComputadora - pensar) / DURACION_PUNTERIA;
         if (avance >= 1) {
           mostrarPunteria(null);

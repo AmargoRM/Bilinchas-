@@ -151,6 +151,14 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', color
       return false;
     },
 
+    // La deja quieta y fuera de la física, pero visible (en un hueco, o afuera del caño).
+    congelar(x, y, z) {
+      cuerpo.setTranslation({ x, y, z }, false);
+      cuerpo.setLinvel({ x: 0, y: 0, z: 0 }, false);
+      cuerpo.setEnabled(false);
+      grupo.visible = true;
+    },
+
     // Saca la bolincha del juego (por ejemplo, si se cayó fuera del patio).
     quitar() {
       cuerpo.setEnabled(false);

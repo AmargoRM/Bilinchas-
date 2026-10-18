@@ -97,36 +97,32 @@ export const CONFIG = {
   },
 
   // ---------------------------------------------------------------
-  // ESCENARIO DEL MODO CAÑO
+  // ESCENARIO DEL MODO CAÑO (los recorridos están en src/mapas.js)
   // ---------------------------------------------------------------
-  cano: {
-    anchoFondo: 14, // cm: ancho del piso plano del caño
-    profundidad: 6, // cm: alto de las paredes
-    // Inclinación de las paredes, en grados (90 = vertical). Con paredes muy
-    // paradas la bolincha sube y vuelve a caer adentro: nunca sale.
-    // Con 45° y 6 cm, para sacar una bolincha hay que mandarla de costado a ~2,4 m/s.
-    inclinacionPared: 45,
-    bordillo: 10, // cm: ancho del borde de concreto a cada lado
-    tramo: 100, // cm: largo de cada tramo de concreto (entre juntas)
-    tramos: 13, // cantidad de tramos (13 m de caño)
-    meta: 1200, // cm desde la salida hasta la meta. Un tiro al 100 % llega a ~5 m.
+  canal: {
+    ancho: 22, // cm entre pared y pared
+    altoPared: 5, // cm. Paredes rectas: la bolincha rebota como en una mesa de pool.
+    grosorPared: 4, // cm
+    rebotePared: 0.55, // cuánto rebota la bolincha contra la pared (0 a 1)
+    salida: 14, // cm desde la pared de atrás hasta donde se pone la bolincha
+    juntaCada: 100, // cm entre juntas del concreto (solo se ve)
+    // Si la bolincha pasa por un hueco más lenta que esto (cm/s), cae.
+    // Más rápida, lo salta.
+    velocidadParaCaerEnHueco: 110,
   },
 
   // ---------------------------------------------------------------
   // REGLAS DEL MODO CAÑO
   // ---------------------------------------------------------------
+  // Lo que no se cambia aquí:
+  //   - Gana el primero que pase la línea de meta.
+  //   - Si una bolincha salta la pared, vuelve a donde estaba antes del tiro.
+  //   - Si una bolincha cae en un hueco, vuelve a la salida.
   reglasCano: {
-    // Gana quien saque la bolincha del rival fuera del caño.
-    ganaAlSacarRival: true,
-    // Si saca al rival pero su propia bolincha también se sale, ¿gana igual?
-    ganaAunqueTeSaques: true,
-    // Si nadie saca a nadie, gana el primero que llega a la meta.
-    ganaAlLlegarMeta: true,
-    // Si te empujan más allá de la meta, ¿cuenta como que llegaste?
+    // Se sortea quién empieza. false = siempre empieza el lugar 1.
+    sorteoDeQuienEmpieza: true,
+    // Si alguien te empuja más allá de la meta, ¿ganas tú?
     metaCuentaSiTeEmpujan: true,
-    // Cada jugador pone su bolincha en la salida recién en su primer turno.
-    // false = las dos arrancan juntas en la salida (el primero puede sacar al otro de entrada).
-    primerTiroDesdeSalida: true,
   },
 
   // ---------------------------------------------------------------

@@ -144,85 +144,112 @@ export function planificarTiro({ tirador, radioBolincha, blancos, obstaculos = [
 }
 
 // ---------------------------------------------------------------
-// Modo Caño: planificarTiroCano devuelve { direccion, fuerza, objetivo, intencion }.
-//   tirador: posición propia; rival: posición del rival (o null si todavía no está en el caño)
-//   medidas: las de medidasCano() (ancho, alto de las paredes, dónde está la meta)
+// Modo Caño: planificarTiroCanal devuelve { direccion, fuerza, objetivo, intencion }.
+//   traza:   el recorrido del mapa (src/escenario/canal.js)
+//   tirador: posición propia
+//   otros:   [{ pos, recorrido }] de las demás bolinchas en el caño
 // Decide en este orden:
-//   1. Si llega a la meta de un tiro, va a la meta.
-//   2. Si puede sacar al rival trepándolo por la pared, lo ataca.
-//   3. Si no, avanza hacia la meta.
+//   1. Si ve la meta en línea recta y le alcanza, tira para pasarla.
+//   2. Si un rival va adelante y tiene un hueco cerca, intenta meterlo en el hueco.
+//   3. Si no, avanza hasta el punto más lejano que ve sin chocar paredes ni piedras.
 // ---------------------------------------------------------------
-export function planificarTiroCano({ tirador, rival, radioBolincha, nivel, medidas }) {
+export function planificarTiroCanal({ traza, tirador, radioBolincha, otros, nivel }) {
   const f = frenos('concreto');
   const n = CONFIG.rival[nivel];
   const vMax = CONFIG.tiro.velocidadMaxima;
   const e = CONFIG.bolinchas.rebote;
   const contacto = radioBolincha * 2;
-  const adelante = new THREE.Vector3(0, 0, -1);
-  const alcanceMaximo = distanciaHastaParar(vMax, f);
-  const faltaMeta = tirador.z - medidas.zMeta;
+  const alcance = distanciaHastaParar(vMax, f) * 0.92;
+  const miRecorrido = traza.proyectar(tirador.x, tirador.z).s;
+  const piedras = traza.obstaculos.filter((o) => o.tipo === 'piedra');
+  const huecos = traza.obstaculos.filter((o) => o.tipo === 'hueco');
+
+  // ¿Se puede ir en línea recta de "a" a "b" sin tocar paredes, piedras ni bolinchas?
+  function caminoLibre(a, b, ignorar = null) {
+    const largo = Math.hypot(b.x - a.x, b.z - a.z);
+    const pasos = Math.ceil(largo / 2);
+    for (let k = 1; k <= pasos; k++) {
+      const t = k / pasos;
+      const x = a.x + (b.x - a.x) * t;
+      const z = a.z + (b.z - a.z) * t;
+      if (!traza.dentro(x, z, -(radioBolincha + 0.6))) return false;
+    }
+    for (const p of piedras) if (distanciaASegmento(p, a, b) < p.radio + radioBolincha + 0.5) return false;
+    for (const o of otros) if (o.pos !== ignorar && distanciaASegmento(o.pos, a, b) < contacto * 0.98) return false;
+    return true;
+  }
+  const cercaDeHueco = (p) => huecos.some((h) => Math.hypot(p.x - h.x, p.z - h.z) < h.radio + 4);
+  const fuerzaPara = (distancia) => {
+    const v0 = buscar((v) => distanciaHastaParar(v, f), Math.max(distancia, 5), vMax * 1.5);
+    return v0 === null ? 1 : v0 / vMax;
+  };
 
   let elegido = null;
 
-  // 1. ¿Llega a la meta? Apunta a pasarla por 40 cm.
-  if (faltaMeta + 40 < alcanceMaximo * 0.95) {
-    const v0 = buscar((v) => distanciaHastaParar(v, f), faltaMeta + 40, vMax);
-    elegido = { direccion: adelante.clone(), fuerza: v0 / vMax, objetivo: null, intencion: 'meta' };
+  // 1. Ganar: pasar la meta por 25 cm.
+  for (let s = traza.sMeta + 25; s <= traza.sMeta + 35 && !elegido; s += 5) {
+    const p = traza.puntoEn(s);
+    const destino = new THREE.Vector3(p.x, 0, p.z);
+    const d = destino.distanceTo(tirador);
+    if (d < alcance && caminoLibre(tirador, destino)) {
+      elegido = { direccion: destino.clone().sub(tirador).setY(0).normalize(), fuerza: fuerzaPara(d), objetivo: destino, intencion: 'meta' };
+    }
   }
 
-  // 2. Atacar: mandar al rival en diagonal contra una pared, rápido para que trepe y salga.
-  if (!elegido && rival) {
-    // Velocidad de costado que necesita para trepar la pared y salir. La teoría da
-    // raíz(2·g·alto) / cos(inclinación), pero al pasar del piso a la pared se pierde
-    // energía: medido en el juego, hace falta ~1,55 veces eso (unos 2,4 m/s con 6 cm).
-    const inclinacion = THREE.MathUtils.degToRad(CONFIG.cano.inclinacionPared);
-    const costadoNecesario = ((Math.sqrt(2 * CONFIG.gravedad * medidas.alto) / Math.cos(inclinacion)) * 1.55) * 1.08;
+  // 2. Atacar: meter en un hueco a un rival que va adelante.
+  if (!elegido) {
     let mejor = null;
-    for (const lado of [1, -1]) {
-      for (const angulo of [35, 45, 55, 65, 75]) {
-        const a = THREE.MathUtils.degToRad(angulo);
-        const salidaRival = new THREE.Vector3(lado * Math.sin(a), 0, -Math.cos(a));
-        const fantasma = rival.clone().addScaledVector(salidaRival, -contacto);
-        // El fantasma tiene que caber en el piso del caño.
-        if (Math.abs(fantasma.x) > medidas.mitadFondo - radioBolincha * 0.5) continue;
+    for (const o of otros) {
+      if (o.recorrido < miRecorrido - 30) continue; // solo a los que van adelante o parejos
+      for (const h of huecos) {
+        const haciaHueco = new THREE.Vector3(h.x - o.pos.x, 0, h.z - o.pos.z);
+        const distHueco = haciaHueco.length();
+        if (distHueco > 70 || distHueco < 1) continue;
+        haciaHueco.divideScalar(distHueco);
+        const fantasma = o.pos.clone().addScaledVector(haciaHueco, -contacto);
         const camino = new THREE.Vector3().subVectors(fantasma, tirador).setY(0);
         const largo = camino.length();
-        if (largo < contacto) continue;
+        if (largo < contacto || largo > 160) continue;
         const dir = camino.clone().divideScalar(largo);
-        const corte = dir.angleTo(salidaRival);
-        if (corte > THREE.MathUtils.degToRad(65)) continue;
-        // El rival sale con: velocidad de choque × cos(corte) × (1+e)/2; de eso, sin(ángulo) va de costado.
-        const vChoque = costadoNecesario / (Math.cos(corte) * ((1 + e) / 2) * Math.sin(a));
-        const v0 = buscar((v) => velocidadTras(v, largo, f), vChoque, vMax * 1.5);
-        if (v0 === null) continue;
-        const fuerza = (v0 * n.margenFuerza) / vMax;
-        if (fuerza > 1) continue;
+        const corte = dir.angleTo(haciaHueco);
+        if (corte > THREE.MathUtils.degToRad(55)) continue;
+        if (!caminoLibre(tirador, fantasma, o.pos) || !caminoLibre(o.pos, new THREE.Vector3(h.x, 0, h.z), o.pos)) continue;
+        // Que el rival llegue al hueco ya casi sin velocidad (si va rápido, lo salta).
+        const vBlanco = buscar((v) => distanciaHastaParar(v, f), distHueco + 1, vMax);
+        if (vBlanco === null) continue;
+        const v0 = buscar((v) => velocidadTras(v, largo, f), vBlanco / (Math.cos(corte) * ((1 + e) / 2)), vMax * 1.5);
+        if (v0 === null || v0 > vMax) continue;
         const costo = corte + largo / 100;
-        if (!mejor || costo < mejor.costo) mejor = { direccion: dir, fuerza, objetivo: rival, intencion: 'atacar', costo };
+        if (!mejor || costo < mejor.costo) mejor = { direccion: dir, fuerza: v0 / vMax, objetivo: o.pos, intencion: 'atacar', costo };
       }
     }
-    // Ataca si lo tiene a tiro (o casi siempre, si el rival está por llegar a la meta).
-    const rivalCerca = rival.z - medidas.zMeta < alcanceMaximo;
-    if (mejor && (Math.random() >= n.despiste || rivalCerca)) elegido = mejor;
+    if (mejor && Math.random() >= n.despiste) elegido = mejor;
   }
 
-  // 3. Avanzar: un tiro largo por el centro del caño, sin pasarse de 4 m.
+  // 3. Avanzar al punto más lejano que se ve, sin quedar arriba de un hueco.
   if (!elegido) {
-    const distancia = Math.min(faltaMeta * 0.6, alcanceMaximo * 0.8, 400);
-    const v0 = buscar((v) => distanciaHastaParar(v, f), Math.max(distancia, 30), vMax);
-    // Apunta hacia el centro del caño un poco más adelante.
-    const destino = new THREE.Vector3(0, 0, tirador.z - Math.max(distancia, 30));
-    elegido = {
-      direccion: destino.sub(tirador).setY(0).normalize(),
-      fuerza: v0 / vMax,
-      objetivo: null,
-      intencion: 'avanzar',
-    };
+    for (let s = Math.min(miRecorrido + alcance, traza.largo - 10); s > miRecorrido + 10 && !elegido; s -= 10) {
+      for (const lado of [0, 4, -4, 7, -7]) {
+        const p = traza.puntoEn(s);
+        const destino = new THREE.Vector3(p.x - p.dir.y * lado, 0, p.z + p.dir.x * lado);
+        const d = destino.distanceTo(tirador);
+        if (d > alcance || cercaDeHueco(destino) || !caminoLibre(tirador, destino)) continue;
+        elegido = { direccion: destino.clone().sub(tirador).setY(0).normalize(), fuerza: fuerzaPara(d), objetivo: destino, intencion: 'avanzar' };
+        break;
+      }
+    }
+  }
+
+  // 4. Encerrado (no ve ningún punto libre): un tiro suave hacia adelante por el caño.
+  if (!elegido) {
+    const p = traza.puntoEn(miRecorrido + 30);
+    const destino = new THREE.Vector3(p.x, 0, p.z);
+    elegido = { direccion: destino.clone().sub(tirador).setY(0).normalize(), fuerza: 0.35, objetivo: destino, intencion: 'avanzar' };
   }
 
   const direccion = elegido.direccion
     .clone()
     .applyAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(azarCampana() * n.errorAngulo));
-  const fuerza = THREE.MathUtils.clamp(elegido.fuerza * (1 + azarCampana() * n.errorFuerza), 0.08, 1);
+  const fuerza = THREE.MathUtils.clamp(elegido.fuerza * (1 + azarCampana() * n.errorFuerza), 0.06, 1);
   return { direccion, fuerza, objetivo: elegido.objetivo, intencion: elegido.intencion };
 }

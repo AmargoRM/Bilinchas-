@@ -15,8 +15,7 @@
     <div id="hud">
       <div class="hud-arriba">
         <div class="placa marcador" aria-live="polite">
-          <div id="marcador-j1" class="marcador-fila"><span class="marcador-punto"></span><span class="marcador-nombre">Jugador 1</span><span class="marcador-puntos">0</span></div>
-          <div id="marcador-j2" class="marcador-fila"><span class="marcador-punto"></span><span class="marcador-nombre">Jugador 2</span><span class="marcador-puntos">0</span></div>
+          <div id="marcador-filas" class="marcador-filas"></div>
           <div id="marcador-quedan" class="marcador-quedan"></div>
         </div>
         <div class="botones-arriba">
@@ -43,6 +42,10 @@
       <p id="ayuda" class="placa ayuda" hidden>Toca tu bolincha y arrastra hacia atrás para tirar</p>
 
       <div class="hud-abajo">
+        <button id="btn-mapa" class="placa boton boton-camara" type="button" aria-pressed="false" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" /><path d="M9 4v14M15 6v14" /></svg>
+          <span id="btn-mapa-texto">Ver mapa</span>
+        </button>
         <button id="btn-camara" class="placa boton boton-camara" type="button" aria-pressed="false">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z" /><circle cx="12" cy="13" r="3.5" /></svg>
           <span id="btn-camara-texto">Mover cámara</span>
@@ -61,6 +64,7 @@
         <p id="tarjeta-subtitulo" class="tarjeta-subtitulo"></p>
         <p id="tarjeta-texto" class="tarjeta-texto"></p>
         <ul id="tarjeta-lista" class="tarjeta-lista"></ul>
+        <div id="tarjeta-selectores" class="tarjeta-selectores"></div>
         <p id="tarjeta-pregunta" class="tarjeta-pregunta"></p>
         <div id="tarjeta-botones" class="tarjeta-botones"></div>
       </div>

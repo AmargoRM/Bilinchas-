@@ -1,211 +1,254 @@
-// Modo Caño: contra la computadora o dos jugadores en el mismo teléfono.
-// Cada uno tira su bolincha por el caño para sacar la del rival, o llegar primero a la meta.
+// Modo Caño: de 2 a 4 jugadores (personas o computadora) en un caño con esquinas,
+// curvas, piedras y huecos. Gana el primero que pasa la meta.
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { crearBolincha } from '../bolincha.js';
 import { resolverTiroCano } from './reglas-cano.js';
-import { planificarTiroCano } from '../ia/rival.js';
-import { medidasCano } from '../escenario/cano.js';
+import { planificarTiroCanal } from '../ia/rival.js';
+import { MAPAS, buscarMapa } from '../mapas.js';
+import { crearJugadores, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 
-const COLORES_JUGADORES = [
-  { vidrio: 0x2a8fd6, veta: 0xf2cf4a, color: '#3b9be0' },
-  { vidrio: 0xd8402c, veta: 0xf2cf4a, color: '#e2523d' },
-];
 const DURACION_PUNTERIA = 0.9; // segundos que se ve a la computadora apuntando
+const metros = (cm) => `${(Math.max(cm, 0) / 100).toFixed(1).replace('.', ',')} m`;
 
-function frases(j) {
-  if (j.esTu) {
-    return {
-      saco: '¡Sacaste la bolincha del rival del caño!',
-      meta: '¡Llegaste a la meta!',
-      teSacaste: 'Te saliste del caño: tu bolincha vuelve a donde estaba.',
-      nada: 'No pasó nada.',
-    };
-  }
-  const quien = j.esComputadora ? 'La computadora' : j.nombre;
-  return {
-    saco: `¡${quien} sacó la bolincha del rival del caño!`,
-    meta: `¡${quien} llegó a la meta!`,
-    teSacaste: `${quien} se salió del caño: su bolincha vuelve a donde estaba.`,
-    nada: `${quien} no sacó a nadie.`,
-  };
-}
-
+// canal: el escenario (src/escenario/canal.js), que arma el mapa elegido.
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
-export function crearModoCano({ escena, fisica, hud, controlCamara, mostrarPunteria = () => {} }) {
-  const m = medidasCano();
-  const salida = new THREE.Vector3(0, 0, 0);
+export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostrarPunteria = () => {} }) {
+  const todos = crearJugadores({ escena, fisica, superficie: 'concreto' });
+  const todas = todos.map((j) => j.bolincha);
+  const preferencias = leerPreferencias();
+  let mapa = buscarMapa(preferencias.mapa);
+  let traza = null;
 
-  const jugadores = COLORES_JUGADORES.map((c) => {
-    const bolincha = crearBolincha({ escena, fisica, posicion: salida, colorVidrio: c.vidrio, colorVeta: c.veta });
-    bolincha.usarSuperficie('concreto');
-    bolincha.quitar();
-    return { ...c, nombre: '', esTu: false, esComputadora: false, enCancha: false, antes: new THREE.Vector3(), bolincha };
-  });
-  const todas = jugadores.map((j) => j.bolincha);
-
-  let rival = null; // null = dos jugadores; si no, el nivel de la computadora
+  let jugadores = []; // los que juegan esta partida
   let turno = 0;
   let fase = 'espera'; // 'apuntar' | 'computadora' | 'rodando' | 'espera' | 'fin'
   let tiempoQuieta = 0;
-  let enfocada = jugadores[0].bolincha;
+  let enfocada = todos[0].bolincha;
   let planComputadora = null;
   let relojComputadora = 0;
 
   const enJuego = (b) => b.cuerpo.isEnabled();
-  // Fuera del caño: pasó el borde de la boca, o se cayó del mundo.
-  const fuera = (j) => !enJuego(j.bolincha) || Math.abs(j.bolincha.posicion.x) > m.mitadArriba;
-  const enMeta = (j) => j.enCancha && !fuera(j) && j.bolincha.posicion.z <= m.zMeta;
+  const recorrido = (j) => traza.proyectar(j.bolincha.posicion.x, j.bolincha.posicion.z).s;
+  // Lo que se ve adelante en el caño, para orientar la cámara.
+  const adelanteDe = (pos) => {
+    const p = traza.puntoEn(traza.proyectar(pos.x, pos.z).s + 70);
+    return new THREE.Vector3(p.x, 0, p.z);
+  };
 
   function actualizarMarcador() {
-    const j = jugadores[turno];
-    const falta = j.enCancha ? Math.max(j.bolincha.posicion.z - m.zMeta, 0) : -m.zMeta;
     hud.marcador({
-      jugadores: jugadores.map((x) => ({ ...x, puntos: '' })),
+      jugadores: jugadores.map((j) => ({
+        nombre: j.nombre,
+        color: j.color,
+        valor: j.enCancha ? metros(traza.sMeta - recorrido(j)) : '—',
+      })),
       turno: fase === 'fin' ? null : turno,
-      detalle: fase === 'fin' ? 'Partida terminada' : `Meta a ${(falta / 100).toFixed(1).replace('.', ',')} m`,
+      detalle: `${mapa.nombre} · distancia a la meta`,
     });
   }
 
-  // Pone la bolincha en la salida (corrida a un lado si la otra está encima).
-  function ponerEnSalida(j) {
-    const otra = jugadores.find((o) => o !== j && o.enCancha);
-    let x = 0;
-    if (otra && Math.hypot(otra.bolincha.posicion.x, otra.bolincha.posicion.z) < CONFIG.circulo.separacionMinima) {
-      x = otra.bolincha.posicion.x > 0 ? -4 : 4;
-    }
-    j.bolincha.colocar(x, 0);
-    j.enCancha = true;
+  // ¿Hay lugar en (x, z) sin tocar otra bolincha?
+  function libre(x, z, ignorar) {
+    return todas.every(
+      (b) => b === ignorar || !enJuego(b) || Math.hypot(b.posicion.x - x, b.posicion.z - z) >= CONFIG.circulo.separacionMinima
+    );
   }
 
-  // Vuelve a dejar la bolincha donde estaba antes del tiro (en el piso del caño).
-  function devolver(j) {
-    const x = THREE.MathUtils.clamp(j.antes.x, -m.mitadFondo + 1, m.mitadFondo - 1);
-    j.bolincha.colocar(x, j.antes.z);
+  // Deja la bolincha cerca del punto "s" del caño, corrida a un lado si hay otra.
+  function colocarEn(j, s, lado = 0) {
+    j.bolincha.quitar();
+    const p = traza.puntoEn(s);
+    const derecha = new THREE.Vector2(-p.dir.y, p.dir.x);
+    for (const corrimiento of [0, 4, -4, 8, -8]) {
+      for (const atras of [0, 4, 8, 12]) {
+        const l = THREE.MathUtils.clamp(lado + corrimiento, -CONFIG.canal.ancho / 2 + 1.5, CONFIG.canal.ancho / 2 - 1.5);
+        const x = p.x + derecha.x * l - p.dir.x * atras;
+        const z = p.z + derecha.y * l - p.dir.y * atras;
+        if (libre(x, z, j.bolincha)) {
+          j.bolincha.colocar(x, z);
+          j.enCancha = true;
+          return;
+        }
+      }
+    }
+    j.bolincha.colocar(p.x, p.z);
     j.enCancha = true;
   }
 
   function seguirTirando() {
     const j = jugadores[turno];
-    if (!j.enCancha) ponerEnSalida(j);
+    if (!j.enCancha) colocarEn(j, traza.sSalida);
     enfocada = j.bolincha;
-    for (const x of jugadores) x.antes.copy(x.bolincha.posicion);
-    const haciaMeta = j.bolincha.posicion.clone().add(new THREE.Vector3(0, 0, -100));
+    // Se anota dónde estaba cada bolincha antes del tiro (por si salta la pared).
+    for (const x of jugadores) {
+      x.antes = x.enCancha ? { s: recorrido(x), pos: x.bolincha.posicion.clone() } : null;
+      x.fuera = false;
+      x.enHueco = false;
+    }
     actualizarMarcador();
 
     if (j.esComputadora) {
-      const otro = jugadores.find((o) => o !== j);
-      planComputadora = planificarTiroCano({
+      planComputadora = planificarTiroCanal({
+        traza,
         tirador: j.bolincha.posicion.clone(),
-        rival: otro.enCancha ? otro.bolincha.posicion.clone() : null,
         radioBolincha: j.bolincha.radio,
-        nivel: rival,
-        medidas: m,
+        otros: jugadores.filter((o) => o !== j && o.enCancha).map((o) => ({ pos: o.bolincha.posicion.clone(), recorrido: recorrido(o) })),
+        nivel: j.nivel,
       });
-      controlCamara.mirarDesde(j.bolincha.posicion, planComputadora.objetivo || haciaMeta);
+      controlCamara.mirarDesde(j.bolincha.posicion, planComputadora.objetivo || adelanteDe(j.bolincha.posicion));
       relojComputadora = 0;
       fase = 'computadora';
       return;
     }
-    controlCamara.mirarDesde(j.bolincha.posicion, haciaMeta);
+    controlCamara.mirarDesde(j.bolincha.posicion, adelanteDe(j.bolincha.posicion));
     fase = 'apuntar';
     hud.ayudaDeTiro(true);
   }
 
-  function empezarPartida(nivel) {
-    rival = nivel;
-    if (rival) {
-      Object.assign(jugadores[0], { nombre: 'Tú', esTu: true, esComputadora: false });
-      Object.assign(jugadores[1], { nombre: 'Computadora', esTu: false, esComputadora: true });
-    } else {
-      Object.assign(jugadores[0], { nombre: 'Jugador 1', esTu: false, esComputadora: false });
-      Object.assign(jugadores[1], { nombre: 'Jugador 2', esTu: false, esComputadora: false });
-    }
-    for (const j of jugadores) {
-      j.enCancha = false;
-      j.bolincha.quitar();
-    }
-    turno = 0;
-    ponerEnSalida(jugadores[0]);
-    if (!CONFIG.reglasCano.primerTiroDesdeSalida) ponerEnSalida(jugadores[1]);
-    enfocada = jugadores[0].bolincha;
-    controlCamara.mirarDesde(enfocada.posicion, new THREE.Vector3(0, 0, -100), true);
+  function empezarPartida() {
+    traza = canal.usarMapa(mapa);
+    jugadores = sentarJugadores(todos, preferencias.mesa);
+    turno = CONFIG.reglasCano.sorteoDeQuienEmpieza ? Math.floor(Math.random() * jugadores.length) : 0;
+    colocarEn(jugadores[turno], traza.sSalida);
+    enfocada = jugadores[turno].bolincha;
+    controlCamara.mirarDesde(enfocada.posicion, adelanteDe(enfocada.posicion), true);
+    if (jugadores.length > 1) hud.aviso(`Se sorteó quién empieza: ${sujeto(jugadores[turno])}.`);
     seguirTirando();
   }
 
+  // Mesa: mapa y jugadores.
   function nuevaPartida() {
     fase = 'espera';
     mostrarPunteria(null);
+    traza = canal.usarMapa(mapa);
+    const indice = MAPAS.indexOf(mapa);
     hud.tarjeta({
-      titulo: 'Modo Caño',
+      titulo: 'Caño',
       lista: [
-        'Cada uno tira su bolincha por el caño, por turnos.',
-        'Gana el primero que saque la bolincha del rival fuera del caño.',
-        'Si te sales tú, pierdes el turno y tu bolincha vuelve a donde estaba.',
-        'Si nadie saca a nadie, gana el primero que llegue a la meta.',
+        'Por turnos, cada uno tira su bolincha por el caño. Gana el primero que pase la meta.',
+        'Puedes pegarle a la bolincha de otro para atrasarla o tirarla a un hueco.',
+        'Si una bolincha salta la pared, vuelve a donde estaba. Si cae en un hueco, vuelve a la salida.',
       ],
-      pregunta: '¿Contra quién juegas?',
-      botones: [
-        { texto: 'Computadora · Fácil', alElegir: () => empezarPartida('facil') },
-        { texto: 'Computadora · Medio', alElegir: () => empezarPartida('medio') },
-        { texto: 'Computadora · Difícil', alElegir: () => empezarPartida('dificil') },
-        { texto: 'Dos jugadores en este teléfono', secundario: true, alElegir: () => empezarPartida(null) },
+      selectores: [
+        {
+          etiqueta: 'Mapa',
+          opciones: MAPAS.map((m) => ({ valor: m.id, texto: m.nombre })),
+          valor: MAPAS[indice].id,
+          alCambiar: (id) => {
+            mapa = buscarMapa(id);
+            traza = canal.usarMapa(mapa);
+            preferencias.mapa = id;
+            guardarPreferencias(preferencias);
+          },
+        },
+        ...selectoresMesa(preferencias.mesa, () => guardarPreferencias(preferencias)),
       ],
+      botones: [{ texto: 'Jugar', alElegir: () => empezarPartida() }],
     });
+  }
+
+  // Durante el tiro: huecos y bolinchas que saltan la pared.
+  function vigilar() {
+    for (const j of jugadores) {
+      if (!j.enCancha || j.fuera || j.enHueco || !enJuego(j.bolincha)) continue;
+      const p = j.bolincha.posicion;
+      if (!traza.dentro(p.x, p.z, 0.5)) {
+        j.fuera = true;
+        j.bolincha.congelar(p.x, Math.max(p.y, CONFIG.canal.altoPared + j.bolincha.radio), p.z);
+        continue;
+      }
+      for (const o of traza.obstaculos) {
+        if (o.tipo !== 'hueco') continue;
+        if (Math.hypot(p.x - o.x, p.z - o.z) < o.radio - 0.3 && j.bolincha.velocidad() < CONFIG.canal.velocidadParaCaerEnHueco) {
+          j.enHueco = true;
+          j.bolincha.congelar(o.x, -j.bolincha.radio * 0.9, o.z); // se ve hundida en el hueco
+          break;
+        }
+      }
+    }
   }
 
   function resolver() {
     const j = jugadores[turno];
-    const o = jugadores[(turno + 1) % jugadores.length];
-    const dice = frases(j);
-    const r = resolverTiroCano({
-      tiradorFuera: fuera(j),
-      rivalFuera: o.enCancha && fuera(o),
-      tiradorEnMeta: enMeta(j),
-      rivalEnMeta: enMeta(o),
-    });
-    if (r.devolverTirador) devolver(j);
-    if (r.devolverRival) devolver(o);
+    const estados = jugadores
+      .filter((x) => x.enCancha)
+      .map((x) => ({
+        lugar: x.lugar,
+        fuera: x.fuera,
+        enHueco: x.enHueco,
+        recorrido: x.fuera || x.enHueco ? 0 : recorrido(x),
+        enMeta: !x.fuera && !x.enHueco && recorrido(x) >= traza.sMeta,
+      }));
+    const r = resolverTiroCano({ tirador: j.lugar, estados });
 
-    if (r.gana) {
-      terminar(r.gana === 'tirador' ? j : o, r.motivo === 'metaRival' ? frases(o).meta : dice[r.motivo]);
+    const avisos = [];
+    for (const lugar of r.devolver) {
+      const x = todos[lugar];
+      colocarEnPosicion(x, x.antes);
+      avisos.push(`${sujeto(x)} ${x.esTu ? 'saltaste' : 'saltó'} la pared: vuelve a donde estaba.`);
+    }
+    for (const lugar of r.aSalida) {
+      const x = todos[lugar];
+      colocarEn(x, traza.sSalida);
+      avisos.push(`${sujeto(x)} ${x.esTu ? 'caíste' : 'cayó'} en un hueco: vuelve a la salida.`);
+    }
+
+    if (r.ganador !== null) {
+      terminar(todos[r.ganador]);
       return;
     }
 
-    const motivo = dice[r.motivo];
     turno = (turno + 1) % jugadores.length;
     const siguiente = jugadores[turno];
     fase = 'espera';
     actualizarMarcador();
+    const motivo = avisos.join(' ');
 
-    if (rival) {
-      hud.aviso(`${motivo} ${siguiente.esTu ? 'Tu turno.' : 'Turno de la computadora.'}`);
+    if (!hayVariasPersonas(jugadores) || siguiente.esComputadora) {
+      // Nadie tiene que pasar el teléfono: un aviso y sigue el juego.
+      const quien = siguiente.esTu ? 'Tu turno.' : `Turno de ${sujeto(siguiente, false)}.`;
+      hud.aviso(motivo ? `${motivo} ${quien}` : quien);
       seguirTirando();
       return;
     }
     hud.tarjeta({
       titulo: `Turno de ${siguiente.nombre}`,
       color: siguiente.color,
-      texto: `${motivo} Pásale el teléfono a ${siguiente.nombre}.`,
+      texto: `${motivo ? motivo + ' ' : ''}Pásale el teléfono a ${siguiente.nombre}.`,
       botones: [{ texto: 'Tirar', alElegir: () => seguirTirando() }],
     });
   }
 
-  function terminar(ganador, motivo) {
+  // Vuelve a dejar la bolincha donde estaba antes del tiro.
+  function colocarEnPosicion(j, antes) {
+    if (!antes) {
+      colocarEn(j, traza.sSalida);
+      return;
+    }
+    j.bolincha.quitar();
+    if (libre(antes.pos.x, antes.pos.z, j.bolincha)) {
+      j.bolincha.colocar(antes.pos.x, antes.pos.z);
+      j.enCancha = true;
+    } else {
+      colocarEn(j, antes.s); // alguien quedó en su lugar: al lado
+    }
+  }
+
+  function terminar(ganador) {
     fase = 'fin';
     mostrarPunteria(null);
     actualizarMarcador();
     let titulo;
     if (ganador.esTu) titulo = '¡Ganaste!';
-    else if (ganador.esComputadora) titulo = 'Ganó la computadora';
+    else if (ganador.nombre === 'Computadora') titulo = 'Ganó la computadora';
     else titulo = `¡Ganó ${ganador.nombre}!`;
     hud.tarjeta({
       titulo,
       color: ganador.color,
-      texto: motivo,
+      texto: `${sujeto(ganador)} ${ganador.esTu ? 'llegaste' : 'llegó'} primero a la meta en ${mapa.nombre}.`,
       botones: [
-        { texto: 'Jugar otra vez', alElegir: () => empezarPartida(rival) },
-        { texto: 'Cambiar rival', secundario: true, alElegir: () => nuevaPartida() },
+        { texto: 'Jugar otra vez', alElegir: () => empezarPartida() },
+        { texto: 'Cambiar mapa o jugadores', secundario: true, alElegir: () => nuevaPartida() },
       ],
     });
   }
@@ -220,19 +263,25 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, mostrarPunte
     todas,
     nuevaPartida,
     empezarPartida,
+    get traza() {
+      return traza;
+    },
+    // Posiciones de las bolinchas en juego, con su color (para la vista de mapa).
+    marcas() {
+      return jugadores.filter((j) => j.enCancha || j.fuera || j.enHueco).map((j) => ({ pos: j.bolincha.grupo.position, color: j.color }));
+    },
 
-    // Saca las bolinchas del suelo (al cambiar de juego).
     retirar() {
       fase = 'espera';
       mostrarPunteria(null);
-      for (const j of jugadores) {
+      for (const j of todos) {
         j.enCancha = false;
         j.bolincha.quitar();
       }
     },
 
     get tirador() {
-      return jugadores[turno].bolincha;
+      return (jugadores[turno] || todos[0]).bolincha;
     },
 
     get enfoque() {
@@ -247,12 +296,9 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, mostrarPunte
     },
 
     actualizar(dt) {
-      // Si se cayó del mundo, sale del juego (cuenta como fuera del caño).
-      for (const b of todas) if (enJuego(b) && b.posicion.y < -20) b.quitar();
-
       if (fase === 'computadora') {
         relojComputadora += dt;
-        const avance = (relojComputadora - CONFIG.rival[rival].pensar) / DURACION_PUNTERIA;
+        const avance = (relojComputadora - CONFIG.rival[jugadores[turno].nivel].pensar) / DURACION_PUNTERIA;
         if (avance >= 1) {
           mostrarPunteria(null);
           tirar(planComputadora.direccion, planComputadora.fuerza);
@@ -263,6 +309,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, mostrarPunte
       }
 
       if (fase === 'rodando') {
+        vigilar();
         actualizarMarcador();
         let quietas = true;
         for (const b of todas) if (!b.frenarSiCasiQuieta()) quietas = false;

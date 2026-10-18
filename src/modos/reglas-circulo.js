@@ -21,9 +21,10 @@ export function resolverTiro({ sacadas, tiradorDentro }) {
   return { cuentan: true, repite: false, motivo: 'ninguna' };
 }
 
-// Quién ganó cuando el círculo queda vacío. Devuelve el índice del ganador, o null si hay empate.
+// Quién ganó cuando el círculo queda vacío. Devuelve el índice del ganador,
+// o null si dos o más empatan con la mayor cantidad.
 export function ganador(jugadores) {
-  const [a, b] = jugadores;
-  if (a.puntos === b.puntos) return null;
-  return a.puntos > b.puntos ? 0 : 1;
+  const mejor = Math.max(...jugadores.map((j) => j.puntos));
+  const primeros = jugadores.map((j, i) => (j.puntos === mejor ? i : -1)).filter((i) => i >= 0);
+  return primeros.length === 1 ? primeros[0] : null;
 }

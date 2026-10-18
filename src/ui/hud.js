@@ -17,6 +17,7 @@ export function crearHud() {
   const tarjeta = $('tarjeta');
 
   let modoCamara = false;
+  let enMapa = false;
   let apuntando = false;
   let quiereAyudaTiro = false;
   let tirosHechos = 0;
@@ -24,7 +25,8 @@ export function crearHud() {
 
   function mostrarAyuda() {
     let texto = null;
-    if (modoCamara) texto = AYUDA_CAMARA;
+    if (enMapa) texto = null;
+    else if (modoCamara) texto = AYUDA_CAMARA;
     else if (quiereAyudaTiro && !apuntando && tirosHechos < TIROS_CON_AYUDA) texto = AYUDA_TIRO;
     ayuda.hidden = !texto;
     if (texto) ayuda.textContent = texto;
@@ -61,13 +63,22 @@ export function crearHud() {
       mostrarAyuda();
     },
 
-    // Puntos de cada jugador, de quién es el turno y una línea de detalle abajo.
+    // Una fila por jugador (color, nombre y valor), quién tira, y una línea de detalle abajo.
+    // jugadores: [{ nombre, color, valor }]; turno: índice del que tira (o null).
     marcador({ jugadores, turno, detalle }) {
+      const filas = $('marcador-filas');
+      while (filas.children.length < jugadores.length) {
+        const fila = document.createElement('div');
+        fila.className = 'marcador-fila';
+        fila.innerHTML = '<span class="marcador-punto"></span><span class="marcador-nombre"></span><span class="marcador-puntos"></span>';
+        filas.appendChild(fila);
+      }
+      while (filas.children.length > jugadores.length) filas.lastChild.remove();
       jugadores.forEach((j, i) => {
-        const fila = $('marcador-j' + (i + 1));
+        const fila = filas.children[i];
         fila.querySelector('.marcador-punto').style.background = j.color;
         fila.querySelector('.marcador-nombre').textContent = j.nombre;
-        fila.querySelector('.marcador-puntos').textContent = j.puntos;
+        fila.querySelector('.marcador-puntos').textContent = j.valor;
         fila.classList.toggle('activo', i === turno);
       });
       $('marcador-quedan').textContent = detalle;
@@ -83,7 +94,9 @@ export function crearHud() {
 
     // Tarjeta en el centro que espera a que el jugador toque un botón.
     // botones: [{ texto, alElegir, secundario }]
-    tarjeta({ titulo, subtitulo = '', texto = '', lista = [], pregunta = '', botones, color = null }) {
+    // selectores: [{ etiqueta, color, opciones: [{ valor, texto }], valor, alCambiar }]
+    //   cada selector es un botón que pasa a la opción siguiente al tocarlo.
+    tarjeta({ titulo, subtitulo = '', texto = '', lista = [], pregunta = '', selectores = [], botones, color = null }) {
       $('tarjeta-titulo').textContent = titulo;
       $('tarjeta-titulo').style.color = color || '';
       $('tarjeta-subtitulo').textContent = subtitulo;
@@ -99,6 +112,40 @@ export function crearHud() {
         })
       );
       ul.hidden = lista.length === 0;
+      const cajaSel = $('tarjeta-selectores');
+      cajaSel.replaceChildren(
+        ...selectores.map((s, k) => {
+          const fila = document.createElement('div');
+          fila.className = 'selector';
+          const etiqueta = document.createElement('span');
+          etiqueta.className = 'selector-etiqueta';
+          if (s.color) {
+            const punto = document.createElement('span');
+            punto.className = 'marcador-punto';
+            punto.style.background = s.color;
+            etiqueta.appendChild(punto);
+          }
+          etiqueta.append(s.etiqueta);
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.id = 'selector-' + k;
+          btn.className = 'boton selector-boton';
+          let i = Math.max(s.opciones.findIndex((o) => o.valor === s.valor), 0);
+          const mostrar = () => {
+            btn.textContent = s.opciones[i].texto;
+            btn.classList.toggle('apagado', s.opciones[i].valor === 'nadie');
+          };
+          mostrar();
+          btn.addEventListener('click', () => {
+            i = (i + 1) % s.opciones.length;
+            mostrar();
+            s.alCambiar(s.opciones[i].valor);
+          });
+          fila.append(etiqueta, btn);
+          return fila;
+        })
+      );
+      cajaSel.hidden = selectores.length === 0;
       $('tarjeta-pregunta').textContent = pregunta;
       $('tarjeta-pregunta').hidden = !pregunta;
       const caja = $('tarjeta-botones');
@@ -121,6 +168,20 @@ export function crearHud() {
 
     alCamara(fn) {
       btnCamara.addEventListener('click', fn);
+    },
+
+    // Botón "Ver mapa" (solo en el Caño).
+    mostrarBotonMapa(si) {
+      $('btn-mapa').hidden = !si;
+    },
+    vistaMapa(activa) {
+      enMapa = activa;
+      mostrarAyuda();
+      $('btn-mapa').setAttribute('aria-pressed', String(activa));
+      $('btn-mapa-texto').textContent = activa ? 'Volver' : 'Ver mapa';
+    },
+    alMapa(fn) {
+      $('btn-mapa').addEventListener('click', fn);
     },
 
     // "Nueva partida" pide un segundo toque para confirmar.

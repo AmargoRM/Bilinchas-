@@ -3,32 +3,27 @@
 // en CONFIG.reglasCano (src/config.js).
 import { CONFIG } from '../config.js';
 
-// Recibe, después del tiro:
-//   rivalFuera, tiradorFuera: si cada bolincha quedó fuera del caño.
-//   tiradorEnMeta, rivalEnMeta: si cada bolincha pasó la meta (y sigue dentro del caño).
+// Recibe el lugar del que tiró y el estado de cada bolincha en el caño:
+//   [{ lugar, fuera, enHueco, enMeta, recorrido }]
+//   fuera:     saltó la pared
+//   enHueco:   cayó en un hueco
+//   enMeta:    pasó la línea de meta (y sigue en el caño)
+//   recorrido: cm avanzados desde la salida
 // Devuelve:
-//   gana: 'tirador' | 'rival' | null
-//   motivo: 'saco' | 'meta' | 'metaRival' | 'teSacaste' | 'nada'
-//   devolverTirador / devolverRival: si esa bolincha vuelve a donde estaba antes del tiro.
-export function resolverTiroCano({ rivalFuera, tiradorFuera, tiradorEnMeta, rivalEnMeta }) {
-  const r = CONFIG.reglasCano;
+//   ganador:  lugar del que gana, o null
+//   devolver: lugares que vuelven a donde estaban antes del tiro (saltaron la pared)
+//   aSalida:  lugares que vuelven a la salida (cayeron en un hueco)
+export function resolverTiroCano({ tirador, estados }) {
+  const devolver = estados.filter((e) => e.fuera).map((e) => e.lugar);
+  const aSalida = estados.filter((e) => e.enHueco && !e.fuera).map((e) => e.lugar);
 
-  if (rivalFuera && r.ganaAlSacarRival && (!tiradorFuera || r.ganaAunqueTeSaques)) {
-    return { gana: 'tirador', motivo: 'saco', devolverTirador: false, devolverRival: false };
+  const enMeta = estados.filter((e) => e.enMeta && !e.fuera && !e.enHueco);
+  let ganador = null;
+  if (enMeta.some((e) => e.lugar === tirador)) {
+    ganador = tirador;
+  } else if (enMeta.length > 0 && CONFIG.reglasCano.metaCuentaSiTeEmpujan) {
+    // Lo empujaron más allá de la meta: gana el que quedó más adelante.
+    ganador = enMeta.reduce((a, b) => (b.recorrido > a.recorrido ? b : a)).lugar;
   }
-  if (tiradorFuera) {
-    // Se sacó a sí mismo: pierde el turno y su bolincha vuelve a donde estaba.
-    return { gana: null, motivo: 'teSacaste', devolverTirador: true, devolverRival: rivalFuera };
-  }
-  if (rivalFuera) {
-    // Solo pasa si ganaAlSacarRival está apagado: el rival vuelve a su lugar.
-    return { gana: null, motivo: 'nada', devolverTirador: false, devolverRival: true };
-  }
-  if (r.ganaAlLlegarMeta && tiradorEnMeta) {
-    return { gana: 'tirador', motivo: 'meta', devolverTirador: false, devolverRival: false };
-  }
-  if (r.ganaAlLlegarMeta && r.metaCuentaSiTeEmpujan && rivalEnMeta) {
-    return { gana: 'rival', motivo: 'metaRival', devolverTirador: false, devolverRival: false };
-  }
-  return { gana: null, motivo: 'nada', devolverTirador: false, devolverRival: false };
+  return { ganador, devolver, aSalida };
 }

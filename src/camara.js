@@ -11,6 +11,7 @@ export function crearCamara(camara) {
   const objetivo = new THREE.Vector3();
   const mirar = new THREE.Vector3();
   let primeraVez = true;
+  let mapa = null; // { cx, cz, ancho, largo } cuando se mira el mapa desde arriba
 
   function adelante(v = new THREE.Vector3()) {
     return v.set(-Math.sin(giro), 0, -Math.cos(giro));
@@ -47,7 +48,24 @@ export function crearCamara(camara) {
       distancia = THREE.MathUtils.clamp(distancia * factor, c.distanciaMinima, c.distanciaMaxima);
     },
 
+    // Vista desde arriba de todo el mapa (bordes: { minX, maxX, minZ, maxZ }); null para volver.
+    vistaMapa(bordes) {
+      mapa = bordes
+        ? { cx: (bordes.minX + bordes.maxX) / 2, cz: (bordes.minZ + bordes.maxZ) / 2, ancho: bordes.maxX - bordes.minX, largo: bordes.maxZ - bordes.minZ }
+        : null;
+    },
+
     actualizar(dt, posBolincha) {
+      if (mapa) {
+        // Altura justa para que entre todo el mapa en la pantalla.
+        const tan = Math.tan(THREE.MathUtils.degToRad(camara.fov / 2));
+        // Con margen para que el marcador de arriba y los botones de abajo no tapen el mapa.
+        const alto = (Math.max(mapa.ancho / camara.aspect, mapa.largo) / (2 * tan)) * 1.5 + 20;
+        const corrimiento = alto * tan * 0.16; // baja un poco el mapa en la pantalla
+        camara.position.set(mapa.cx, alto, mapa.cz - corrimiento + 0.01);
+        camara.lookAt(mapa.cx, 0, mapa.cz - corrimiento);
+        return;
+      }
       const suave = primeraVez ? 1 : 1 - Math.exp(-dt * 6);
       primeraVez = false;
       objetivo.lerp(posBolincha, suave);
