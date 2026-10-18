@@ -142,7 +142,7 @@ export const CONFIG = {
     //                  otro jugador se levanta del suelo mientras tanto.
     //   'dondeQuedo' = desde donde quedó su bolincha la última vez. Las dos
     //                  bolinchas de tiro quedan en el suelo y se pueden pegar.
-    inicioDeTurno: 'salida',
+    inicioDeTurno: 'dondeQuedo',
   },
 
   // ---------------------------------------------------------------
