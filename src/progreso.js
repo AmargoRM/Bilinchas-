@@ -1,19 +1,21 @@
 // Progreso del jugador: puntos, nivel con título, logros y bolinchas desbloqueadas.
 // Se guarda en este teléfono. Cuenta para el Lugar 1 de la mesa, cuando juega una persona.
 // Si se borran los datos del navegador o de la app, el progreso se pierde.
+import { tx } from './textos.js';
 
 // ---------------------------------------------------------------
 // NIVELES: título, puntos necesarios y bolincha que se gana al llegar.
+// Los títulos llevan huecos que se completan con las palabras del país (src/textos.js).
 // ---------------------------------------------------------------
 export const NIVELES = [
-  { titulo: 'Bolichita', desde: 0, premio: null },
+  { titulo: '{chica}', desde: 0, premio: null },
   { titulo: 'Aprendiz de tiza', desde: 60, premio: 'tigre' },
   { titulo: 'Tirador de barrio', desde: 160, premio: 'lechera' },
   { titulo: 'Ojo de águila', desde: 320, premio: 'galaxia' },
-  { titulo: 'Rey del caño', desde: 540, premio: 'oro' },
+  { titulo: 'Rey {del_c} {caño}', desde: 540, premio: 'oro' },
   { titulo: 'Maestro del círculo', desde: 850, premio: 'pantano' },
-  { titulo: 'Boliche', desde: 1250, premio: 'diamante' },
-  { titulo: 'Bolichón', desde: 1800, premio: 'bolichon' },
+  { titulo: '{Boliche}', desde: 1250, premio: 'diamante' },
+  { titulo: '{mayor}', desde: 1800, premio: 'bolichon' },
 ];
 
 // ---------------------------------------------------------------
@@ -36,10 +38,10 @@ export const LOGROS = [
   { id: 'dificil', nombre: 'Sin miedo', texto: 'Gánale a la computadora en Difícil.', premio: 'onix' },
   { id: 'cuatro', nombre: 'Rey de la cuadra', texto: 'Gana una partida de 4 jugadores.', premio: 'arcoiris' },
   { id: 'racha', nombre: 'Racha', texto: 'Gana 3 partidas seguidas.', premio: 'fuego' },
-  { id: 'mapas', nombre: 'Conoce el barrio', texto: 'Gana en todos los mapas del Caño.', premio: 'caminante' },
-  { id: 'limpio', nombre: 'Tiro limpio', texto: 'Saca 3 o más bolinchas de un solo tiro en el Círculo.', premio: null },
-  { id: 'hueco', nombre: 'Al hueco', texto: 'Mete a un rival en un hueco en el Caño.', premio: null },
-  { id: 'boliche', nombre: 'Peso pesado', texto: 'Gana una partida tirando con boliche.', premio: null },
+  { id: 'mapas', nombre: 'Conoce el barrio', texto: 'Gana en todos los mapas de {Caño}.', premio: 'caminante' },
+  { id: 'limpio', nombre: 'Tiro limpio', texto: 'Saca 3 o más {bolinchas} de un solo tiro en el Círculo.', premio: null },
+  { id: 'hueco', nombre: 'Al hueco', texto: 'Mete a un rival en un hueco en {Caño}.', premio: null },
+  { id: 'boliche', nombre: 'Peso pesado', texto: 'Gana una partida tirando con {el_g} {boliche}.', premio: null },
 ];
 
 const INICIALES = ['azul', 'clasica']; // las que se tienen desde el principio
@@ -70,7 +72,7 @@ export function crearProgreso({ cantidadMapas }) {
   function desbloquear(id, mensajes, motivo) {
     if (!id || estado.disenos.includes(id)) return;
     estado.disenos.push(id);
-    mensajes.push(`Nueva bolincha: ${motivo}. Elígela en Logros.`);
+    mensajes.push(tx(`{Nueva} {bolincha}: ${motivo}. Elíge{lo} en Logros.`));
   }
 
   function lograr(id, mensajes) {
@@ -82,7 +84,7 @@ export function crearProgreso({ cantidadMapas }) {
   }
 
   let nombres = {};
-  const nombreDe = (id) => nombres[id] || id;
+  const nombreDe = (id) => tx(nombres[id] || id);
 
   return {
     // Para mostrar el nombre de cada bolincha en los mensajes.
@@ -99,7 +101,7 @@ export function crearProgreso({ cantidadMapas }) {
       const actual = NIVELES[i];
       const siguiente = NIVELES[i + 1] || null;
       const avance = siguiente ? (estado.puntos - actual.desde) / (siguiente.desde - actual.desde) : 1;
-      return { numero: i + 1, titulo: actual.titulo, siguiente, avance, puntos: estado.puntos };
+      return { numero: i + 1, titulo: tx(actual.titulo), siguiente: siguiente && { ...siguiente, titulo: tx(siguiente.titulo) }, avance, puntos: estado.puntos };
     },
 
     elegir(id) {
@@ -146,7 +148,7 @@ export function crearProgreso({ cantidadMapas }) {
       // Subir de nivel.
       const nivelAhora = indiceNivel();
       for (let i = nivelAntes + 1; i <= nivelAhora; i++) {
-        mensajes.push(`¡Subiste de nivel! Ahora eres ${NIVELES[i].titulo}.`);
+        mensajes.push(`¡Subiste de nivel! Ahora eres ${tx(NIVELES[i].titulo)}.`);
         desbloquear(NIVELES[i].premio, mensajes, nombreDe(NIVELES[i].premio));
       }
       guardar();
@@ -157,7 +159,7 @@ export function crearProgreso({ cantidadMapas }) {
     comoSeGana(id) {
       if (INICIALES.includes(id)) return 'Desde el principio';
       const n = NIVELES.find((x) => x.premio === id);
-      if (n) return `Nivel ${NIVELES.indexOf(n) + 1}: ${n.titulo}`;
+      if (n) return `Nivel ${NIVELES.indexOf(n) + 1}: ${tx(n.titulo)}`;
       const l = LOGROS.find((x) => x.premio === id);
       if (l) return `Logro: ${l.nombre}`;
       return '';

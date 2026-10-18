@@ -17,6 +17,8 @@ import { crearProgreso } from './progreso.js';
 import { crearPantallaLogros } from './ui/logros.js';
 import { MAPAS } from './mapas.js';
 import { DISENOS } from './disenos.js';
+import { PAISES } from './paises.js';
+import { tx, aplicarTextos, paisActual, paisElegido, usarPais } from './textos.js';
 
 async function iniciar() {
   cargarAjustesGuardados();
@@ -136,7 +138,7 @@ async function iniciar() {
   }
 
   // ---------------- Pantallas del menú ----------------
-  const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-logros', 'pantalla-reglas'];
+  const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-logros', 'pantalla-reglas', 'pantalla-paises'];
   let enMenu = true;
   function mostrarPantalla(id) {
     for (const p of pantallas) document.getElementById(p).hidden = p !== id;
@@ -157,7 +159,8 @@ async function iniciar() {
     mostrarPantalla(destino === 'modos' ? 'pantalla-modos' : 'menu-principal');
   }
   const $ = (id) => document.getElementById(id);
-  $('portada').addEventListener('click', () => mostrarPantalla('menu-principal'));
+  // La primera vez se pregunta el país; después se cambia en Ajustes.
+  $('portada').addEventListener('click', () => (paisElegido() ? mostrarPantalla('menu-principal') : elegirPais('menu-principal')));
   $('menu-jugar').addEventListener('click', () => mostrarPantalla('pantalla-modos'));
   $('menu-ajustes').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
   $('menu-reglas').addEventListener('click', () => mostrarPantalla('pantalla-reglas'));
@@ -181,6 +184,39 @@ async function iniciar() {
     sonido.activar(!sonido.activo);
     mostrarSonido();
   });
+
+  // ---------------- País ----------------
+  let despuesDePais = 'menu-principal';
+  function mostrarPais() {
+    const p = paisActual();
+    $('ajuste-pais').textContent = p.nombre;
+    $('ajuste-pais-nota').textContent = tx('Palabras: {bolincha}, {boliche} y {caño}.');
+  }
+  function elegirPais(despues) {
+    despuesDePais = despues;
+    $('paises-lista').replaceChildren(
+      ...PAISES.map((p) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'boton-pais-opcion' + (paisElegido() && p === paisActual() ? ' elegido' : '');
+        b.innerHTML = '<span></span><small></small>';
+        b.children[0].textContent = p.nombre;
+        b.children[1].textContent = `${p.bolincha} · ${p.grande}`;
+        b.addEventListener('click', () => {
+          usarPais(p.id);
+          aplicarTextos();
+          mostrarPais();
+          mostrarPantalla(despuesDePais);
+        });
+        return b;
+      })
+    );
+    mostrarPantalla('pantalla-paises');
+  }
+  $('ajuste-pais').addEventListener('click', () => elegirPais('pantalla-ajustes'));
+  $('paises-volver').addEventListener('click', () => mostrarPantalla(despuesDePais));
+  aplicarTextos();
+  mostrarPais();
 
   hud.alNuevaPartida(() => irA('menu'));
   hud.alCamara(() => hud.modoCamara(control.alternarModoCamara() === 'camara'));

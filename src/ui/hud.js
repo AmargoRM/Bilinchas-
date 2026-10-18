@@ -1,5 +1,6 @@
 // La información en pantalla: marcador, barra de fuerza, avisos, tarjetas y botones.
-const AYUDA_TIRO = 'Toca tu bolincha y arrastra hacia atrás para tirar';
+import { tx } from '../textos.js';
+const AYUDA_TIRO = 'Toca tu {bolincha} y arrastra hacia atrás para tirar';
 const AYUDA_CAMARA = 'Arrastra para girar la cámara. Toca «Listo» para volver a tirar';
 // Después de esta cantidad de tiros, la ayuda de cómo tirar deja de aparecer.
 const TIROS_CON_AYUDA = 2;
@@ -27,7 +28,7 @@ export function crearHud() {
     let texto = null;
     if (enMapa) texto = null;
     else if (modoCamara) texto = AYUDA_CAMARA;
-    else if (quiereAyudaTiro && !apuntando && tirosHechos < TIROS_CON_AYUDA) texto = AYUDA_TIRO;
+    else if (quiereAyudaTiro && !apuntando && tirosHechos < TIROS_CON_AYUDA) texto = tx(AYUDA_TIRO);
     ayuda.hidden = !texto;
     if (texto) ayuda.textContent = texto;
   }

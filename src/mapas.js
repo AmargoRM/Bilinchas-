@@ -13,7 +13,7 @@ export const MAPAS = [
   {
     id: 'escuela',
     nombre: 'La escuela',
-    descripcion: 'El caño que da la vuelta a la escuela: esquinas, curvas, piedras y huecos.',
+    descripcion: '{El_c} {caño} que da la vuelta a la escuela: esquinas, curvas, piedras y huecos.',
     meta: 40,
     piezas: [
       { recta: 260, obstaculos: [{ piedra: { en: 150, lado: 5, tamano: 2.4 } }] },

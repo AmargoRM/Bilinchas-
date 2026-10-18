@@ -7,6 +7,7 @@ import { DISENOS_CIRCULO } from '../disenos.js';
 import { resolverTiro, ganador } from './reglas-circulo.js';
 import { planificarTiro } from '../ia/rival.js';
 import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
+import { tx } from '../textos.js';
 
 
 
@@ -17,20 +18,20 @@ const DURACION_PUNTERIA = 0.9; // segundos que se ve a la computadora apuntando
 function frases(j) {
   if (j.esTu) {
     return {
-      ninguna: 'No sacaste ninguna.',
+      ninguna: tx('No sacaste {ninguna}.'),
       saco: (n) => `Sacaste ${n}.`,
-      dentro: 'Tu bolincha quedó dentro del círculo.',
+      dentro: tx('Tu {bolincha} quedó dentro del círculo.'),
       seLleva: (n) => `Igual te llevas ${n}.`,
       devuelve: (n) => `Las ${n} que sacaste vuelven al círculo.`,
-      repite: (n) => `¡Sacaste ${n}! Tira otra vez desde donde quedó tu bolincha.`,
+      repite: (n) => tx(`¡Sacaste ${n}! Tira otra vez desde donde quedó tu {bolincha}.`),
     };
   }
   const quien = sujeto(j);
   const deQuien = `de ${sujeto(j, false)}`;
   return {
-    ninguna: `${quien} no sacó ninguna.`,
+    ninguna: tx(`${quien} no sacó {ninguna}.`),
     saco: (n) => `${quien} sacó ${n}.`,
-    dentro: `La bolincha ${deQuien} quedó dentro del círculo.`,
+    dentro: tx(`{La} {bolincha} ${deQuien} quedó dentro del círculo.`),
     seLleva: (n) => `Igual se lleva ${n}.`,
     devuelve: (n) => `Las ${n} que sacó vuelven al círculo.`,
     repite: (n) => `¡${quien} sacó ${n}! Vuelve a tirar.`,
@@ -177,11 +178,11 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     hud.tarjeta({
       titulo: 'Círculo',
       lista: [
-        'Tira desde afuera y saca bolinchas del círculo: las que saques son tuyas.',
-        'Si sacas al menos una, vuelves a tirar desde donde quedó tu bolincha.',
-        'Si no sacas ninguna, o tu bolincha queda dentro del círculo, pasa el turno.',
+        'Tira desde afuera y saca {bolinchas} del círculo: {las} que saques son {tuyas}.',
+        'Si sacas al menos {una}, vuelves a tirar desde donde quedó tu {bolincha}.',
+        'Si no sacas {ninguna}, o tu {bolincha} queda dentro del círculo, pasa el turno.',
         'Gana quien tenga más cuando el círculo quede vacío.',
-      ],
+      ].map(tx),
       selectores: selectoresMesa(preferencias, () => guardarPreferencias(preferencias)),
       botones: [
         { texto: 'Jugar', alElegir: () => empezarPartida() },

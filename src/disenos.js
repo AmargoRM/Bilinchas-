@@ -24,7 +24,7 @@ export const DISENOS = {
   oro: { nombre: 'Oro', vidrio: 0xd4a73a, vetas: [], claro: 0, metal: 0.9 },
   pantano: { nombre: 'Pantano', vidrio: 0x5a6b2e, vetas: [0x8a5a2a, 0xf2cf4a, 0x9fd66a], claro: 0.1 },
   diamante: { nombre: 'Diamante', vidrio: 0xf2fbff, vetas: [0xffffff, 0xd9f2ff, 0xffffff], claro: 0.95, ior: 2.2 },
-  bolichon: { nombre: 'Bolichón', vidrio: 0xffc93a, vetas: [0xd8402c, 0x2a8fd6, 0x3fae5a], claro: 0.25 },
+  bolichon: { nombre: '{premioMayor}', vidrio: 0xffc93a, vetas: [0xd8402c, 0x2a8fd6, 0x3fae5a], claro: 0.25 },
   esmeralda: { nombre: 'Esmeralda', vidrio: 0x0f9b55, vetas: [0xf3eee2, 0xf2cf4a, 0xf3eee2], claro: 0.1 },
   onix: { nombre: 'Ónix', vidrio: 0x121212, vetas: [], claro: 0, opaco: true },
   arcoiris: { nombre: 'Arcoíris', vidrio: 0xeef6f5, vetas: [0xd8402c, 0xf2cf4a, 0x2a8fd6], claro: 0.7 },

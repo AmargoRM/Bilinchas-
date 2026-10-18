@@ -978,3 +978,42 @@ button {
 .nota-progreso {
   text-align: center;
 }
+
+/* ---------------- País ---------------- */
+.boton-pais {
+  min-width: 9em;
+  text-align: center;
+  pointer-events: auto;
+}
+
+.paises-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.boton-pais-opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--placa-borde);
+  background: var(--placa);
+  color: var(--tiza);
+  font-size: 18px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.boton-pais-opcion small {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tiza-suave);
+}
+
+.boton-pais-opcion.elegido {
+  border-color: var(--amarillo);
+}

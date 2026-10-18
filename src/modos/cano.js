@@ -6,6 +6,7 @@ import { resolverTiroCano } from './reglas-cano.js';
 import { planificarTiroCanal } from '../ia/rival.js';
 import { MAPAS, buscarMapa } from '../mapas.js';
 import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
+import { tx } from '../textos.js';
 
 const DURACION_PUNTERIA = 0.9; // segundos que se ve a la computadora apuntando
 const metros = (cm) => `${(Math.max(cm, 0) / 100).toFixed(1).replace('.', ',')} m`;
@@ -128,12 +129,12 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
     traza = canal.usarMapa(mapa);
     const indice = MAPAS.indexOf(mapa);
     hud.tarjeta({
-      titulo: 'Caño',
+      titulo: tx('{Caño}'),
       lista: [
-        'Por turnos, cada uno tira su bolincha por el caño. Gana el primero que pase la meta.',
-        'Puedes pegarle a la bolincha de otro para atrasarla o tirarla a un hueco.',
-        'Si una bolincha salta la pared, vuelve a donde estaba. Si cae en un hueco, vuelve a la salida.',
-      ],
+        'Por turnos, cada uno tira su {bolincha} por {el_c} {caño}. Gana el primero que pase la meta.',
+        'Puedes pegarle {a_la} {bolincha} de otro para atrasar{lo} o tirar{lo} a un hueco.',
+        'Si {un} {bolincha} salta la pared, vuelve a donde estaba. Si cae en un hueco, vuelve a la salida.',
+      ].map(tx),
       selectores: [
         {
           etiqueta: 'Mapa',

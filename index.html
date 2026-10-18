@@ -41,7 +41,7 @@
 
       <p id="aviso" class="aviso" role="status" hidden></p>
 
-      <p id="ayuda" class="placa ayuda" hidden>Toca tu bolincha y arrastra hacia atrás para tirar</p>
+      <p id="ayuda" class="placa ayuda" hidden></p>
 
       <div class="hud-abajo">
         <button id="btn-mapa" class="placa boton boton-camara" type="button" aria-pressed="false" hidden>
@@ -87,12 +87,12 @@
       <button id="modo-circulo" class="tarjeta-modo" type="button">
         <svg viewBox="0 0 320 130" aria-hidden="true"><rect width="320" height="130" fill="#7a4428" /><g fill="#5d321c" opacity=".6"><circle cx="40" cy="30" r="3" /><circle cx="270" cy="100" r="4" /><circle cx="150" cy="115" r="2" /><circle cx="290" cy="25" r="3" /></g><ellipse cx="160" cy="68" rx="118" ry="40" fill="none" stroke="#f3eee2" stroke-width="5" stroke-dasharray="40 3 22 4" opacity=".9" /><g><circle cx="140" cy="62" r="6" fill="#3fae5a" /><circle cx="165" cy="70" r="6" fill="#4fb8d8" /><circle cx="182" cy="58" r="6" fill="#8fd3b0" /><circle cx="150" cy="80" r="6" fill="#2f9e55" /><circle cx="196" cy="76" r="6" fill="#e6f2f0" /><circle cx="122" cy="74" r="6" fill="#6fd3c8" /><circle cx="160" cy="118" r="8" fill="#1f7fd6" /></g></svg>
         <span class="modo-nombre">Círculo</span>
-        <span class="modo-texto">Saca las bolinchas del círculo de tiza: las que saques son tuyas.</span>
+        <span class="modo-texto" data-tx="Saca {las} {bolinchas} del círculo de tiza: {las} que saques son {tuyas}."></span>
       </button>
       <button id="modo-cano" class="tarjeta-modo" type="button">
         <svg viewBox="0 0 320 130" aria-hidden="true"><rect width="320" height="130" fill="#5d6b2e" /><path d="M120 0h80l70 130H50z" fill="#9b9a93" /><path d="M120 0h80l-6 0 64 130h-14L190 0zM120 0l-70 130h14L126 0z" fill="#6f6e68" /><g stroke="#4a4842" stroke-width="2"><path d="M108 22h104M92 52h136M70 92h180" /></g><path d="M138 30h44" stroke="#f3eee2" stroke-width="3" /><circle cx="160" cy="105" r="8" fill="#1f7fd6" /><circle cx="168" cy="60" r="6" fill="#d23a26" /><circle cx="140" cy="80" r="5" fill="#7a6a5a" /></svg>
-        <span class="modo-nombre">Caño</span>
-        <span class="modo-texto">Llega primero a la meta por un caño con esquinas, piedras y huecos.</span>
+        <span class="modo-nombre" data-tx="{Caño}"></span>
+        <span class="modo-texto" data-tx="Llega primero a la meta por {un_c} {caño} con esquinas, piedras y huecos."></span>
       </button>
     </section>
 
@@ -100,6 +100,8 @@
       <header class="pantalla-cabeza"><button class="volver" type="button" data-volver aria-label="Volver">←</button><h2>Ajustes</h2></header>
       <div class="placa lista-ajustes">
         <div class="fila-ajuste"><span>Sonido</span><button id="ajuste-sonido" class="boton selector-boton interruptor" type="button" aria-pressed="true">Sí</button></div>
+        <div class="fila-ajuste"><span>País</span><button id="ajuste-pais" class="boton selector-boton boton-pais" type="button"></button></div>
+        <p class="nota" id="ajuste-pais-nota"></p>
         <p class="nota">La fuerza, el frenado y el rebote se ajustan durante el juego, con el botón del engranaje.</p>
       </div>
     </section>
@@ -113,7 +115,7 @@
         <p class="nota" id="logros-siguiente"></p>
         <p class="nivel-cifras" id="logros-cifras"></p>
       </div>
-      <h3 class="subtitulo-lista">Elige tu bolincha</h3>
+      <h3 class="subtitulo-lista" data-tx="Elige tu {bolincha}"></h3>
       <div id="logros-coleccion" class="coleccion"></div>
       <h3 class="subtitulo-lista">Logros</h3>
       <ul id="logros-lista" class="placa lista-logros"></ul>
@@ -121,27 +123,33 @@
       <button id="logros-borrar" class="boton boton-secundario" type="button">Borrar mi progreso</button>
     </section>
 
+    <section id="pantalla-paises" class="pantalla pantalla-lista" hidden>
+      <header class="pantalla-cabeza"><button class="volver" type="button" id="paises-volver" aria-label="Volver">←</button><h2>¿De dónde eres?</h2></header>
+      <p class="nota">Así el juego usa las palabras de tu país: bolincha, canica, metra, bolita… Puedes cambiarlo después en Ajustes.</p>
+      <div id="paises-lista" class="paises-lista"></div>
+    </section>
+
     <section id="pantalla-reglas" class="pantalla pantalla-lista" hidden>
       <header class="pantalla-cabeza"><button class="volver" type="button" data-volver aria-label="Volver">←</button><h2>Reglas</h2></header>
       <div class="placa lista-reglas">
         <h3>Cómo tirar</h3>
-        <p>Toca tu bolincha y arrastra el dedo hacia atrás, como estirando una liga. La dirección es el ángulo y el largo es la fuerza. Al soltar, sale.</p>
+        <p data-tx="Toca tu {bolincha} y arrastra el dedo hacia atrás, como estirando una liga. La dirección es el ángulo y el largo es la fuerza. Al soltar, sale."></p>
         <h3>Círculo</h3>
         <ul>
-          <li>Tira desde afuera y saca bolinchas del círculo: las que saques son tuyas.</li>
-          <li>Si sacas al menos una, vuelves a tirar desde donde quedó tu bolincha.</li>
-          <li>Si no sacas ninguna, o tu bolincha queda dentro del círculo, pasa el turno.</li>
+          <li data-tx="Tira desde afuera y saca {bolinchas} del círculo: {las} que saques son {tuyas}."></li>
+          <li data-tx="Si sacas al menos {una}, vuelves a tirar desde donde quedó tu {bolincha}."></li>
+          <li data-tx="Si no sacas {ninguna}, o tu {bolincha} queda dentro del círculo, pasa el turno."></li>
           <li>Gana quien tenga más cuando el círculo quede vacío.</li>
         </ul>
-        <h3>Caño</h3>
+        <h3 data-tx="{Caño}"></h3>
         <ul>
-          <li>Por turnos, cada uno tira su bolincha por el caño. Gana el primero que pase la meta.</li>
-          <li>Puedes pegarle a la bolincha de otro para atrasarla o tirarla a un hueco.</li>
-          <li>Si una bolincha salta la pared, vuelve a donde estaba antes del tiro.</li>
+          <li data-tx="Por turnos, cada uno tira su {bolincha} por {el_c} {caño}. Gana el primero que pase la meta."></li>
+          <li data-tx="Puedes pegarle {a_la} {bolincha} de otro para atrasar{lo} o tirar{lo} a un hueco."></li>
+          <li data-tx="Si {un} {bolincha} salta la pared, vuelve a donde estaba antes del tiro."></li>
           <li>Si cae en un hueco, vuelve a la salida.</li>
         </ul>
-        <h3>Normal o boliche</h3>
-        <p>La normal mide 16 mm. El boliche mide 25 mm y pesa casi cuatro veces más: empuja más fuerte, pero es más difícil de frenar.</p>
+        <h3 data-tx="Normal o {boliche}"></h3>
+        <p data-tx="{La} normal mide 16 mm. {El_g} {boliche} mide 25 mm y pesa casi cuatro veces más: empuja más fuerte, pero es más difícil de frenar."></p>
       </div>
     </section>
 

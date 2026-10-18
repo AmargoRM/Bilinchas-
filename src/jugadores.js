@@ -1,6 +1,7 @@
 // Jugadores compartidos por todos los modos: colores, nombres y la "mesa"
 // (quién se sienta en cada uno de los 4 lugares: persona, computadora o nadie).
 import { crearBolincha } from './bolincha.js';
+import { tx } from './textos.js';
 
 export const MAX_JUGADORES = 4;
 
@@ -14,7 +15,7 @@ export const COLORES_JUGADORES = [
 // Con qué tira cada lugar: bolincha normal o boliche (más grande y pesado).
 export const TAMANOS = [
   { valor: 'normal', texto: 'Normal' },
-  { valor: 'boliche', texto: 'Boliche' },
+  { valor: 'boliche', texto: '{Boliche}' },
 ];
 
 // Lo que puede haber en cada lugar de la mesa.
@@ -121,7 +122,7 @@ export function selectoresMesa(preferencias, alCambiar) {
       alCambiar();
     },
     extra: {
-      opciones: TAMANOS,
+      opciones: TAMANOS.map((t) => ({ ...t, texto: tx(t.texto) })),
       valor: preferencias.tamanos[i],
       alCambiar: (v) => {
         preferencias.tamanos[i] = v;

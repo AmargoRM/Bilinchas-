@@ -2,6 +2,7 @@
 import { NIVELES, LOGROS, COLECCION } from '../progreso.js';
 import { DISENOS } from '../disenos.js';
 import { vistaPrevia } from '../aspecto.js';
+import { tx } from '../textos.js';
 
 export function crearPantallaLogros(progreso) {
   const $ = (id) => document.getElementById(id);
@@ -27,9 +28,9 @@ export function crearPantallaLogros(progreso) {
         ficha.setAttribute('aria-pressed', String(e.elegido === id));
         ficha.innerHTML = vistaPrevia(id, 52);
         const nombre = document.createElement('span');
-        nombre.textContent = DISENOS[id].nombre;
+        nombre.textContent = tx(DISENOS[id].nombre);
         const detalle = document.createElement('small');
-        detalle.textContent = e.elegido === id ? 'Tu bolincha' : tiene ? 'Tocar para usar' : progreso.comoSeGana(id);
+        detalle.textContent = e.elegido === id ? tx('Tu {bolincha}') : tiene ? 'Tocar para usar' : progreso.comoSeGana(id);
         ficha.append(nombre, detalle);
         ficha.addEventListener('click', () => {
           if (progreso.elegir(id)) dibujar();
@@ -46,7 +47,7 @@ export function crearPantallaLogros(progreso) {
         li.innerHTML = '<span aria-hidden="true"></span><strong></strong><small></small>';
         li.children[0].textContent = hecho ? '★' : '☆';
         li.children[1].textContent = l.nombre;
-        li.children[2].textContent = l.texto + (l.premio ? ` Premio: ${DISENOS[l.premio].nombre}.` : '');
+        li.children[2].textContent = tx(l.texto) + (l.premio ? ` Premio: ${tx(DISENOS[l.premio].nombre)}.` : '');
         li.setAttribute('aria-label', `${l.nombre}: ${hecho ? 'logrado' : 'pendiente'}`);
         return li;
       })

@@ -2,6 +2,7 @@
 // Los cambios quedan guardados en este teléfono. Para dejarlos fijos en el
 // juego hay que copiarlos a src/config.js.
 import { CONFIG } from '../config.js';
+import { tx } from '../textos.js';
 
 const CLAVE_GUARDADO = 'ojo-de-gato.ajustes-fisica';
 
@@ -38,7 +39,7 @@ const AJUSTES = [
   },
   {
     id: 'rebote',
-    etiqueta: 'Rebote entre bolinchas',
+    etiqueta: 'Rebote entre {bolinchas}',
     lugar: () => CONFIG.bolinchas,
     clave: 'rebote',
     min: 0.3,
@@ -86,7 +87,9 @@ export function crearPanelAjustes({ alCambiar }) {
     const fila = document.createElement('label');
     fila.className = 'ajuste';
     fila.htmlFor = 'ajuste-' + a.id;
-    fila.innerHTML = `<span class="ajuste-nombre">${a.etiqueta}</span><span class="ajuste-valor"></span>`;
+    fila.innerHTML = '<span class="ajuste-nombre"></span><span class="ajuste-valor"></span>';
+    fila.querySelector('.ajuste-nombre').dataset.tx = a.etiqueta; // se completa según el país
+    fila.querySelector('.ajuste-nombre').textContent = tx(a.etiqueta);
     const control = document.createElement('input');
     control.type = 'range';
     control.id = 'ajuste-' + a.id;
@@ -107,7 +110,7 @@ export function crearPanelAjustes({ alCambiar }) {
   });
 
   function textoParaCopiar() {
-    return AJUSTES.map((a) => `${a.etiqueta}: ${a.lugar()[a.clave]}`).join(' · ');
+    return AJUSTES.map((a) => `${tx(a.etiqueta)}: ${a.lugar()[a.clave]}`).join(' · ');
   }
 
   function actualizarTexto() {
