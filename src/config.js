@@ -130,13 +130,9 @@ export const CONFIG = {
   // ---------------------------------------------------------------
   // Cambiá true/false para probar otras reglas.
   reglasCirculo: {
-    // Si saca al menos una bolincha, vuelve a tirar desde donde quedó la suya.
+    // Si saca al menos una bolincha, vuelve a tirar desde donde quedó la suya,
+    // aunque haya quedado dentro del círculo.
     repiteSiSaca: true,
-    // Si su bolincha queda dentro del círculo, pierde el turno.
-    pierdeTurnoSiQuedaDentro: true,
-    // Si su bolincha queda dentro del círculo, ¿se lleva igual las que sacó?
-    // false = las que sacó vuelven al círculo.
-    cuentanSiQuedaDentro: true,
     // Al empezar un turno nuevo (no al repetir), ¿desde dónde tira?
     //   'salida'     = desde la salida, afuera del círculo. La bolincha del
     //                  otro jugador se levanta del suelo mientras tanto.

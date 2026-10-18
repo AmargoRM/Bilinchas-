@@ -179,8 +179,8 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
       titulo: 'Círculo',
       lista: [
         'Tira desde afuera y saca {bolinchas} del círculo: {las} que saques son {tuyas}.',
-        'Si sacas al menos {una}, vuelves a tirar desde donde quedó tu {bolincha}.',
-        'Si no sacas {ninguna}, o tu {bolincha} queda dentro del círculo, pasa el turno.',
+        'Si sacas al menos {una}, sigues tirando desde donde quedó tu {bolincha}, aunque haya quedado dentro del círculo.',
+        'Si no sacas {ninguna}, pasa el turno.',
         'Tu {bolincha} se queda donde paró: en tu próximo turno tiras desde ahí.',
         'Gana quien tenga más cuando el círculo quede vacío.',
       ].map(tx),

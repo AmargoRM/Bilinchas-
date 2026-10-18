@@ -12,11 +12,13 @@ import { CONFIG } from '../config.js';
 export function resolverTiro({ sacadas, tiradorDentro }) {
   const r = CONFIG.reglasCirculo;
 
-  if (tiradorDentro && r.pierdeTurnoSiQuedaDentro) {
-    return { cuentan: r.cuentanSiQuedaDentro, repite: false, motivo: 'dentro' };
-  }
+  // Si sacó al menos una, sigue tirando, aunque su bolincha haya quedado dentro del círculo.
   if (sacadas > 0) {
     return { cuentan: true, repite: r.repiteSiSaca, motivo: 'saco' };
+  }
+  // No sacó ninguna: pasa el turno (solo cambia el mensaje si quedó dentro).
+  if (tiradorDentro) {
+    return { cuentan: true, repite: false, motivo: 'dentro' };
   }
   return { cuentan: true, repite: false, motivo: 'ninguna' };
 }
