@@ -14,9 +14,25 @@
 
     <div id="hud">
       <div class="hud-arriba">
-        <div class="placa marca"><span class="marca-nombre">Ojo de Gato</span><span class="marca-etapa">Etapa 1 · Prueba de tiro</span></div>
-        <button id="btn-reiniciar" class="placa boton" type="button">Reiniciar</button>
+        <div class="placa marca"><span class="marca-nombre">Ojo de Gato</span><span class="marca-etapa">Etapa 2 · Choques</span></div>
+        <div class="botones-arriba">
+          <button id="btn-ajustes" class="placa boton" type="button" aria-expanded="false" aria-controls="panel-ajustes">Ajustar física</button>
+          <button id="btn-reiniciar" class="placa boton" type="button">Reiniciar</button>
+        </div>
       </div>
+
+      <section id="panel-ajustes" class="placa panel-ajustes" hidden aria-label="Ajustar física">
+        <div class="panel-cabeza">
+          <h2>Ajustar física</h2>
+          <button id="ajustes-cerrar" class="boton boton-plano" type="button">Cerrar</button>
+        </div>
+        <div id="ajustes-lista" class="ajustes-lista"></div>
+        <p id="ajustes-valores" class="ajustes-valores"></p>
+        <div class="panel-pie">
+          <button id="ajustes-restablecer" class="boton boton-plano" type="button">Restablecer</button>
+          <button id="ajustes-copiar" class="boton boton-claro" type="button">Copiar valores</button>
+        </div>
+      </section>
 
       <p id="ayuda" class="placa ayuda">Toca tu bolincha y arrastra hacia atrás para tirar</p>
 

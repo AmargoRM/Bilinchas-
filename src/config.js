@@ -35,30 +35,29 @@ export const CONFIG = {
     },
     // Cuánto rebota el vidrio contra el vidrio. 0 = nada, 1 = rebote perfecto.
     rebote: 0.9,
-    // Agarre del vidrio contra el suelo. Más alto = la bolincha rueda en vez de deslizar.
-    agarre: 0.5,
+    // Roce entre vidrio y vidrio al chocar de costado. Bajo = resbalan entre sí.
+    agarre: 0.15,
   },
 
   // ---------------------------------------------------------------
   // SUPERFICIES
   // ---------------------------------------------------------------
-  // "frenado": cuánto pierde de velocidad por segundo mientras avanza.
-  //   Más alto = se detiene antes.
-  // "frenadoGiro": cuánto pierde de giro por segundo.
+  // "resistenciaRodadura": frenado parejo del suelo al rodar. Es el que más
+  //   decide hasta dónde llega un tiro. Más alto = se detiene antes.
+  // "frenado": frenado extra que es más fuerte cuanto más rápido va
+  //   (amortigua los tiros muy fuertes).
   // "rebote": cuánto rebota la bolincha al caer sobre el suelo.
   superficies: {
     tierra: {
-      frenado: 1.1,
-      frenadoGiro: 1.4,
+      resistenciaRodadura: 0.12,
+      frenado: 0.5,
       rebote: 0.1,
-      agarre: 0.9,
     },
     concreto: {
       // Se usa en el Modo Caño (etapa 5). Rueda más que en tierra.
-      frenado: 0.35,
-      frenadoGiro: 0.5,
+      resistenciaRodadura: 0.03,
+      frenado: 0.15,
       rebote: 0.25,
-      agarre: 0.7,
     },
   },
 
@@ -87,6 +86,12 @@ export const CONFIG = {
   // ---------------------------------------------------------------
   circulo: {
     radio: 40, // cm. Círculo de tiza de 80 cm de ancho.
+    // Cuántas bolinchas se ponen dentro del círculo.
+    cantidadBolinchas: 10,
+    // Se reparten al azar dentro de esta fracción del radio (0.6 = 60 % del círculo).
+    zonaBolinchas: 0.6,
+    // Separación mínima entre bolinchas al acomodarlas, en cm.
+    separacionMinima: 3.5,
     // Dónde arranca la bolincha del tirador: a esta distancia del centro.
     distanciaSalida: 60, // cm
   },

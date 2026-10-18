@@ -9,11 +9,13 @@ import { crearBolincha } from './bolincha.js';
 import { crearCamara } from './camara.js';
 import { crearControlTiro } from './control/tiro.js';
 import { crearHud } from './ui/hud.js';
+import { cargarAjustesGuardados, crearPanelAjustes } from './ui/ajustes.js';
 
 const AYUDA_TIRO = 'Toca tu bolincha y arrastra hacia atrás para tirar';
 const AYUDA_CAMARA = 'Arrastra para girar la cámara. Toca «Listo» para volver a tirar';
 
 async function iniciar() {
+  cargarAjustesGuardados();
   const hud = crearHud();
   const lienzo = document.getElementById('lienzo');
 
@@ -38,6 +40,44 @@ async function iniciar() {
   const centro = new THREE.Vector3(0, 0, 0);
   const salida = new THREE.Vector3(0, 0, CONFIG.circulo.distanciaSalida);
   const bolincha = crearBolincha({ escena, fisica, posicion: salida });
+
+  // Las bolinchas dentro del círculo, de colores variados.
+  const colores = [
+    [0x2a8fd6, 0xf2cf4a],
+    [0x3fae5a, 0xd8402c],
+    [0xd9eef0, 0x2a8fd6],
+    [0x1f9e9a, 0xf2cf4a],
+    [0x6fcf6a, 0xd8402c],
+    [0x2a5fc0, 0xf3eee2],
+  ];
+  const enCirculo = [];
+  for (let i = 0; i < CONFIG.circulo.cantidadBolinchas; i++) {
+    const [colorVidrio, colorVeta] = colores[i % colores.length];
+    enCirculo.push(crearBolincha({ escena, fisica, posicion: centro, colorVidrio, colorVeta }));
+  }
+  const todas = [bolincha, ...enCirculo];
+
+  // Reparte las bolinchas al azar dentro del círculo, sin que se toquen.
+  function acomodarCirculo() {
+    const zona = CONFIG.circulo.radio * CONFIG.circulo.zonaBolinchas;
+    const puestas = [];
+    for (const b of enCirculo) {
+      let x = 0;
+      let z = 0;
+      for (let intento = 0; intento < 200; intento++) {
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(Math.random()) * zona;
+        x = Math.cos(a) * r;
+        z = Math.sin(a) * r;
+        if (puestas.every((p) => Math.hypot(p.x - x, p.z - z) >= CONFIG.circulo.separacionMinima)) break;
+      }
+      puestas.push({ x, z });
+      b.colocar(x, z);
+    }
+  }
+  acomodarCirculo();
+
+  crearPanelAjustes({ alCambiar: () => todas.forEach((b) => b.aplicarConfig()) });
   const controlCamara = crearCamara(camara);
   controlCamara.mirarDesde(salida, centro, true);
 
@@ -66,6 +106,7 @@ async function iniciar() {
 
   function reiniciar() {
     bolincha.colocar(salida.x, salida.z);
+    acomodarCirculo();
     estado = 'listo';
     controlCamara.mirarDesde(salida, centro);
     if (control.modo === 'apuntar') hud.ayuda(AYUDA_TIRO);
@@ -81,12 +122,21 @@ async function iniciar() {
   const reloj = new THREE.Clock();
   renderer.setAnimationLoop(() => {
     const dt = reloj.getDelta();
-    fisica.avanzar(dt);
-    bolincha.sincronizar();
-    const pos = bolincha.posicion;
+    fisica.avanzar(dt, (paso) => todas.forEach((b) => b.aplicarRodadura(paso)));
+    todas.forEach((b) => b.sincronizar(dt));
 
+    // Las del círculo que se salieron del patio desaparecen.
+    for (const b of enCirculo) {
+      const p = b.posicion;
+      if (b.grupo.visible && (p.y < -20 || Math.abs(p.x) > 280 || Math.abs(p.z) > 280)) b.quitar();
+    }
+
+    const pos = bolincha.posicion;
     if (estado === 'rodando') {
-      if (bolincha.frenarSiCasiQuieta()) {
+      // Se puede volver a tirar cuando TODAS las bolinchas se detuvieron.
+      let quietas = true;
+      for (const b of todas) if (!b.frenarSiCasiQuieta()) quietas = false;
+      if (quietas) {
         tiempoQuieta += dt;
         if (tiempoQuieta > 0.3) {
           estado = 'listo';
@@ -99,8 +149,8 @@ async function iniciar() {
       }
     }
 
-    // Si se fue del patio o se cayó, vuelve a la salida.
-    if (pos.y < -20 || Math.abs(pos.x) > 280 || Math.abs(pos.z) > 280) reiniciar();
+    // Si tu bolincha se fue del patio o se cayó, vuelve a la salida.
+    if (pos.y < -20 || Math.abs(pos.x) > 280 || Math.abs(pos.z) > 280) bolincha.colocar(salida.x, salida.z);
 
     controlCamara.actualizar(dt, pos);
     control.actualizar();
