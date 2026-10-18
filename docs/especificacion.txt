@@ -1,0 +1,92 @@
+PROMPT PARA CLAUDE CODE — JUEGO "OJO DE GATO (Bolinchas, Canicas, Marbles)"
+
+=====================================================================
+QUIÉN SOY Y CÓMO QUIERO QUE TRABAJES
+=====================================================================
+No soy programador. Vas a construir este juego desde cero, por etapas.
+- Explicame cada etapa en español sencillo antes de hacerla: qué vas a hacer, por qué, y qué se puede romper.
+- La primera vez que uses un término técnico, explicalo en una línea.
+- Al terminar cada etapa, decime exactamente cómo probarla en mi teléfono Android.
+- Usá Git y hacé un commit al cerrar cada etapa, para poder volver atrás si algo se daña.
+- No avances a la siguiente etapa hasta que yo confirme que la anterior funciona.
+
+=====================================================================
+EL JUEGO
+=====================================================================
+Nombre visible: Ojo de Gato
+Nombre para tiendas y buscadores: "Ojo de Gato (Bolinchas, Canicas, Marbles)"
+Idioma de la interfaz: español latinoamericano neutro, con palabras regionales (bolincha, tiro, caño, tiza).
+
+Juego 3D de bolinchas (canicas) inspirado en el juego tradicional de barrio en Latinoamérica.
+La mecánica de tiro es como un juego de pool en el celular: el jugador apunta y controla la fuerza.
+
+=====================================================================
+TECNOLOGÍA
+=====================================================================
+- Juego web en HTML + JavaScript, que corra en el navegador del celular.
+- Three.js para el 3D.
+- Rapier (versión JavaScript) o cannon-es para la física. Elegí uno, explicame por qué, y no lo cambies después sin avisarme.
+- Pensado primero para celular en vertical; que también funcione en computadora con el mouse.
+- Debe correr fluido en un Android de gama media.
+- Más adelante lo empaquetaremos como app Android con Capacitor; dejalo preparado para eso, pero no lo hagas todavía.
+- Sin servidor por ahora: todo funciona dentro del teléfono.
+
+=====================================================================
+TEMÁTICA VISUAL (inspirada en fotos reales)
+=====================================================================
+- Bolinchas de vidrio tipo "ojo de gato": vidrio translúcido (verde, azul, transparente) con una veta de colores por dentro (rojo, amarillo, verde). Que se vean brillantes, con reflejos.
+- Tamaños: bolinchas normales (unos 16 mm) y una bolincha grande o "boliche" (unos 25 mm). El jugador puede elegir tirar con normal o con boliche; el boliche pesa más y empuja más fuerte.
+- Escenario del Modo Círculo: suelo de tierra café rojiza de barrio, un círculo dibujado con tiza blanca, algo de zacate (pasto) en el fondo, luz de tarde soleada.
+- Escenario del Modo Caño: un caño (canal) de concreto gris de calle, en forma de U, hecho de tramos con juntas visibles, desgastado. Al final hay una meta marcada con tiza.
+- Menú: estilo nostálgico, con una bolsa de malla llena de bolinchas como imagen principal.
+- Sonidos: choque de vidrio contra vidrio, bolincha rodando en tierra y en concreto.
+
+=====================================================================
+CONTROL DEL TIRO (lo más importante del juego)
+=====================================================================
+- El jugador toca y arrastra el dedo hacia atrás desde su bolincha, como estirando una liga: la dirección define el ángulo y la distancia define la fuerza.
+- Mostrar una barra de fuerza y una línea corta de puntería (que no muestre la trayectoria completa, para que tenga dificultad).
+- Al soltar, la bolincha sale disparada.
+- Botón para mover la cámara alrededor antes de tirar.
+- El tiro debe "sentirse" bien: choques creíbles entre bolinchas, fricción distinta en tierra (frena más) y en concreto (rueda más).
+- Dejá todos los valores de física (fricción, rebote, fuerza máxima, peso) en un solo archivo de configuración, con comentarios en español, para que yo pueda ajustarlos.
+
+=====================================================================
+MODO 1: CÍRCULO
+=====================================================================
+- Varias bolinchas colocadas dentro del círculo de tiza (cantidad configurable, por defecto 10).
+- Por turnos, cada jugador tira su bolincha desde afuera del círculo.
+- Cada bolincha que un jugador saca del círculo es suya.
+- Si saca al menos una, vuelve a tirar desde donde quedó su bolincha. Si no saca ninguna, pasa el turno.
+- Si la bolincha del tirador queda dentro del círculo, pierde el turno.
+- Gana quien tenga más bolinchas cuando el círculo quede vacío.
+
+=====================================================================
+MODO 2: CAÑO
+=====================================================================
+- Las dos bolinchas (una por jugador) arrancan dentro del caño de concreto, al inicio.
+- Por turnos, cada jugador tira la suya para pegarle a la del rival.
+- Gana el primero que saque la bolincha del rival fuera del caño.
+- Si un jugador se saca a sí mismo del caño, pierde el turno y su bolincha vuelve al último lugar donde estuvo dentro del caño.
+- Si nadie saca al otro, gana el primero que llegue a la meta al final del caño.
+- Dejá estas reglas fáciles de cambiar, porque las vamos a afinar jugando.
+
+=====================================================================
+FORMAS DE JUGAR
+=====================================================================
+- Contra la computadora, con tres niveles: fácil, medio y difícil. La computadora debe fallar a veces, como una persona.
+- Dos jugadores en el mismo teléfono, pasándoselo por turnos.
+- (Futuro, no hacer ahora: jugar en línea contra amigos.)
+
+=====================================================================
+ETAPAS DE TRABAJO
+=====================================================================
+1. Escena 3D básica: suelo de tierra, círculo de tiza y una bolincha que se puede tirar con el dedo.
+2. Física y sensación del tiro: varias bolinchas chocando, ajuste de fricción y fuerza.
+3. Modo Círculo completo con reglas, turnos y marcador, para dos jugadores en el mismo teléfono.
+4. Computadora como rival (tres niveles).
+5. Modo Caño completo.
+6. Apariencia final: bolinchas ojo de gato, boliche, sonidos, menú con la bolsa de malla.
+7. Preparar para empaquetar como app Android con Capacitor.
+
+Empezá por la etapa 1. Antes de escribir código, mostrame el plan de archivos y explicame qué hace cada uno.
