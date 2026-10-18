@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 
-export function crearControlTiro({ lienzo, escena, camara, controlCamara, bolincha, puedeTirar, alApuntar, alTirar }) {
+export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtenerBolincha, puedeTirar, alApuntar, alTirar }) {
   const t = CONFIG.tiro;
   let modo = 'apuntar'; // 'apuntar' o 'camara'
   let arrastre = null; // { id, x, y, tipo }
@@ -58,7 +58,7 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, bolinc
       arrastre = { id: e.pointerId, x: e.clientX, y: e.clientY, tipo: 'camara' };
     } else {
       if (!puedeTirar()) return;
-      const p = enPantalla(bolincha.posicion);
+      const p = enPantalla(obtenerBolincha().posicion);
       if (Math.hypot(e.clientX - p.x, e.clientY - p.y) > t.toleranciaToque) return;
       arrastre = { id: e.pointerId, x: e.clientX, y: e.clientY, tipo: 'tiro' };
       fuerza = 0;
@@ -121,6 +121,7 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, bolinc
       const apuntando = arrastre && arrastre.tipo === 'tiro' && fuerza >= t.fuerzaMinima;
       punteria.visible = !!apuntando;
       if (!apuntando) return;
+      const bolincha = obtenerBolincha();
       const pos = bolincha.posicion;
       const inicio = bolincha.radio + 1;
       const tramo = (t.largoPunteria - inicio) / cantidadPuntos;

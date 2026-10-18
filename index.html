@@ -14,10 +14,14 @@
 
     <div id="hud">
       <div class="hud-arriba">
-        <div class="placa marca"><span class="marca-nombre">Ojo de Gato</span><span class="marca-etapa">Etapa 2 · Choques</span></div>
+        <div class="placa marcador" aria-live="polite">
+          <div id="marcador-j1" class="marcador-fila"><span class="marcador-punto"></span><span class="marcador-nombre">Jugador 1</span><span class="marcador-puntos">0</span></div>
+          <div id="marcador-j2" class="marcador-fila"><span class="marcador-punto"></span><span class="marcador-nombre">Jugador 2</span><span class="marcador-puntos">0</span></div>
+          <div id="marcador-quedan" class="marcador-quedan"></div>
+        </div>
         <div class="botones-arriba">
           <button id="btn-ajustes" class="placa boton" type="button" aria-expanded="false" aria-controls="panel-ajustes">Ajustar física</button>
-          <button id="btn-reiniciar" class="placa boton" type="button">Reiniciar</button>
+          <button id="btn-nueva" class="placa boton" type="button">Nueva partida</button>
         </div>
       </div>
 
@@ -34,7 +38,9 @@
         </div>
       </section>
 
-      <p id="ayuda" class="placa ayuda">Toca tu bolincha y arrastra hacia atrás para tirar</p>
+      <p id="aviso" class="aviso" role="status" hidden></p>
+
+      <p id="ayuda" class="placa ayuda" hidden>Toca tu bolincha y arrastra hacia atrás para tirar</p>
 
       <div class="hud-abajo">
         <button id="btn-camara" class="placa boton boton-camara" type="button" aria-pressed="false">
@@ -46,6 +52,16 @@
           <div class="fuerza-barra"><div id="fuerza-relleno" class="fuerza-relleno"></div></div>
           <span id="fuerza-numero" class="fuerza-numero">0 %</span>
         </div>
+      </div>
+    </div>
+
+    <div id="tarjeta" class="tarjeta-fondo" hidden>
+      <div class="tarjeta" role="dialog" aria-modal="true" aria-labelledby="tarjeta-titulo">
+        <h2 id="tarjeta-titulo" class="tarjeta-titulo"></h2>
+        <p id="tarjeta-subtitulo" class="tarjeta-subtitulo"></p>
+        <p id="tarjeta-texto" class="tarjeta-texto"></p>
+        <ul id="tarjeta-lista" class="tarjeta-lista"></ul>
+        <button id="tarjeta-boton" class="boton boton-principal" type="button"></button>
       </div>
     </div>
 

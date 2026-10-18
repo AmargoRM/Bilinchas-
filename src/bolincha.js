@@ -110,7 +110,6 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', color
       grupo.visible = true;
       cuerpo.setTranslation({ x, y: radio, z }, true);
       cuerpo.setLinvel({ x: 0, y: 0, z: 0 }, true);
-      cuerpo.sleep();
     },
 
     // Resistencia de la tierra al rodar: le quita una cantidad fija de velocidad
@@ -130,8 +129,9 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', color
     frenarSiCasiQuieta() {
       if (!cuerpo.isEnabled() || cuerpo.isSleeping()) return true;
       if (bolincha.velocidad() < CONFIG.velocidadParada && cuerpo.translation().y < radio + 0.05) {
+        // Solo se frena; no se duerme a la fuerza. Si se duerme mientras toca otra
+        // bolincha despierta, Rapier la sigue moviendo sin el suelo y se hunde.
         cuerpo.setLinvel({ x: 0, y: 0, z: 0 }, false);
-        cuerpo.sleep();
         return true;
       }
       return false;
