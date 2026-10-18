@@ -6,7 +6,7 @@ import { crearBolincha } from '../bolincha.js';
 import { DISENOS_CIRCULO } from '../disenos.js';
 import { resolverTiro, ganador } from './reglas-circulo.js';
 import { planificarTiro } from '../ia/rival.js';
-import { crearJugadores, bolinchasDe, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
+import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 
 
 
@@ -38,7 +38,7 @@ function frases(j) {
 }
 
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
-export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {} }) {
+export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null }) {
   const radio = CONFIG.circulo.radio;
   const centro = new THREE.Vector3(0, 0, 0);
   const salida = new THREE.Vector3(0, 0, CONFIG.circulo.distanciaSalida);
@@ -58,6 +58,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
   let fase = 'espera'; // 'apuntar' | 'computadora' | 'rodando' | 'espera' | 'fin'
   let tiempoQuieta = 0;
   let enfocada = todos[0].bolincha; // la que sigue la cámara
+  let mejorTiroDueno = 0; // más bolinchas sacadas de un tiro por el Lugar 1 (para los logros)
   let planComputadora = null;
   let relojComputadora = 0;
 
@@ -156,8 +157,9 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
 
   // Sienta a los jugadores de la mesa y arranca con las bolinchas en su lugar.
   function empezarPartida() {
-    jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos);
+    jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos, disenoDueno());
     for (const j of jugadores) j.puntos = 0;
+    mejorTiroDueno = 0;
     acomodar(blancos);
     turno = Math.floor(Math.random() * jugadores.length); // se sortea quién empieza
     ponerEnSalida(jugadores[turno]);
@@ -199,6 +201,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
 
     if (r.cuentan) {
       j.puntos += n;
+      if (j.lugar === 0) mejorTiroDueno = Math.max(mejorTiroDueno, n);
       for (const b of sacadas) {
         b.enCirculo = false;
         b.bolincha.quitar(); // el jugador la levanta y se la guarda
@@ -254,6 +257,13 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     mostrarPunteria(null);
     actualizarMarcador();
     const g = ganador(jugadores);
+    const r = resultadoParaProgreso({
+      modo: 'circulo',
+      jugadores,
+      ganador: g === null ? null : jugadores[g],
+      extra: { sacadas: todos[0].puntos || 0, mejorTiro: mejorTiroDueno },
+    });
+    const premios = r ? alTerminar(r) || [] : [];
     let titulo;
     if (g === null) titulo = 'Empate';
     else if (jugadores[g].esTu) titulo = '¡Ganaste!';
@@ -263,6 +273,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
       titulo,
       color: g === null ? null : jugadores[g].color,
       texto: jugadores.map((x) => `${x.nombre}: ${x.puntos}`).join(' · '),
+      lista: premios,
       botones: [
         { texto: 'Jugar otra vez', alElegir: () => empezarPartida() },
         { texto: 'Cambiar jugadores', secundario: true, alElegir: () => nuevaPartida() },

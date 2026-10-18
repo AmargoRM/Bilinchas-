@@ -40,7 +40,7 @@ export function crearJugadores({ escena, fisica, superficie = 'tierra' }) {
       return b;
     };
     const tipos = { normal: deTipo('normal'), boliche: deTipo('boliche') };
-    return { ...c, lugar: i, nombre: '', esTu: false, esComputadora: false, nivel: null, enCancha: false, tipos, bolincha: tipos.normal };
+    return { ...c, lugar: i, nombre: '', esTu: false, esComputadora: false, nivel: null, enCancha: false, tipos, bolincha: tipos.normal, vestida: c.diseno };
   });
 }
 
@@ -49,7 +49,8 @@ export const bolinchasDe = (todos) => todos.flatMap((j) => [j.tipos.normal, j.ti
 
 // Prepara los jugadores según la mesa y devuelve solo los que juegan, en orden.
 // Nombres: si hay una sola persona, es "Tú"; si hay varias, "Jugador 1", "Jugador 2"...
-export function sentarJugadores(todos, mesa, tamanos = TAMANOS_INICIALES) {
+// disenoDueno: la bolincha que eligió en Logros quien juega en el Lugar 1 (si es persona).
+export function sentarJugadores(todos, mesa, tamanos = TAMANOS_INICIALES, disenoDueno = null) {
   const personas = mesa.filter((a) => a === 'persona').length;
   const compus = mesa.filter((a) => a !== 'persona' && a !== 'nadie').length;
   let numeroCompu = 0;
@@ -60,6 +61,12 @@ export function sentarJugadores(todos, mesa, tamanos = TAMANOS_INICIALES) {
     j.tipos.normal.quitar();
     j.tipos.boliche.quitar();
     j.bolincha = j.tipos[tamanos[i]] || j.tipos.normal;
+    const diseno = i === 0 && a === 'persona' && disenoDueno ? disenoDueno : j.diseno;
+    if (j.vestida !== diseno) {
+      j.tipos.normal.vestir(diseno);
+      j.tipos.boliche.vestir(diseno);
+      j.vestida = diseno;
+    }
     if (a === 'nadie') return;
     j.esComputadora = a !== 'persona';
     j.nivel = j.esComputadora ? a : null;
@@ -75,6 +82,22 @@ export function sentarJugadores(todos, mesa, tamanos = TAMANOS_INICIALES) {
 // ¿Hay alguna persona que deba pasarle el teléfono a otra?
 export function hayVariasPersonas(activos) {
   return activos.filter((j) => !j.esComputadora).length > 1;
+}
+
+// Lo que el progreso necesita saber de la partida, visto desde el Lugar 1.
+// Devuelve null si en el Lugar 1 no juega una persona (entonces no se anota nada).
+export function resultadoParaProgreso({ modo, jugadores, ganador, extra = {} }) {
+  const dueno = jugadores.find((j) => j.lugar === 0);
+  if (!dueno || dueno.esComputadora) return null;
+  return {
+    modo,
+    gano: ganador === dueno,
+    empate: ganador === null,
+    rivales: jugadores.filter((j) => j !== dueno).map((j) => (j.esComputadora ? j.nivel : 'persona')),
+    jugadores: jugadores.length,
+    conBoliche: dueno.bolincha.tipo === 'boliche',
+    ...extra,
+  };
 }
 
 // Cómo se nombra a un jugador en una frase: "Tú", "la computadora", "Jugador 2"...

@@ -13,6 +13,10 @@ import { crearModoCirculo } from './modos/circulo.js';
 import { crearModoCano } from './modos/cano.js';
 import { crearMenu3d } from './escenario/menu3d.js';
 import { crearSonido } from './sonido.js';
+import { crearProgreso } from './progreso.js';
+import { crearPantallaLogros } from './ui/logros.js';
+import { MAPAS } from './mapas.js';
+import { DISENOS } from './disenos.js';
 
 async function iniciar() {
   cargarAjustesGuardados();
@@ -45,6 +49,14 @@ async function iniciar() {
   // El navegador solo deja sonar después de un toque: se habilita en el primero.
   window.addEventListener('pointerdown', () => sonido.desbloquear(), { capture: true });
   const efectos = { hueco: () => sonido.hueco(), victoria: () => sonido.victoria() };
+  const progreso = crearProgreso({ cantidadMapas: MAPAS.length });
+  progreso.usarNombres(Object.fromEntries(Object.entries(DISENOS).map(([id, d]) => [id, d.nombre])));
+  const pantallaLogros = crearPantallaLogros(progreso);
+  // Lo que los modos necesitan del progreso.
+  const delProgreso = {
+    alTerminar: (resultado) => progreso.registrar(resultado),
+    disenoDueno: () => progreso.estado.elegido,
+  };
   const controlCamara = crearCamara(camara);
 
   let control = null;
@@ -53,8 +65,18 @@ async function iniciar() {
     hud.fuerza(direccion ? fuerza : null);
   };
   const modos = {
-    circulo: crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria, efectos, alSalir: (a) => irA(a) }),
-    cano: crearModoCano({ escena, fisica, hud, controlCamara, canal: escenarios.cano, mostrarPunteria, efectos, alSalir: (a) => irA(a) }),
+    circulo: crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria, efectos, alSalir: (a) => irA(a), ...delProgreso }),
+    cano: crearModoCano({
+      escena,
+      fisica,
+      hud,
+      controlCamara,
+      canal: escenarios.cano,
+      mostrarPunteria,
+      efectos,
+      alSalir: (a) => irA(a),
+      ...delProgreso,
+    }),
   };
   let modo = modos.circulo;
   const todas = [...modos.circulo.todas, ...modos.cano.todas];
@@ -114,12 +136,17 @@ async function iniciar() {
   }
 
   // ---------------- Pantallas del menú ----------------
-  const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-reglas'];
+  const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-logros', 'pantalla-reglas'];
   let enMenu = true;
   function mostrarPantalla(id) {
     for (const p of pantallas) document.getElementById(p).hidden = p !== id;
     enMenu = id !== null;
     hud.mostrar(!enMenu);
+    if (id === 'menu-principal') {
+      const n = progreso.nivel();
+      document.getElementById('menu-nivel').textContent = `Nivel ${n.numero} · ${n.titulo}`;
+    }
+    if (id === 'pantalla-logros') pantallaLogros.dibujar();
     if (enMenu) hud.cerrarTarjeta();
   }
   // Salir de una partida: a la lista de modos o al menú principal.
@@ -134,6 +161,7 @@ async function iniciar() {
   $('menu-jugar').addEventListener('click', () => mostrarPantalla('pantalla-modos'));
   $('menu-ajustes').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
   $('menu-reglas').addEventListener('click', () => mostrarPantalla('pantalla-reglas'));
+  $('menu-logros').addEventListener('click', () => mostrarPantalla('pantalla-logros'));
   for (const b of document.querySelectorAll('[data-volver]')) b.addEventListener('click', () => mostrarPantalla('menu-principal'));
   $('modo-circulo').addEventListener('click', () => {
     mostrarPantalla(null);

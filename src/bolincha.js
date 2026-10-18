@@ -122,6 +122,13 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', disen
       return false;
     },
 
+    // Cambia el dibujo de la bolincha por otro diseño (la física no cambia).
+    vestir(idDiseno) {
+      const nuevo = crearAspecto(radio, idDiseno);
+      grupo.clear();
+      grupo.add(...nuevo.children);
+    },
+
     // La deja quieta y fuera de la física, pero visible (en un hueco, o afuera del caño).
     congelar(x, y, z) {
       cuerpo.setTranslation({ x, y, z }, false);

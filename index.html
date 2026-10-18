@@ -73,9 +73,11 @@
         <h1 class="titulo"><span class="titulo-linea"><svg class="ojo" viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="vidrio-ojo-2" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#d8fff8" /><stop offset=".45" stop-color="#3fb6aa" /><stop offset="1" stop-color="#0d4c4a" /></radialGradient></defs><circle cx="50" cy="50" r="46" fill="url(#vidrio-ojo-2)" /><path d="M18 62C34 30 62 30 84 40 64 46 40 52 18 62Z" fill="#d8402c" /><path d="M20 58C40 44 62 52 82 46 62 60 40 66 20 58Z" fill="#f2cf4a" /><path d="M24 70C44 56 66 62 80 54 64 70 42 76 24 70Z" fill="#3fae5a" opacity=".85" /><ellipse cx="36" cy="28" rx="13" ry="7" fill="#fff" opacity=".7" transform="rotate(-25 36 28)" /></svg>jo</span><span class="titulo-linea titulo-de"><small>de</small> Gato</span></h1>
         <p class="titulo-sub">(Bolinchas, Canicas, Marbles)</p>
       </div>
+      <p id="menu-nivel" class="menu-nivel"></p>
       <nav class="menu-botones" aria-label="Menú principal">
         <button id="menu-jugar" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>Jugar</button>
         <button id="menu-ajustes" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" class="icono-relleno"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.47.47 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.61zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z" /></svg>Ajustes</button>
+        <button id="menu-logros" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v4a5 5 0 0 1-10 0zM7 6H4c0 3 1.5 4.5 3.5 4.8M17 6h3c0 3-1.5 4.5-3.5 4.8M12 13v4M8.5 20h7M10 17h4v3h-4z" /></svg>Logros</button>
         <button id="menu-reglas" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5c3-1 6-1 9 1v14c-3-2-6-2-9-1zM21 5c-3-1-6-1-9 1v14c3-2 6-2 9-1z" /></svg>Reglas</button>
       </nav>
     </section>
@@ -100,6 +102,23 @@
         <div class="fila-ajuste"><span>Sonido</span><button id="ajuste-sonido" class="boton selector-boton interruptor" type="button" aria-pressed="true">Sí</button></div>
         <p class="nota">La fuerza, el frenado y el rebote se ajustan durante el juego, con el botón del engranaje.</p>
       </div>
+    </section>
+
+    <section id="pantalla-logros" class="pantalla pantalla-lista" hidden>
+      <header class="pantalla-cabeza"><button class="volver" type="button" data-volver aria-label="Volver">←</button><h2>Logros</h2></header>
+      <div class="placa nivel-caja">
+        <p class="nivel-numero" id="logros-numero"></p>
+        <p class="nivel-titulo" id="logros-titulo"></p>
+        <div class="nivel-barra"><div id="logros-barra" class="nivel-relleno"></div></div>
+        <p class="nota" id="logros-siguiente"></p>
+        <p class="nivel-cifras" id="logros-cifras"></p>
+      </div>
+      <h3 class="subtitulo-lista">Elige tu bolincha</h3>
+      <div id="logros-coleccion" class="coleccion"></div>
+      <h3 class="subtitulo-lista">Logros</h3>
+      <ul id="logros-lista" class="placa lista-logros"></ul>
+      <p class="nota nota-progreso">El progreso es del Lugar 1 cuando juega una persona, y se guarda en este teléfono. Si borras los datos del navegador o de la app, se pierde.</p>
+      <button id="logros-borrar" class="boton boton-secundario" type="button">Borrar mi progreso</button>
     </section>
 
     <section id="pantalla-reglas" class="pantalla pantalla-lista" hidden>

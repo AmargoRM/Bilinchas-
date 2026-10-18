@@ -34,14 +34,29 @@ function materialesPara(idDiseno, radio) {
   if (!materiales.has(clave)) {
     const d = DISENOS[idDiseno] || DISENOS.clasica;
     const color = new THREE.Color(d.vidrio);
+    // Metal u opaca: una superficie brillante sin transparencia ni veta.
+    if (d.metal || d.opaco) {
+      materiales.set(clave, {
+        vidrio: new THREE.MeshPhysicalMaterial({
+          color,
+          metalness: d.metal || 0,
+          roughness: d.metal ? 0.22 : 0.08,
+          clearcoat: 1,
+          clearcoatRoughness: 0.03,
+          envMapIntensity: 1.6,
+        }),
+        petalos: [],
+      });
+      return materiales.get(clave);
+    }
     materiales.set(clave, {
       vidrio: new THREE.MeshPhysicalMaterial({
         color: color.clone().lerp(new THREE.Color(0xffffff), d.claro),
         metalness: 0,
-        roughness: 0.03,
+        roughness: d.esmerilado ?? 0.03,
         transmission: 1,
         thickness: radio * 2,
-        ior: 1.52,
+        ior: d.ior ?? 1.52,
         attenuationColor: color,
         attenuationDistance: radio * (3 + d.claro * 10),
         clearcoat: 1,
@@ -75,4 +90,21 @@ export function crearAspecto(radio, idDiseno = 'clasica') {
   veta.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
   grupo.add(veta);
   return grupo;
+}
+
+// Vista previa chica (dibujo SVG) para la colección: no usa 3D.
+export function vistaPrevia(idDiseno, tamano = 56) {
+  const d = DISENOS[idDiseno] || DISENOS.clasica;
+  const hex = (n) => '#' + n.toString(16).padStart(6, '0');
+  const base = new THREE.Color(d.vidrio);
+  const claro = '#' + base.clone().lerp(new THREE.Color(0xffffff), 0.55).getHexString();
+  const oscuro = '#' + base.clone().multiplyScalar(0.45).getHexString();
+  const id = 'v-' + idDiseno;
+  const vetas = d.vetas
+    .map((c, i) => {
+      const y = 42 + i * 8;
+      return `<path d="M20 ${y + 6}C38 ${y - 14} 62 ${y + 14} 80 ${y - 6}" stroke="${hex(c)}" stroke-width="7" fill="none" stroke-linecap="round" opacity=".9"/>`;
+    })
+    .join('');
+  return `<svg width="${tamano}" height="${tamano}" viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="${id}" cx="38%" cy="32%" r="72%"><stop offset="0" stop-color="${claro}"/><stop offset=".55" stop-color="${hex(d.vidrio)}"/><stop offset="1" stop-color="${oscuro}"/></radialGradient></defs><circle cx="50" cy="50" r="46" fill="url(#${id})"/>${vetas}<ellipse cx="36" cy="28" rx="13" ry="7" fill="#fff" opacity=".65" transform="rotate(-25 36 28)"/></svg>`;
 }

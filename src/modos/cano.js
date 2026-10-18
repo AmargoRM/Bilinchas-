@@ -5,14 +5,14 @@ import { CONFIG } from '../config.js';
 import { resolverTiroCano } from './reglas-cano.js';
 import { planificarTiroCanal } from '../ia/rival.js';
 import { MAPAS, buscarMapa } from '../mapas.js';
-import { crearJugadores, bolinchasDe, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
+import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 
 const DURACION_PUNTERIA = 0.9; // segundos que se ve a la computadora apuntando
 const metros = (cm) => `${(Math.max(cm, 0) / 100).toFixed(1).replace('.', ',')} m`;
 
 // canal: el escenario (src/escenario/canal.js), que arma el mapa elegido.
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
-export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {} }) {
+export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null }) {
   const todos = crearJugadores({ escena, fisica, superficie: 'concreto' });
   const todas = bolinchasDe(todos);
   const preferencias = leerPreferencias();
@@ -24,6 +24,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
   let fase = 'espera'; // 'apuntar' | 'computadora' | 'rodando' | 'espera' | 'fin'
   let tiempoQuieta = 0;
   let enfocada = todos[0].bolincha;
+  let huecosDelDueno = 0; // rivales que el Lugar 1 metió en un hueco (para el progreso)
   let planComputadora = null;
   let relojComputadora = 0;
 
@@ -110,7 +111,8 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
 
   function empezarPartida() {
     traza = canal.usarMapa(mapa);
-    jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos);
+    jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos, disenoDueno());
+    huecosDelDueno = 0;
     turno = CONFIG.reglasCano.sorteoDeQuienEmpieza ? Math.floor(Math.random() * jugadores.length) : 0;
     colocarEn(jugadores[turno], traza.sSalida);
     enfocada = jugadores[turno].bolincha;
@@ -168,6 +170,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
         if (Math.hypot(p.x - o.x, p.z - o.z) < o.radio - 0.3 && j.bolincha.velocidad() < CONFIG.canal.velocidadParaCaerEnHueco) {
           j.enHueco = true;
           efectos.hueco?.();
+          if (jugadores[turno].lugar === 0 && j.lugar !== 0) huecosDelDueno++;
           j.bolincha.congelar(o.x, -j.bolincha.radio * 0.9, o.z); // se ve hundida en el hueco
           break;
         }
@@ -244,6 +247,8 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
   function terminar(ganador) {
     fase = 'fin';
     efectos.victoria?.();
+    const r = resultadoParaProgreso({ modo: 'cano', jugadores, ganador, extra: { huecos: huecosDelDueno, mapa: mapa.id } });
+    const premios = r ? alTerminar(r) || [] : [];
     mostrarPunteria(null);
     actualizarMarcador();
     let titulo;
@@ -254,6 +259,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
       titulo,
       color: ganador.color,
       texto: `${sujeto(ganador)} ${ganador.esTu ? 'llegaste' : 'llegó'} primero a la meta en ${mapa.nombre}.`,
+      lista: premios,
       botones: [
         { texto: 'Jugar otra vez', alElegir: () => empezarPartida() },
         { texto: 'Cambiar mapa o jugadores', secundario: true, alElegir: () => nuevaPartida() },
