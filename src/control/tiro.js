@@ -103,7 +103,14 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
     { passive: false }
   );
 
+  let externa = null; // puntería que muestra la computadora: { direccion, fuerza }
+
   return {
+    // Muestra la puntería de la computadora (null la oculta).
+    mostrarPunteriaExterna(dir, f) {
+      externa = dir ? { direccion: dir, fuerza: f } : null;
+    },
+
     get modo() {
       return modo;
     },
@@ -118,7 +125,8 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
 
     // Ubica los puntos de puntería frente a la bolincha.
     actualizar() {
-      const apuntando = arrastre && arrastre.tipo === 'tiro' && fuerza >= t.fuerzaMinima;
+      if (externa) direccion.copy(externa.direccion);
+      const apuntando = externa || (arrastre && arrastre.tipo === 'tiro' && fuerza >= t.fuerzaMinima);
       punteria.visible = !!apuntando;
       if (!apuntando) return;
       const bolincha = obtenerBolincha();

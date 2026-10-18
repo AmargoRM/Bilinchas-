@@ -117,6 +117,21 @@ export const CONFIG = {
   },
 
   // ---------------------------------------------------------------
+  // COMPUTADORA COMO RIVAL
+  // ---------------------------------------------------------------
+  // errorAngulo:  cuánto se le desvía la puntería, en grados. Para pegarle
+  //               a una bolincha a 50 cm hay que acertar dentro de ~2 grados.
+  // errorFuerza:  cuánto se equivoca en la fuerza (0.2 = hasta un 20 % de más o de menos).
+  // despiste:     probabilidad de elegir un tiro peor que el mejor (0.3 = 3 de cada 10 tiros).
+  // margenFuerza: fuerza extra "por las dudas" (1.15 = 15 % más de lo justo).
+  // pensar:       segundos que espera antes de tirar, para que se vea natural.
+  rival: {
+    facil: { errorAngulo: 4, errorFuerza: 0.25, despiste: 0.35, margenFuerza: 1.1, pensar: 1.2 },
+    medio: { errorAngulo: 1.8, errorFuerza: 0.12, despiste: 0.12, margenFuerza: 1.15, pensar: 1.0 },
+    dificil: { errorAngulo: 1.1, errorFuerza: 0.08, despiste: 0.04, margenFuerza: 1.2, pensar: 0.8 },
+  },
+
+  // ---------------------------------------------------------------
   // CÁMARA
   // ---------------------------------------------------------------
   camara: {

@@ -34,10 +34,20 @@ async function iniciar() {
   }
 
   const controlCamara = crearCamara(camara);
-  const modo = crearModoCirculo({ escena, fisica, hud, controlCamara });
+  let control = null;
+  const modo = crearModoCirculo({
+    escena,
+    fisica,
+    hud,
+    controlCamara,
+    mostrarPunteria: (direccion, fuerza) => {
+      control.mostrarPunteriaExterna(direccion, fuerza);
+      hud.fuerza(direccion ? fuerza : null);
+    },
+  });
   crearPanelAjustes({ alCambiar: () => modo.todas.forEach((b) => b.aplicarConfig()) });
 
-  const control = crearControlTiro({
+  control = crearControlTiro({
     lienzo,
     escena,
     camara,

@@ -21,7 +21,6 @@ export function crearHud() {
   let quiereAyudaTiro = false;
   let tirosHechos = 0;
   let relojAviso = 0;
-  let alAceptarTarjeta = null;
 
   function mostrarAyuda() {
     let texto = null;
@@ -30,13 +29,6 @@ export function crearHud() {
     ayuda.hidden = !texto;
     if (texto) ayuda.textContent = texto;
   }
-
-  $('tarjeta-boton').addEventListener('click', () => {
-    tarjeta.hidden = true;
-    const fn = alAceptarTarjeta;
-    alAceptarTarjeta = null;
-    if (fn) fn();
-  });
 
   return {
     // Muestra la fuerza de 0 a 1, o la oculta con null.
@@ -89,8 +81,9 @@ export function crearHud() {
       relojAviso = setTimeout(() => (aviso.hidden = true), 2600);
     },
 
-    // Tarjeta en el centro que espera a que el jugador toque el botón.
-    tarjeta({ titulo, subtitulo = '', texto = '', lista = [], boton, color = null, alAceptar }) {
+    // Tarjeta en el centro que espera a que el jugador toque un botón.
+    // botones: [{ texto, alElegir, secundario }]
+    tarjeta({ titulo, subtitulo = '', texto = '', lista = [], pregunta = '', botones, color = null }) {
       $('tarjeta-titulo').textContent = titulo;
       $('tarjeta-titulo').style.color = color || '';
       $('tarjeta-subtitulo').textContent = subtitulo;
@@ -106,11 +99,24 @@ export function crearHud() {
         })
       );
       ul.hidden = lista.length === 0;
-      $('tarjeta-boton').textContent = boton;
-      alAceptarTarjeta = alAceptar;
+      $('tarjeta-pregunta').textContent = pregunta;
+      $('tarjeta-pregunta').hidden = !pregunta;
+      const caja = $('tarjeta-botones');
+      caja.replaceChildren(
+        ...botones.map((b) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'boton ' + (b.secundario ? 'boton-secundario' : 'boton-principal');
+          btn.textContent = b.texto;
+          btn.addEventListener('click', () => {
+            tarjeta.hidden = true;
+            b.alElegir();
+          });
+          return btn;
+        })
+      );
       aviso.hidden = true;
       tarjeta.hidden = false;
-      $('tarjeta-boton').focus();
     },
 
     alCamara(fn) {
