@@ -1,14 +1,15 @@
 // La información en pantalla: marcador, barra de fuerza, avisos, tarjetas y botones.
 import { tx } from '../textos.js';
-const AYUDA_TIRO = 'Toca tu {bolincha} y arrastra hacia atrás para tirar.\nArrastra en otro lado para mirar; pellizca para acercar.';
+const AYUDA_TIRO = 'Desliza el dedo de lado a lado para apuntar.\nPara tirar, baja la barra de la derecha y suéltala.';
 // Después de esta cantidad de tiros, la ayuda de cómo tirar deja de aparecer.
 const TIROS_CON_AYUDA = 2;
 
 export function crearHud() {
   const $ = (id) => document.getElementById(id);
-  const fuerza = $('fuerza');
-  const relleno = $('fuerza-relleno');
-  const numero = $('fuerza-numero');
+  const barra = $('barra-tiro');
+  const relleno = $('barra-relleno');
+  const taco = $('barra-taco');
+  const numero = $('barra-numero');
   const ayuda = $('ayuda');
   const cargando = $('cargando');
   const aviso = $('aviso');
@@ -29,20 +30,23 @@ export function crearHud() {
   }
 
   return {
-    // Muestra la fuerza de 0 a 1, o la oculta con null.
+    // Muestra la fuerza de 0 a 1 en la barra de la derecha (null = vacía).
     fuerza(valor) {
       apuntando = valor !== null;
       mostrarAyuda();
-      if (valor === null) {
-        fuerza.hidden = true;
-        return;
-      }
-      fuerza.hidden = false;
-      const pct = Math.round(valor * 100);
-      relleno.style.width = pct + '%';
-      relleno.classList.toggle('alta', valor >= 0.75 && valor < 1);
-      relleno.classList.toggle('maxima', valor >= 1);
+      const v = valor ?? 0;
+      const pct = Math.round(v * 100);
+      relleno.style.height = pct + '%';
+      taco.style.top = pct + '%';
+      relleno.classList.toggle('alta', v >= 0.75 && v < 1);
+      relleno.classList.toggle('maxima', v >= 1);
       numero.textContent = pct + ' %';
+    },
+
+    // La barra se ve durante el juego; apagada cuando no se puede tirar.
+    barraDeTiro(visible, activa) {
+      barra.hidden = !visible;
+      barra.classList.toggle('apagada', !activa);
     },
 
     // true cuando el jugador puede tirar; false cuando acaba de tirar.
@@ -173,7 +177,7 @@ export function crearHud() {
       tarjeta.hidden = false;
     },
 
-    // Botón "Ver mapa" (solo en el Caño).
+    // Botón de la vista desde arriba.
     mostrarBotonMapa(si) {
       $('btn-mapa').hidden = !si;
     },
@@ -181,7 +185,6 @@ export function crearHud() {
       enMapa = activa;
       mostrarAyuda();
       $('btn-mapa').setAttribute('aria-pressed', String(activa));
-      $('btn-mapa-texto').textContent = activa ? 'Volver' : 'Ver mapa';
     },
     alMapa(fn) {
       $('btn-mapa').addEventListener('click', fn);
@@ -196,7 +199,7 @@ export function crearHud() {
       $('hud').hidden = !si;
       if (!si) {
         aviso.hidden = true;
-        fuerza.hidden = true;
+        barra.hidden = true;
       }
     },
 

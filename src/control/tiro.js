@@ -1,100 +1,57 @@
-// El tiro tipo liga: tocar la bolincha, arrastrar hacia atrás y soltar.
-// La cámara se maneja con el dedo, sin botones:
-//   - arrastrar fuera de la bolincha: gira alrededor de ella (y sube o baja);
-//   - dos dedos: pellizcar para acercar o alejar (y girar moviendo los dos);
-//   - tocar dos veces rápido en un lugar vacío: vuelve a la vista normal.
+// Cómo se apunta y se tira (como en los juegos de pool):
+//   - Apuntar: deslizar el dedo de lado a lado en cualquier parte de la pantalla.
+//     La cámara gira detrás de la bolincha y el tiro sale hacia donde mira.
+//     Deslizar hacia arriba o abajo sube o baja la vista.
+//   - Tirar: la barra de fuerza de la derecha. Se baja con el dedo (más abajo = más fuerte)
+//     y al soltarla sale el tiro. Si se vuelve a subir hasta arriba, no tira.
+//   - Dos dedos: pellizcar para acercar o alejar.
+//   - Tocar dos veces rápido: vuelve a la vista normal.
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 
-export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtenerBolincha, obtenerEfecto = () => null, obtenerLargoPunteria = () => 1, puedeTirar, alApuntar, alTirar }) {
+// Radianes que gira la puntería por cada píxel de deslizamiento (chico = más fino).
+const GIRO_POR_PIXEL = 0.0032;
+
+export function crearControlTiro({ lienzo, escena, controlCamara, obtenerBolincha, obtenerEfecto = () => null, obtenerLargoPunteria = () => 1, puedeTirar, alApuntar, alTirar }) {
   const t = CONFIG.tiro;
-  let arrastre = null; // un dedo: { id, x, y, tipo: 'tiro' | 'camara' }
+  let arrastre = null; // un dedo sobre la pantalla: { id, x, y, inicioX, inicioY }
   const dedos = new Map(); // dedos apoyados: id → { x, y }
-  let pellizco = null; // dos dedos: { distancia, x, y }
+  let pellizco = null; // dos dedos: { distancia }
   let ultimoToque = { t: 0, x: 0, y: 0 }; // para reconocer el doble toque
   let fuerza = 0;
+  let cargando = null; // la barra de fuerza: { id, y0 }
   const direccion = new THREE.Vector3();
-  const adelante = new THREE.Vector3();
-  const derecha = new THREE.Vector3();
-  const proyectada = new THREE.Vector3();
 
-  // Línea corta de puntería: puntos de tiza.
+  // Línea de puntería: puntos de tiza.
   const punteria = new THREE.Group();
-  const cantidadPuntos = 7;
+  const cantidadPuntos = 12;
   const materialPunto = new THREE.MeshBasicMaterial({ color: 0xf6f1e4, transparent: true, opacity: 0.9, depthWrite: false });
   const geoPunto = new THREE.CircleGeometry(0.32, 12);
   geoPunto.rotateX(-Math.PI / 2);
   for (let i = 0; i < cantidadPuntos; i++) punteria.add(new THREE.Mesh(geoPunto, materialPunto));
   // Punta de flecha al final.
-  const punta = new THREE.Mesh(
-    new THREE.ConeGeometry(0.9, 1.8, 3).rotateX(Math.PI / 2).scale(1, 0.25, 1),
-    materialPunto
-  );
+  const punta = new THREE.Mesh(new THREE.ConeGeometry(0.9, 1.8, 3).rotateX(Math.PI / 2).scale(1, 0.25, 1), materialPunto);
   punteria.add(punta);
   punteria.visible = false;
   escena.add(punteria);
 
-  function enPantalla(pos) {
-    proyectada.copy(pos).project(camara);
-    const r = lienzo.getBoundingClientRect();
-    return { x: (proyectada.x * 0.5 + 0.5) * r.width + r.left, y: (-proyectada.y * 0.5 + 0.5) * r.height + r.top };
-  }
-
-  function calcularTiro(e) {
-    const dx = e.clientX - arrastre.x;
-    const dy = e.clientY - arrastre.y;
-    const largo = Math.hypot(dx, dy);
-    const maximo = Math.min(window.innerWidth, window.innerHeight) * t.arrastreMaximo;
-    fuerza = Math.min(largo / maximo, 1);
-    if (largo < 1) return;
-    // Arrastrar hacia abajo (hacia uno) = tirar hacia adelante, como una liga.
-    controlCamara.adelante(adelante);
-    controlCamara.derecha(derecha);
-    direccion
-      .copy(adelante)
-      .multiplyScalar(dy)
-      .addScaledVector(derecha, -dx)
-      .normalize();
-  }
-
-  function cancelarTiro() {
-    if (arrastre && arrastre.tipo === 'tiro') {
-      punteria.visible = false;
-      alApuntar(null);
-      fuerza = 0;
-    }
-    arrastre = null;
-  }
-
-  function medirPellizco() {
+  // ---------------- Pantalla: apuntar y mirar ----------------
+  const medirPellizco = () => {
     const [a, b] = [...dedos.values()];
-    return { distancia: Math.max(Math.hypot(a.x - b.x, a.y - b.y), 1), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-  }
+    return { distancia: Math.max(Math.hypot(a.x - b.x, a.y - b.y), 1) };
+  };
 
   lienzo.addEventListener('pointerdown', (e) => {
     dedos.set(e.pointerId, { x: e.clientX, y: e.clientY });
     lienzo.setPointerCapture(e.pointerId);
     e.preventDefault();
-
     if (dedos.size === 2) {
-      // Entró un segundo dedo: se deja de apuntar (no tira) y se pasa a pellizcar.
-      cancelarTiro();
+      arrastre = null;
       pellizco = medirPellizco();
       return;
     }
     if (dedos.size > 2) return;
-
-    // Un solo dedo: sobre la bolincha (si es su turno) apunta; en cualquier otro lado, mueve la cámara.
-    let tipo = 'camara';
-    if (puedeTirar()) {
-      const p = enPantalla(obtenerBolincha().posicion);
-      if (Math.hypot(e.clientX - p.x, e.clientY - p.y) <= t.toleranciaToque) tipo = 'tiro';
-    }
-    arrastre = { id: e.pointerId, x: e.clientX, y: e.clientY, inicioX: e.clientX, inicioY: e.clientY, tipo };
-    if (tipo === 'tiro') {
-      fuerza = 0;
-      alApuntar(0);
-    }
+    arrastre = { id: e.pointerId, x: e.clientX, y: e.clientY, inicioX: e.clientX, inicioY: e.clientY };
   });
 
   lienzo.addEventListener('pointermove', (e) => {
@@ -102,52 +59,38 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
     if (!dedo) return;
     dedo.x = e.clientX;
     dedo.y = e.clientY;
-
     if (pellizco && dedos.size === 2) {
       const ahora = medirPellizco();
       controlCamara.acercar(pellizco.distancia / ahora.distancia);
-      controlCamara.orbitar(ahora.x - pellizco.x, 0);
       pellizco = ahora;
       return;
     }
     if (!arrastre || e.pointerId !== arrastre.id) return;
-    if (arrastre.tipo === 'camara') {
-      controlCamara.orbitar(e.clientX - arrastre.x, e.clientY - arrastre.y);
-      arrastre.x = e.clientX;
-      arrastre.y = e.clientY;
-    } else {
-      calcularTiro(e);
-      alApuntar(fuerza);
-    }
+    // De lado a lado gira (y con eso apunta); de arriba a abajo sube o baja la vista.
+    controlCamara.orbitar((e.clientX - arrastre.x) * (GIRO_POR_PIXEL / 0.008), e.clientY - arrastre.y);
+    arrastre.x = e.clientX;
+    arrastre.y = e.clientY;
   });
 
-  function soltar(e, cancelado) {
+  function soltarPantalla(e, cancelado) {
     if (!dedos.delete(e.pointerId)) return;
     if (dedos.size < 2) pellizco = null;
     if (!arrastre || e.pointerId !== arrastre.id) return;
     const era = arrastre;
     arrastre = null;
-    if (era.tipo === 'camara') {
-      // Un toque corto sin moverse, dos veces seguidas: vuelve a la vista normal.
-      const quieto = Math.hypot(e.clientX - era.inicioX, e.clientY - era.inicioY) < 12;
-      if (quieto && !cancelado) {
-        const ahora = performance.now();
-        if (ahora - ultimoToque.t < 350 && Math.hypot(e.clientX - ultimoToque.x, e.clientY - ultimoToque.y) < 40) {
-          controlCamara.vistaNormal();
-          ultimoToque.t = 0;
-        } else {
-          ultimoToque = { t: ahora, x: e.clientX, y: e.clientY };
-        }
-      }
-      return;
+    // Un toque corto sin moverse, dos veces seguidas: vuelve a la vista normal.
+    const quieto = Math.hypot(e.clientX - era.inicioX, e.clientY - era.inicioY) < 12;
+    if (!quieto || cancelado) return;
+    const ahora = performance.now();
+    if (ahora - ultimoToque.t < 350 && Math.hypot(e.clientX - ultimoToque.x, e.clientY - ultimoToque.y) < 40) {
+      controlCamara.vistaNormal();
+      ultimoToque.t = 0;
+    } else {
+      ultimoToque = { t: ahora, x: e.clientX, y: e.clientY };
     }
-    punteria.visible = false;
-    alApuntar(null);
-    if (!cancelado && fuerza >= t.fuerzaMinima) alTirar(direccion.clone(), fuerza);
-    fuerza = 0;
   }
-  lienzo.addEventListener('pointerup', (e) => soltar(e, false));
-  lienzo.addEventListener('pointercancel', (e) => soltar(e, true));
+  lienzo.addEventListener('pointerup', (e) => soltarPantalla(e, false));
+  lienzo.addEventListener('pointercancel', (e) => soltarPantalla(e, true));
 
   // Rueda del mouse: acercar o alejar la cámara.
   lienzo.addEventListener(
@@ -158,6 +101,39 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
     },
     { passive: false }
   );
+
+  // ---------------- Barra de fuerza: bajar y soltar ----------------
+  const barra = document.getElementById('barra-tiro');
+  const carril = document.getElementById('barra-carril');
+  function fuerzaDesde(y) {
+    const r = carril.getBoundingClientRect();
+    return THREE.MathUtils.clamp((y - cargando.y0) / (r.height * 0.95), 0, 1);
+  }
+  barra.addEventListener('pointerdown', (e) => {
+    if (!puedeTirar() || cargando) return;
+    cargando = { id: e.pointerId, y0: e.clientY };
+    barra.setPointerCapture(e.pointerId);
+    fuerza = 0;
+    alApuntar(0);
+    e.preventDefault();
+  });
+  barra.addEventListener('pointermove', (e) => {
+    if (!cargando || e.pointerId !== cargando.id) return;
+    fuerza = fuerzaDesde(e.clientY);
+    alApuntar(fuerza);
+  });
+  function soltarBarra(e, cancelado) {
+    if (!cargando || e.pointerId !== cargando.id) return;
+    cargando = null;
+    alApuntar(null);
+    if (!cancelado && fuerza >= t.fuerzaMinima && puedeTirar()) {
+      controlCamara.adelante(direccion);
+      alTirar(direccion.clone(), fuerza);
+    }
+    fuerza = 0;
+  }
+  barra.addEventListener('pointerup', (e) => soltarBarra(e, false));
+  barra.addEventListener('pointercancel', (e) => soltarBarra(e, true));
 
   let externa = null; // puntería que muestra la computadora: { direccion, fuerza }
 
@@ -170,8 +146,9 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
     // Ubica los puntos de puntería frente a la bolincha.
     actualizar() {
       if (externa) direccion.copy(externa.direccion);
-      const apuntando = externa || (arrastre && arrastre.tipo === 'tiro' && fuerza >= t.fuerzaMinima);
-      punteria.visible = !!apuntando;
+      else controlCamara.adelante(direccion);
+      const apuntando = !!externa || puedeTirar();
+      punteria.visible = apuntando;
       if (!apuntando) return;
       const bolincha = obtenerBolincha();
       const pos = bolincha.posicion;

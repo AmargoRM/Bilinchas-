@@ -32,8 +32,10 @@ function frases(j) {
       saco: (n) => `Sacaste ${n}.`,
       dentro: tx('Tu {bolincha} quedó dentro del círculo.'),
       seLleva: (n) => `Igual te llevas ${n}.`,
-      devuelve: (n) => `Las ${n} que sacaste vuelven al círculo.`,
+      devuelve: (n) => tx(n === 1 ? '{La} que sacaste vuelve al círculo.' : `{Las} ${n} que sacaste vuelven al círculo.`),
       repite: (n) => tx(`¡Sacaste ${n}! Tira otra vez desde donde quedó tu {bolincha}.`),
+      falta: (f, numero) => (f === 'nada' ? tx('Falta: no le pegaste a {ninguna}.') : `Falta: tenías que pegarle primero a la ${numero}.`),
+      perdioPorExplosion: (n) => `Sacaste ${n}, pero explotó: pierdes el turno.`,
     };
   }
   const quien = sujeto(j);
@@ -43,8 +45,10 @@ function frases(j) {
     saco: (n) => `${quien} sacó ${n}.`,
     dentro: tx(`{La} {bolincha} ${deQuien} quedó dentro del círculo.`),
     seLleva: (n) => `Igual se lleva ${n}.`,
-    devuelve: (n) => `Las ${n} que sacó vuelven al círculo.`,
+    devuelve: (n) => tx(n === 1 ? '{La} que sacó vuelve al círculo.' : `{Las} ${n} que sacó vuelven al círculo.`),
     repite: (n) => `¡${quien} sacó ${n}! Vuelve a tirar.`,
+    falta: (f, numero) => (f === 'nada' ? tx(`Falta de ${sujeto(j, false)}: no le pegó a {ninguna}.`) : `Falta de ${sujeto(j, false)}: tenía que pegarle primero a la ${numero}.`),
+    perdioPorExplosion: (n) => `${quien} sacó ${n}, pero explotó: pierde el turno.`,
   };
 }
 
@@ -67,7 +71,7 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
   for (let i = 0; i < maximo; i++) {
     // Diseños clásicos de barrio (verdes y claros, para no confundirlas con las de tiro).
     const diseno = DISENOS_CIRCULO[i % DISENOS_CIRCULO.length];
-    blancos.push({ enCirculo: true, bolincha: crearBolincha({ escena, fisica, posicion: centro, diseno }) });
+    blancos.push({ enCirculo: true, numero: i + 1, etiqueta: typeof document === 'undefined' ? null : crearEtiqueta(i + 1), bolincha: crearBolincha({ escena, fisica, posicion: centro, diseno }) });
   }
   // Bolinchas explosivas (solo en esa variante): negras con vetas rojas y amarillas.
   const conExplosivas = variante === 'explosivas';
@@ -79,6 +83,33 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
       }))
     : [];
   let porExplotar = []; // [{ explosiva, reloj }]: golpeadas que explotan en un momento
+  // Orden como en el pool: cada bolincha del círculo tiene un número.
+  const conOrden = CONFIG.reglasCirculo.ordenComoPool;
+  let primerTiroDeLaPartida = true; // el primero puede pegarle a cualquiera
+  let primerContacto = null; // a qué le pegó primero el tirador en este tiro
+  // Etiqueta con el número, siempre del mismo tamaño en la pantalla y visible.
+  function crearEtiqueta(numero) {
+    const lienzo = document.createElement('canvas');
+    lienzo.width = lienzo.height = 64;
+    const g = lienzo.getContext('2d');
+    g.beginPath();
+    g.arc(32, 32, 28, 0, Math.PI * 2);
+    g.fillStyle = '#ffffff';
+    g.fill();
+    g.lineWidth = 4;
+    g.strokeStyle = '#1b1b1b';
+    g.stroke();
+    g.fillStyle = '#1b1b1b';
+    g.font = 'bold 34px sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(String(numero), 32, 34);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(lienzo), sizeAttenuation: false, depthTest: false }));
+    sprite.renderOrder = 9;
+    sprite.visible = false;
+    escena.add(sprite);
+    return sprite;
+  }
   let explosionesDelTiro = 0;
   const todas = [...bolinchasDe(todos), ...blancos.map((b) => b.bolincha), ...explosivas.map((e) => e.bolincha)];
 
@@ -102,12 +133,14 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
   const enJuego = (b) => b.cuerpo.isEnabled();
   const dentro = (b) => enJuego(b) && Math.hypot(b.posicion.x, b.posicion.z) <= radio;
   const quedan = () => blancos.filter((b) => b.enCirculo).length;
+  // La que toca pegarle primero: la de número más bajo que sigue en el círculo (o null si vale cualquiera).
+  const objetivo = () => (conOrden && !primerTiroDeLaPartida ? blancos.filter((b) => b.enCirculo).sort((a, b) => a.numero - b.numero)[0] || null : null);
 
   function actualizarMarcador() {
     hud.marcador({
       jugadores: jugadores.map((j) => ({ nombre: j.nombre, color: j.color, valor: j.puntos })),
       turno: fase === 'fin' ? null : turno,
-      detalle: `Quedan ${quedan()} en el círculo`,
+      detalle: objetivo() ? `Te toca la ${objetivo().numero} · quedan ${quedan()}` : `Quedan ${quedan()} en el círculo${conOrden ? ' · primer tiro libre' : ''}`,
     });
   }
 
@@ -271,9 +304,11 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
         tirador: j.bolincha.posicion.clone(),
         radioBolincha: j.bolincha.radio,
         pesoTirador: j.bolincha.peso,
-        blancos: blancos.filter((b) => b.enCirculo).map((b) => b.bolincha.posicion.clone()),
+        blancos: (objetivo() ? [objetivo()] : blancos.filter((b) => b.enCirculo)).map((b) => b.bolincha.posicion.clone()),
         obstaculos: [
           ...otros,
+          // (si hay orden, las demás del círculo también estorban)
+          ...(objetivo() ? blancos.filter((b) => b.enCirculo && b !== objetivo()).map((b) => b.bolincha.posicion.clone()) : []),
           ...piedras.map((p) => new THREE.Vector3(p.x, 0, p.z)),
           // (la computadora no se arriesga: esquiva las explosivas)
           ...explosivas.filter((e) => e.activa).map((e) => e.bolincha.posicion.clone()),
@@ -289,7 +324,8 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
       return;
     }
 
-    controlCamara.mirarDesde(j.bolincha.posicion, centro);
+    // La vista (y con ella la puntería) arranca mirando a la que toca.
+    controlCamara.mirarDesde(j.bolincha.posicion, objetivo() ? objetivo().bolincha.posicion.clone() : centro);
     fase = 'apuntar';
     hud.ayudaDeTiro(true);
   }
@@ -306,6 +342,7 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
       j.enCancha = false;
     }
     const formacion = armarCirculo();
+    primerTiroDeLaPartida = true;
     turno = Math.floor(Math.random() * jugadores.length); // se sortea quién empieza
     ponerEnSalida(jugadores[turno]);
     enfocada = jugadores[turno].bolincha;
@@ -359,7 +396,14 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     const sacadas = blancos.filter((b) => b.enCirculo && !dentro(b.bolincha));
     const n = sacadas.length;
     const tiradorDentro = j.enCancha && dentro(j.bolincha);
-    const r = resolverTiro({ sacadas: n, tiradorDentro });
+    const tocaba = objetivo();
+    let falta = null;
+    if (tocaba) {
+      if (!primerContacto) falta = 'nada';
+      else if (primerContacto !== tocaba) falta = 'orden';
+    }
+    primerTiroDeLaPartida = false;
+    const r = resolverTiro({ sacadas: n, tiradorDentro, falta, exploto: explosionesDelTiro > 0 });
 
     if (r.cuentan) {
       j.puntos += n;
@@ -386,7 +430,11 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
 
     let motivo;
     const bum = explosionesDelTiro > 0 ? (explosionesDelTiro > 1 ? `¡Bum! ¡Explotaron ${explosionesDelTiro}! ` : '¡Bum! ') : '';
-    if (r.motivo === 'dentro') {
+    if (r.motivo === 'falta') {
+      motivo = dice.falta(falta, tocaba.numero) + (n > 0 ? ' ' + dice.devuelve(n) : '');
+    } else if (r.motivo === 'saco' && explosionesDelTiro > 0) {
+      motivo = dice.perdioPorExplosion(n);
+    } else if (r.motivo === 'dentro') {
       motivo = dice.dentro;
       if (n > 0) motivo += ' ' + (r.cuentan ? dice.seLleva(n) : dice.devuelve(n));
     } else if (r.motivo === 'saco') {
@@ -457,12 +505,19 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     fase = 'rodando';
     tiempoQuieta = 0;
     explosionesDelTiro = 0;
+    primerContacto = null;
   }
 
   return {
     todas,
     nuevaPartida,
     empezarPartida,
+
+    // Lo que muestra la vista desde arriba: el círculo con un margen.
+    get traza() {
+      const m = radio + 12;
+      return { bordes: { minX: -m, maxX: m, minZ: -m, maxZ: m } };
+    },
 
     // De qué es el suelo (para el sonido de rodar).
     get superficie() {
@@ -475,6 +530,7 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
       mostrarPunteria(null);
       for (const b of todas) b.quitar();
       for (const j of todos) j.enCancha = false;
+      for (const b of blancos) if (b.etiqueta) b.etiqueta.visible = false;
     },
 
     get tirador() {
@@ -487,6 +543,23 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     },
 
     puedeTirar: () => fase === 'apuntar',
+
+    // Después de cada paso de la física: ¿a qué le pegó primero el tirador?
+    alPaso() {
+      if (fase !== 'rodando' || primerContacto) return;
+      const colTirador = jugadores[turno].bolincha.cuerpo.collider(0);
+      const candidatas = [...blancos.filter((b) => b.enCirculo && enJuego(b.bolincha)), ...explosivas.filter((e) => e.activa)];
+      for (const c of candidatas) {
+        let toca = false;
+        fisica.mundo.contactPair(colTirador, c.bolincha.cuerpo.collider(0), (m) => {
+          if (m.numContacts() > 0) toca = true;
+        });
+        if (toca) {
+          primerContacto = c;
+          return;
+        }
+      }
+    },
 
     // ¿Tira ahora la persona del Lugar 1? (la única con la bolincha de su colección y su poder)
     get turnoDelDueno() {
@@ -501,6 +574,20 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     },
 
     actualizar(dt) {
+      // Números sobre las bolinchas; la que toca, más grande y en amarillo.
+      const toca = objetivo();
+      for (const b of blancos) {
+        if (!b.etiqueta) continue;
+        const ver = conOrden && b.enCirculo && enJuego(b.bolincha);
+        b.etiqueta.visible = ver;
+        if (!ver) continue;
+        const p = b.bolincha.posicion;
+        b.etiqueta.position.set(p.x, p.y + b.bolincha.radio + 1.4, p.z);
+        const esLaQueToca = b === toca;
+        b.etiqueta.scale.setScalar(esLaQueToca ? 0.042 : 0.028);
+        b.etiqueta.material.color.set(esLaQueToca ? 0xffd23f : 0xffffff);
+      }
+
       // Las que se cayeron del patio salen del juego (si eran del círculo, cuentan como sacadas).
       for (const b of todas) {
         const p = b.posicion;

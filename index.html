@@ -16,6 +16,9 @@
           <div id="marcador-quedan" class="marcador-quedan"></div>
         </div>
         <div class="botones-arriba">
+          <button id="btn-mapa" class="placa boton boton-icono" type="button" aria-pressed="false" aria-label="Ver desde arriba">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="icono-linea"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" /><path d="M9 4v14M15 6v14" /></svg>
+          </button>
           <button id="btn-ajustes" class="placa boton boton-icono" type="button" aria-expanded="false" aria-controls="panel-ajustes" aria-label="Ajustar física">
             <svg viewBox="0 0 24 24" aria-hidden="true" class="icono-relleno"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.47.47 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.61zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z" /></svg>
           </button>
@@ -38,26 +41,26 @@
 
       <p id="aviso" class="aviso" role="status" hidden></p>
 
+      <div id="barra-tiro" class="placa barra-tiro" hidden aria-label="Fuerza: baja la barra y suéltala para tirar">
+        <span class="barra-etiqueta">Fuerza</span>
+        <div id="barra-carril" class="barra-carril">
+          <div id="barra-relleno" class="barra-relleno"></div>
+          <div id="barra-taco" class="barra-taco"></div>
+        </div>
+        <span id="barra-numero" class="barra-numero">0 %</span>
+      </div>
+
       <p id="ayuda" class="placa ayuda" hidden></p>
 
       <div class="hud-abajo">
-        <button id="btn-mapa" class="placa boton boton-camara" type="button" aria-pressed="false" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z" /><path d="M9 4v14M15 6v14" /></svg>
-          <span id="btn-mapa-texto">Ver mapa</span>
-        </button>
-        <div id="fuerza" class="placa fuerza" hidden>
-          <span class="fuerza-etiqueta">Fuerza</span>
-          <div class="fuerza-barra"><div id="fuerza-relleno" class="fuerza-relleno"></div></div>
-          <span id="fuerza-numero" class="fuerza-numero">0 %</span>
+        <div id="efecto" class="placa efecto" hidden>
+          <div id="efecto-bola" class="efecto-bola" aria-label="Efecto: toca dónde pegarle a tu bolincha"><span id="efecto-punto" class="efecto-punto"></span></div>
+          <span id="efecto-nombre" class="efecto-nombre">Sin efecto</span>
         </div>
         <button id="btn-poder" class="placa boton boton-poder" type="button" aria-pressed="false" hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z" /></svg>
           <span id="btn-poder-texto">Poder</span>
         </button>
-        <div id="efecto" class="placa efecto" hidden>
-          <div id="efecto-bola" class="efecto-bola" aria-label="Efecto: toca dónde pegarle a tu bolincha"><span id="efecto-punto" class="efecto-punto"></span></div>
-          <span id="efecto-nombre" class="efecto-nombre">Sin efecto</span>
-        </div>
       </div>
     </div>
 
@@ -123,18 +126,6 @@
         <div class="modo-pie">
           <p data-tx="Un círculo con {bolinchas} explosivas escondidas: si les pegas, explotan y vuelan todas."></p>
           <button id="modo-explosivas" class="boton-jugar" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>Jugar</button>
-        </div>
-      </article>
-      <article class="modo modo-hoyito" data-modo="hoyito">
-        <div class="modo-foto">
-          <div class="modo-titulo trazo">
-            <span class="modo-icono"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" /><ellipse cx="24" cy="30" rx="9" ry="4" class="lleno" /><path d="M10 14h12" /><circle cx="15" cy="20" r="2.6" class="lleno" /></svg></span>
-            <h3>El hoyito</h3>
-          </div>
-        </div>
-        <div class="modo-pie">
-          <p data-tx="Mete tu {bolincha} en el hoyo desde la raya y después mata a las de los demás."></p>
-          <button id="modo-hoyito" class="boton-jugar" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>Jugar</button>
         </div>
       </article>
     </section>
@@ -206,21 +197,19 @@
       <header class="pantalla-cabeza"><button class="volver" type="button" data-volver aria-label="Volver">←</button><h2>Reglas</h2></header>
       <div class="placa lista-reglas">
         <h3>Cómo tirar</h3>
-        <p data-tx="Toca tu {bolincha} y arrastra el dedo hacia atrás, como estirando una liga. La dirección es el ángulo y el largo es la fuerza. Al soltar, sale."></p>
+        <p data-tx="Para apuntar, desliza el dedo de lado a lado en cualquier parte de la pantalla: la vista gira detrás de tu {bolincha} y la línea de tiza muestra hacia dónde sale. Para tirar, baja la barra de fuerza de la derecha (más abajo, más fuerte) y suéltala. Si la vuelves a subir hasta arriba, no tira."></p>
         <h3>Efectos</h3>
-        <p data-tx="Abajo a la derecha está tu {bolincha} en grande: toca dónde quieres pegarle antes de tirar. Arriba, sigue de largo después de chocar. Abajo, frena o vuelve hacia ti. A un costado, se curva hacia ese lado. En el medio, sin efecto."></p>
+        <p data-tx="Abajo a la izquierda está tu {bolincha} en grande: toca dónde quieres pegarle antes de tirar. Arriba, sigue de largo después de chocar. Abajo, frena o vuelve hacia ti. A un costado, se curva hacia ese lado. En el medio, sin efecto."></p>
         <h3>Bolinchas raras</h3>
         <p data-tx="Algunas {bolinchas} de la Colección tienen un poder: fuerza, salto, peso, efecto doble u ojo fino. Si juegas con una, antes de tirar aparece un botón con un rayo: tócalo y tu próximo tiro usa el poder. Se puede una vez por partida. El ojo fino funciona siempre, sin tocar nada."></p>
         <h3>Cómo mirar</h3>
-        <p>Arrastra el dedo en cualquier otro lugar de la pantalla para girar la cámara, o hacia arriba y abajo para verlo desde más alto. Con dos dedos, pellizca para acercar o alejar. Toca dos veces rápido para volver a la vista normal.</p>
+        <p>Desliza hacia arriba o abajo para ver desde más alto o más bajo. Con dos dedos, pellizca para acercar o alejar. Toca dos veces rápido para volver a la vista normal. El botón del mapa (arriba) muestra todo desde arriba, y desde ahí también se puede apuntar y tirar.</p>
         <h3>Círculo</h3>
         <ul id="reglas-circulo"></ul>
         <h3 data-tx="{Caño}"></h3>
         <ul id="reglas-cano"></ul>
         <h3>Bolinchas explosivas</h3>
         <ul id="reglas-explosivas"></ul>
-        <h3>El hoyito</h3>
-        <ul id="reglas-hoyito"></ul>
         <h3 data-tx="Normal o {boliche}"></h3>
         <p data-tx="{La} normal mide 16 mm. {El_g} {boliche} mide 25 mm y pesa casi cuatro veces más: empuja más fuerte, pero es más difícil de frenar."></p>
       </div>

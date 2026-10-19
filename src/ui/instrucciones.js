@@ -63,9 +63,11 @@ export function crearInstrucciones({ hud, nivel }) {
         // Primera vez: las reglas, con las dificultades que ya trae el nivel actual incluidas.
         // Después, los avisos (mapas nuevos) que haya.
         const reglas = pendientes.filter((n) => !n.soloAviso);
+        // (los avisos de cambios de reglas sobran: las reglas ya vienen nuevas)
+        const cambios = pendientes.filter((n) => n.cambioDeReglas);
         tarjetaReglas(modo, reglas, '¡A jugar!', () => {
-          marcar([modo, ...reglas.map((n) => n.id)]);
-          pendientes = pendientes.filter((n) => n.soloAviso);
+          marcar([modo, ...reglas.map((n) => n.id), ...cambios.map((n) => n.id)]);
+          pendientes = pendientes.filter((n) => n.soloAviso && !n.cambioDeReglas);
           mostrarSiguiente(0);
         });
         return;

@@ -98,7 +98,7 @@ export const CONFIG = {
     // Fuerza mínima: si soltás por debajo de esto, el tiro se cancela.
     fuerzaMinima: 0.05,
     // Largo de la línea de puntería, en cm. Corta a propósito, para que haya dificultad.
-    largoPunteria: 12,
+    largoPunteria: 20,
     // Qué tan lejos de la bolincha (en píxeles) se puede tocar para empezar a apuntar.
     toleranciaToque: 100, // px alrededor de la bolincha donde un toque apunta (fuera de eso, mueve la cámara)
   },
@@ -125,14 +125,6 @@ export const CONFIG = {
     salto: 50, // cm/s hacia arriba (las hace saltar un poco)
     velocidadParaExplotar: 25, // cm/s: si la mueven más rápido que esto, explota
     retardo: 0.12, // segundos entre el golpe y la explosión
-  },
-
-  // Modo El hoyito.
-  hoyito: {
-    distanciaRaya: 170, // cm de la raya al hoyo
-    radioHoyo: 3, // cm
-    velocidadParaCaer: 75, // cm/s: si pasa por el hoyo más lenta que esto, cae; si no, lo salta
-    separacionEnRaya: 10, // cm entre los lugares de salida sobre la raya
   },
 
   // Dificultad del Círculo según el nivel de quien juega (Lugar 1).
@@ -195,6 +187,9 @@ export const CONFIG = {
     //   'dondeQuedo' = desde donde quedó su bolincha la última vez. Las dos
     //                  bolinchas de tiro quedan en el suelo y se pueden pegar.
     inicioDeTurno: 'dondeQuedo',
+    // true: como el pool. Las bolinchas tienen número y, después del primer tiro de la
+    // partida, hay que pegarle primero a la del número más bajo; si no, es falta.
+    ordenComoPool: true,
   },
 
   // ---------------------------------------------------------------

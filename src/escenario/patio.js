@@ -30,7 +30,6 @@ export function crearPatio(escena, fisica) {
 
   // Un dibujo de tiza por cada tamaño de círculo (se hace la primera vez que se usa).
   const tizas = {};
-  // radio null: sin círculo (en El hoyito).
   function usarRadio(radio) {
     if (radio && !tizas[radio]) {
       tizas[radio] = crearTiza(radio);
@@ -39,21 +38,6 @@ export function crearPatio(escena, fisica) {
     for (const [r, t] of Object.entries(tizas)) t.visible = Number(r) === radio;
   }
   usarRadio(CONFIG.circulo.radio);
-
-  // El hoyito y la raya desde donde se tira (solo en ese modo). Se dibujan la primera vez.
-  let hoyito = null;
-  function ponerHoyo(datos) {
-    if (datos && !hoyito) {
-      hoyito = { hoyo: crearHoyo(datos.radio), raya: crearRaya(datos.largoRaya) };
-      grupo.add(hoyito.hoyo, hoyito.raya);
-    }
-    if (!hoyito) return;
-    hoyito.hoyo.visible = hoyito.raya.visible = !!datos;
-    if (!datos) return;
-    hoyito.hoyo.position.set(datos.x, 0, datos.z);
-    hoyito.raya.position.set(datos.raya.x, 0.03, datos.raya.z);
-    hoyito.raya.rotation.y = datos.raya.angulo;
-  }
 
   // Piedras fijas dentro del círculo (con su cuerpo en la física). Se crean cuando hacen falta.
   const piedras = [];
@@ -99,8 +83,6 @@ export function crearPatio(escena, fisica) {
       mostrar();
     },
     usarRadio,
-    // datos: { x, z, radio, largoRaya, raya: { x, z, angulo } }, o null para quitarlo.
-    ponerHoyo,
     // lista: [{ x, z, radio }] (vacía = sin piedras).
     ponerPiedras,
     // Cambia de lugar ('patio' o 'calle'). La calle se arma la primera vez que se usa.
@@ -114,66 +96,6 @@ export function crearPatio(escena, fisica) {
       mostrar();
     },
   };
-}
-
-// El hoyito: un agujero oscuro en la tierra con la tierra sacada alrededor.
-function crearHoyo(radio) {
-  const grupo = new THREE.Group();
-  const c = document.createElement('canvas');
-  c.width = c.height = 128;
-  const g = c.getContext('2d');
-  const grad = g.createRadialGradient(64, 70, 4, 64, 64, 64);
-  grad.addColorStop(0, '#0d0603');
-  grad.addColorStop(0.6, '#24120a');
-  grad.addColorStop(0.85, '#4a2414');
-  grad.addColorStop(1, 'rgba(74,36,20,0)');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, 128, 128);
-  const mapa = new THREE.CanvasTexture(c);
-  mapa.colorSpace = THREE.SRGBColorSpace;
-  const boca = new THREE.Mesh(
-    new THREE.CircleGeometry(radio * 1.25, 32),
-    new THREE.MeshStandardMaterial({ map: mapa, transparent: true, depthWrite: false, roughness: 1, polygonOffset: true, polygonOffsetFactor: -3 })
-  );
-  boca.rotation.x = -Math.PI / 2;
-  boca.position.y = 0.03;
-  // Tierra suelta amontonada alrededor.
-  const azar = azarFijo(55);
-  const tierra = new THREE.MeshStandardMaterial({ color: 0x7a3d22, roughness: 1, flatShading: true });
-  for (let i = 0; i < 14; i++) {
-    const a = (i / 14) * Math.PI * 2 + azar() * 0.3;
-    const terron = new THREE.Mesh(new THREE.IcosahedronGeometry(0.6 + azar() * 0.7, 0), tierra);
-    const r = radio * (1.35 + azar() * 0.5);
-    terron.position.set(Math.cos(a) * r, 0.1, Math.sin(a) * r);
-    terron.scale.y = 0.5;
-    terron.castShadow = true;
-    grupo.add(terron);
-  }
-  grupo.add(boca);
-  return grupo;
-}
-
-// La raya rayada en la tierra con un palito.
-function crearRaya(largo) {
-  const c = document.createElement('canvas');
-  c.width = 512;
-  c.height = 16;
-  const g = c.getContext('2d');
-  const azar = azarFijo(66);
-  for (let i = 0; i < 3000; i++) {
-    const x = azar() * 512;
-    const y = 8 + (azar() - 0.5) * 8 * (0.6 + Math.sin(x / 40) * 0.4);
-    g.fillStyle = `rgba(${40 + azar() * 30},${18 + azar() * 12},10,${0.3 + azar() * 0.5})`;
-    g.fillRect(x, y, 2, 2);
-  }
-  const mapa = new THREE.CanvasTexture(c);
-  mapa.colorSpace = THREE.SRGBColorSpace;
-  const raya = new THREE.Mesh(
-    new THREE.PlaneGeometry(largo, 2.2),
-    new THREE.MeshStandardMaterial({ map: mapa, transparent: true, depthWrite: false, roughness: 1, polygonOffset: true, polygonOffsetFactor: -2 })
-  );
-  raya.geometry.rotateX(-Math.PI / 2);
-  return raya;
 }
 
 // Piedra gris-café, irregular, de radio 1 (se escala al tamaño que toque).

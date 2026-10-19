@@ -18,7 +18,6 @@ import { crearHud } from './ui/hud.js';
 import { cargarAjustesGuardados, crearPanelAjustes } from './ui/ajustes.js';
 import { crearModoCirculo } from './modos/circulo.js';
 import { crearModoCano } from './modos/cano.js';
-import { crearModoHoyito } from './modos/hoyito.js';
 import { crearExplosiones } from './efectos/explosion.js';
 import { crearMenu3d } from './escenario/menu3d.js';
 import { crearSonido } from './sonido.js';
@@ -117,7 +116,6 @@ async function iniciar() {
       alSalir: (a) => irA(a),
       ...delProgreso,
     }),
-    hoyito: crearModoHoyito({ escena, fisica, hud, controlCamara, patio: escenarios.circulo, mostrarPunteria, efectos, alSalir: (a) => irA(a), ...delProgreso }),
     cano: crearModoCano({
       escena,
       fisica,
@@ -133,7 +131,7 @@ async function iniciar() {
   let modo = modos.circulo;
   const todas = Object.values(modos).flatMap((m) => m.todas);
   // En qué escenario se juega cada modo.
-  const ESCENARIO_DE = { circulo: 'circulo', explosivas: 'circulo', hoyito: 'circulo', cano: 'cano' };
+  const ESCENARIO_DE = { circulo: 'circulo', explosivas: 'circulo', cano: 'cano' };
   crearPanelAjustes({ alCambiar: () => todas.forEach((b) => b.aplicarConfig()) });
 
   const efecto = crearSelectorEfecto();
@@ -149,7 +147,7 @@ async function iniciar() {
     obtenerBolincha: () => modo.tirador,
     obtenerEfecto: () => efecto.valor(),
     obtenerLargoPunteria: () => (modo.turnoDelDueno && poderDelDueno()?.punteria) || 1,
-    puedeTirar: () => modo.puedeTirar() && !vistaMapa,
+    puedeTirar: () => modo.puedeTirar(),
     alApuntar: (f) => hud.fuerza(f),
     alTirar: (direccion, fuerza) => {
       sonido.tiro(fuerza);
@@ -200,7 +198,7 @@ async function iniciar() {
 
   function usarJuego(nombre) {
     mostrarMapa(false);
-    hud.mostrarBotonMapa(nombre === 'cano');
+    hud.mostrarBotonMapa(true);
     for (const [clave, m] of Object.entries(modos)) if (clave !== nombre) m.retirar();
     for (const [clave, e] of Object.entries(escenarios)) e.activar(clave === ESCENARIO_DE[nombre]);
     modo = modos[nombre];
@@ -222,7 +220,7 @@ async function iniciar() {
     }
     if (id === 'pantalla-coleccion') pantallaColeccion.dibujar();
     if (id === 'pantalla-reglas') {
-      for (const m of ['circulo', 'cano', 'explosivas', 'hoyito']) {
+      for (const m of ['circulo', 'cano', 'explosivas']) {
         $(`reglas-${m}`).replaceChildren(
           ...instrucciones.reglasDe(m).map((t) => {
             const li = document.createElement('li');
@@ -377,6 +375,7 @@ async function iniciar() {
   renderer.setAnimationLoop(() => {
     const dt = reloj.getDelta();
     if (enMenu) {
+      hud.barraDeTiro(false, false);
       efecto.mostrar(false);
       botonPoder.mostrar(false);
       sonido.rodar(0, 0);
@@ -384,7 +383,10 @@ async function iniciar() {
       renderer.render(menu3d.escena, menu3d.camara);
       return;
     }
-    fisica.avanzar(dt, (paso) => modo.todas.forEach((b) => b.aplicarRodadura(paso)));
+    fisica.avanzar(dt, (paso) => {
+      modo.todas.forEach((b) => b.aplicarRodadura(paso));
+      modo.alPaso?.();
+    });
     modo.todas.forEach((b) => b.sincronizar(dt));
     modo.actualizar(dt);
     const foco = modo.enfoque.posicion;
@@ -401,8 +403,9 @@ async function iniciar() {
     });
     seguirSombra(foco);
     control.actualizar();
-    efecto.mostrar(modo.puedeTirar() && !vistaMapa);
-    botonPoder.mostrar(modo.puedeTirar() && modo.turnoDelDueno && !vistaMapa);
+    efecto.mostrar(modo.puedeTirar());
+    botonPoder.mostrar(modo.puedeTirar() && modo.turnoDelDueno);
+    hud.barraDeTiro(true, modo.puedeTirar());
     // El peso extra se termina cuando la bolincha se detiene.
     if (conPesoExtra) {
       conPesoExtra.tiempo += dt;
@@ -418,7 +421,6 @@ async function iniciar() {
   escenarios.cano.activar(false);
   modos.cano.retirar();
   modos.explosivas.retirar();
-  modos.hoyito.retirar();
   mostrarPantalla('portada');
   hud.listo();
 }

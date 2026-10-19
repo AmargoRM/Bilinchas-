@@ -17,7 +17,7 @@ async function abrir(ancho, alto, escala) {
   // Que no pregunte el país ni use progreso de otra prueba.
   await pagina.addInitScript(() => {
     localStorage.setItem('ojo-de-gato.pais', 'cr');
-    localStorage.setItem('ojo-de-gato.instrucciones', JSON.stringify(['circulo', 'cano', 'explosivas', 'hoyito']));
+    localStorage.setItem('ojo-de-gato.instrucciones', JSON.stringify(['circulo', 'cano', 'explosivas']));
   });
   await pagina.goto(DIRECCION);
   await pagina.waitForFunction(() => document.getElementById('cargando').classList.contains('oculto'), null, { timeout: 60000 });

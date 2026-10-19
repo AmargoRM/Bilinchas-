@@ -430,34 +430,11 @@ button {
   gap: 10px;
 }
 
-.boton-camara {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.boton-camara svg {
-  width: 22px;
-  height: 22px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linejoin: round;
-}
-
-.boton-camara[aria-pressed='true'] {
-  background: var(--amarillo);
-  color: var(--fondo);
-  border-color: var(--amarillo);
-}
-
 .boton-poder {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  margin-left: auto;
   pointer-events: auto;
 }
 
@@ -478,12 +455,7 @@ button {
   fill: var(--fondo);
 }
 
-.boton-poder:not([hidden]) + .efecto {
-  margin-left: 0;
-}
-
 .efecto {
-  margin-left: auto;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -549,49 +521,84 @@ button {
   color: var(--amarillo);
 }
 
-.fuerza {
-  flex: 1;
-  min-width: 0;
+/* Barra de fuerza vertical, a la derecha: se baja con el dedo y se suelta para tirar. */
+.barra-tiro {
+  position: fixed;
+  right: max(10px, env(safe-area-inset-right, 0px));
+  top: 30%;
+  height: 40%;
+  width: 62px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
+  gap: 6px;
+  padding: 8px 0;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: grab;
 }
 
-.fuerza-etiqueta {
+.barra-tiro.apagada {
+  opacity: 0.45;
+}
+
+.barra-etiqueta,
+.barra-numero {
+  font-size: 13px;
   font-weight: 600;
-  font-size: 16px;
+  font-variant-numeric: tabular-nums;
 }
 
-.fuerza-barra {
+.barra-carril {
+  position: relative;
   flex: 1;
-  height: 12px;
-  border-radius: 6px;
+  width: 18px;
+  border-radius: 9px;
   background: rgba(255, 255, 255, 0.14);
   overflow: hidden;
 }
 
-.fuerza-relleno {
-  height: 100%;
-  width: 0;
-  border-radius: 6px;
+/* Se llena de arriba hacia abajo, como cuando se tira para atrás. */
+.barra-relleno {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 0;
   background: var(--verde-fuerza);
 }
 
-.fuerza-relleno.alta {
+.barra-relleno.alta {
   background: var(--amarillo);
 }
 
-.fuerza-relleno.maxima {
+.barra-relleno.maxima {
   background: var(--rojo);
 }
 
-.fuerza-numero {
-  font-weight: 600;
-  font-size: 16px;
-  min-width: 3.2em;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+/* La "manija" que se agarra: en la punta del relleno. */
+.barra-taco {
+  position: absolute;
+  left: -3px;
+  right: -3px;
+  top: 0;
+  height: 10px;
+  margin-top: -2px;
+  border-radius: 5px;
+  background: #fbf8f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+.icono-linea {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+#btn-mapa[aria-pressed='true'] {
+  background: var(--amarillo);
+  color: var(--fondo);
 }
 
 .cargando {
@@ -916,11 +923,6 @@ button {
   background-image: url('../assets/modo-explosivas.jpg');
   background-size: 210%;
   background-position: 50% 22%;
-}
-
-.modo-hoyito .modo-foto {
-  background-image: url('../assets/modo-hoyito.jpg');
-  background-position: 50% 60%;
 }
 
 .modo-cano .modo-foto {
