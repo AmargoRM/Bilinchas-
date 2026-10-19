@@ -1,4 +1,4 @@
-// Botón del poder de la bolincha rara (solo para la persona del Lugar 1).
+// Botón de la habilidad activa de la bolincha (solo para la persona del Lugar 1).
 // Se toca antes de tirar para "prepararlo"; el próximo tiro lo usa. Una vez por partida.
 export function crearBotonPoder({ obtenerPoder }) {
   const boton = document.getElementById('btn-poder');
@@ -30,7 +30,7 @@ export function crearBotonPoder({ obtenerPoder }) {
     // si: es el turno de la persona del Lugar 1 y puede tirar.
     mostrar(si) {
       const p = obtenerPoder();
-      const ver = si && !!p && p.tipo === 'activo' && !usado;
+      const ver = si && !!p && p.tipo === 'activa' && !usado;
       if (ver !== visible) {
         visible = ver;
         boton.hidden = !ver;

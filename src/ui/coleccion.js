@@ -1,30 +1,56 @@
-// Pantalla de Colección: el nivel, todas las bolinchas (las que tienes y las que faltan),
-// la ficha de cada una con su poder y el botón "Usar", y los desafíos que regalan bolinchas.
-import { NIVELES, LOGROS, COLECCION } from '../progreso.js';
+// Pantalla de Colección: el nivel, todas las bolinchas agrupadas por serie (con filtro
+// por rareza), la ficha de cada una con sus estadísticas y su habilidad, el botón "Usar",
+// y los desafíos que regalan bolinchas.
+import { NIVELES, LOGROS } from '../progreso.js';
+import { CATALOGO, SERIES_COLECCION, RAREZAS } from '../catalogo.js';
 import { DISENOS } from '../disenos.js';
-import { PODERES, RAREZAS, rarezaDe } from '../poderes.js';
+import { HABILIDADES, lineasDeStats } from '../habilidades.js';
 import { vistaPrevia } from '../aspecto.js';
 import { tx } from '../textos.js';
+
+const FILTROS = [
+  { id: 'todas', nombre: 'Todas' },
+  { id: 'comun', nombre: 'Comunes' },
+  { id: 'rara', nombre: 'Raras' },
+  { id: 'ultra', nombre: 'Ultra raras' },
+  { id: 'mias', nombre: 'Las mías' },
+];
 
 export function crearPantallaColeccion(progreso, { alBorrar = () => {} } = {}) {
   const $ = (id) => document.getElementById(id);
   const detalle = $('detalle');
   let abierta = null; // la bolincha que se está mirando en la ficha
+  let filtro = 'todas';
 
   // Ficha grande de una bolincha.
   function abrir(id) {
     abierta = id;
-    const d = DISENOS[id];
+    const b = CATALOGO.find((x) => x.id === id);
     const e = progreso.estado;
     const tiene = e.disenos.includes(id);
-    const rareza = rarezaDe(d);
-    const poder = PODERES[d.poder];
+    const serie = SERIES_COLECCION.find((s) => s.id === b.serie);
     $('detalle-vista').innerHTML = vistaPrevia(id, 130);
     $('detalle-vista').classList.toggle('bloqueada', !tiene);
-    $('detalle-rareza').textContent = RAREZAS[rareza];
-    $('detalle-rareza').className = `detalle-rareza ${rareza}`;
-    $('detalle-nombre').textContent = tx(d.nombre);
-    $('detalle-poder').textContent = poder ? `Poder: ${poder.nombre}. ${tx(poder.texto)}` : 'Sin poder: una clásica para lucirse.';
+    $('detalle-rareza').textContent = RAREZAS[b.rareza].nombre;
+    $('detalle-rareza').className = `detalle-rareza ${b.rareza}`;
+    $('detalle-nombre').textContent = tx(b.nombre);
+    $('detalle-serie').textContent = `Serie: ${serie.nombre}`;
+    const lineas = lineasDeStats(b.stats);
+    $('detalle-stats').replaceChildren(
+      ...(lineas.length
+        ? lineas.map((l) => {
+            const li = document.createElement('li');
+            li.innerHTML = '<strong></strong> <span></span><small></small>';
+            li.children[0].textContent = l.nombre;
+            li.children[1].textContent = l.valor;
+            li.children[2].textContent = l.explicacion;
+            return li;
+          })
+        : [Object.assign(document.createElement('li'), { className: 'sin-stats', textContent: 'Sin estadísticas extra: una clásica para lucirse.' })])
+    );
+    const h = HABILIDADES[b.habilidad];
+    $('detalle-habilidad').hidden = !h;
+    if (h) $('detalle-habilidad').textContent = `${h.nombre} (${h.tipo === 'activa' ? 'se usa con el botón del rayo' : 'funciona sola'}): ${tx(h.texto)}`;
     const como = progreso.comoSeGana(id);
     $('detalle-como').textContent = tiene ? '' : `Cómo conseguirla: ${como}${como.endsWith('.') ? '' : '.'}`;
     const usar = $('detalle-usar');
@@ -50,6 +76,30 @@ export function crearPantallaColeccion(progreso, { alBorrar = () => {} } = {}) {
     }
   });
 
+  function ficha(b, e) {
+    const tiene = e.disenos.includes(b.id);
+    const boton = document.createElement('button');
+    boton.type = 'button';
+    boton.className = `ficha ${b.rareza}` + (tiene ? '' : ' bloqueada') + (e.elegido === b.id ? ' elegida' : '');
+    boton.innerHTML = vistaPrevia(b.id, 46);
+    const nombre = document.createElement('span');
+    nombre.textContent = tiene ? tx(b.nombre) : '???';
+    const debajo = document.createElement('small');
+    if (e.elegido === b.id) debajo.textContent = 'En uso';
+    else debajo.textContent = RAREZAS[b.rareza].nombre;
+    boton.append(nombre, debajo);
+    if (b.habilidad) {
+      const marca = document.createElement('i');
+      marca.className = 'ficha-marca';
+      marca.textContent = '⚡';
+      marca.setAttribute('aria-hidden', 'true');
+      boton.append(marca);
+    }
+    boton.setAttribute('aria-label', `${tiene ? tx(b.nombre) : 'Bloqueada'}, ${RAREZAS[b.rareza].nombre}${e.elegido === b.id ? ', en uso' : ''}`);
+    boton.addEventListener('click', () => abrir(b.id));
+    return boton;
+  }
+
   function dibujar() {
     const n = progreso.nivel();
     const e = progreso.estado;
@@ -60,35 +110,39 @@ export function crearPantallaColeccion(progreso, { alBorrar = () => {} } = {}) {
       ? `Faltan ${n.siguiente.desde - n.puntos} puntos para ${n.siguiente.titulo}.`
       : 'Llegaste al nivel más alto.';
     $('coleccion-cifras').textContent = `${e.puntos} puntos · ${e.partidas} partidas · ${e.victorias} ganadas`;
-    const tienes = COLECCION.filter((id) => e.disenos.includes(id)).length;
-    $('coleccion-cuenta').textContent = tx(`Tienes ${tienes} de ${COLECCION.length}. Toca una para verla; con «Usar» la llevas a tus partidas. Las raras tienen un poder.`);
+    const tienes = CATALOGO.filter((b) => e.disenos.includes(b.id)).length;
+    $('coleccion-cuenta').textContent = tx(
+      `Tienes ${tienes} de ${CATALOGO.length}. Toca una para ver sus estadísticas; con «Usar» la llevas a tus partidas. Las del rayo ⚡ tienen una habilidad.`
+    );
 
+    $('coleccion-filtros').replaceChildren(
+      ...FILTROS.map((f) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'filtro' + (f.id === filtro ? ' activo' : '');
+        b.setAttribute('aria-pressed', String(f.id === filtro));
+        b.textContent = f.nombre;
+        b.addEventListener('click', () => {
+          filtro = f.id;
+          dibujar();
+        });
+        return b;
+      })
+    );
+
+    const pasa = (b) => (filtro === 'todas' ? true : filtro === 'mias' ? e.disenos.includes(b.id) : b.rareza === filtro);
     $('coleccion-fichas').replaceChildren(
-      ...COLECCION.map((id) => {
-        const d = DISENOS[id];
-        const tiene = e.disenos.includes(id);
-        const rareza = rarezaDe(d);
-        const ficha = document.createElement('button');
-        ficha.type = 'button';
-        ficha.className = `ficha ${rareza}` + (tiene ? '' : ' bloqueada') + (e.elegido === id ? ' elegida' : '');
-        ficha.innerHTML = vistaPrevia(id, 52);
-        const nombre = document.createElement('span');
-        nombre.textContent = tiene ? tx(d.nombre) : '???';
-        const detalleFicha = document.createElement('small');
-        if (e.elegido === id) detalleFicha.textContent = 'En uso';
-        else if (!tiene) detalleFicha.textContent = 'Bloqueada';
-        else detalleFicha.textContent = d.poder ? PODERES[d.poder].nombre : 'Común';
-        ficha.append(nombre, detalleFicha);
-        if (rareza !== 'comun') {
-          const marca = document.createElement('i');
-          marca.className = 'ficha-marca';
-          marca.textContent = rareza === 'legendaria' ? '★' : '⚡';
-          marca.setAttribute('aria-hidden', 'true');
-          ficha.append(marca);
-        }
-        ficha.setAttribute('aria-label', `${tiene ? tx(d.nombre) : 'Bloqueada'}${e.elegido === id ? ', en uso' : ''}`);
-        ficha.addEventListener('click', () => abrir(id));
-        return ficha;
+      ...SERIES_COLECCION.flatMap((serie) => {
+        const deLaSerie = CATALOGO.filter((b) => b.serie === serie.id);
+        const visibles = deLaSerie.filter(pasa);
+        if (visibles.length === 0) return [];
+        const titulo = document.createElement('h4');
+        titulo.className = 'serie-titulo';
+        titulo.textContent = `${serie.nombre} · ${deLaSerie.filter((b) => e.disenos.includes(b.id)).length}/${deLaSerie.length}`;
+        const grilla = document.createElement('div');
+        grilla.className = 'coleccion';
+        grilla.append(...visibles.map((b) => ficha(b, e)));
+        return [titulo, grilla];
       })
     );
 
@@ -128,5 +182,12 @@ export function crearPantallaColeccion(progreso, { alBorrar = () => {} } = {}) {
     }, 4000);
   });
 
-  return { dibujar, cerrar, get abierta() { return !detalle.hidden; } };
+  return {
+    dibujar,
+    cerrar,
+    abrir,
+    get abierta() {
+      return !detalle.hidden;
+    },
+  };
 }

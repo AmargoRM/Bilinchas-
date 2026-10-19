@@ -14,7 +14,7 @@ const metros = (cm) => `${(Math.max(cm, 0) / 100).toFixed(1).replace('.', ',')} 
 
 // canal: el escenario (src/escenario/canal.js), que arma el mapa elegido.
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
-export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, nuevasBolinchas, usarBolincha, nivelJugador = () => 1 }) {
+export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, nuevasBolinchas, usarBolincha, habilidadDueno = () => null, nivelJugador = () => 1 }) {
   const todos = crearJugadores({ escena, fisica, superficie: 'concreto' });
   const todas = bolinchasDe(todos);
   const preferencias = leerPreferencias();
@@ -27,6 +27,9 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
   let tiempoQuieta = 0;
   let enfocada = todos[0].bolincha;
   let huecosDelDueno = 0; // rivales que el Lugar 1 metió en un hueco (para el progreso)
+  // Habilidad "Anti hueco": la primera vez en la partida, la bolincha del dueño no cae.
+  let antiHuecoUsado = false;
+  let huecoPerdonado = null; // el hueco que ya no la hace caer en este paso
   let planComputadora = null;
   let relojComputadora = 0;
 
@@ -116,6 +119,8 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
     traza = canal.usarMapa(mapa);
     jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos, disenoDueno());
     huecosDelDueno = 0;
+    antiHuecoUsado = false;
+    huecoPerdonado = null;
     turno = CONFIG.reglasCano.sorteoDeQuienEmpieza ? Math.floor(Math.random() * jugadores.length) : 0;
     colocarEn(jugadores[turno], traza.sSalida);
     enfocada = jugadores[turno].bolincha;
@@ -173,7 +178,18 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
       }
       for (const o of traza.obstaculos) {
         if (o.tipo !== 'hueco') continue;
-        if (Math.hypot(p.x - o.x, p.z - o.z) < o.radio - 0.3 && j.bolincha.velocidad() < CONFIG.canal.velocidadParaCaerEnHueco) {
+        const encima = Math.hypot(p.x - o.x, p.z - o.z) < o.radio - 0.3;
+        if (huecoPerdonado === o && j.lugar === 0) {
+          if (!encima) huecoPerdonado = null; // ya pasó: el próximo hueco sí cuenta
+          continue;
+        }
+        if (encima && j.bolincha.velocidad() < CONFIG.canal.velocidadParaCaerEnHueco) {
+          if (j.lugar === 0 && !j.esComputadora && !antiHuecoUsado && habilidadDueno() === 'antiHueco') {
+            antiHuecoUsado = true;
+            huecoPerdonado = o;
+            hud.aviso('¡Anti hueco! Pasó por encima sin caer.');
+            break;
+          }
           j.enHueco = true;
           efectos.hueco?.();
           if (jugadores[turno].lugar === 0 && j.lugar !== 0) huecosDelDueno++;

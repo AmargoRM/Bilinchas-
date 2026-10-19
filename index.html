@@ -80,6 +80,7 @@
       <p id="menu-nivel" class="menu-nivel"></p>
       <nav class="menu-botones" aria-label="Menú principal">
         <button id="menu-jugar" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>Jugar</button>
+        <button id="menu-ruleta" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4" /></svg>Ruleta<i id="ruleta-aviso" class="aviso-punto" hidden>¡Gira!</i></button>
         <button id="menu-ajustes" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" class="icono-relleno"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.47.47 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.61zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z" /></svg>Ajustes</button>
         <button id="menu-coleccion" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4" /><circle cx="16" cy="15" r="4" /><circle cx="12" cy="8" r="4" /></svg>Colección</button>
         <button id="menu-reglas" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5c3-1 6-1 9 1v14c-3-2-6-2-9-1zM21 5c-3-1-6-1-9 1v14c3-2 6-2 9-1z" /></svg>Reglas</button>
@@ -165,7 +166,8 @@
       </div>
       <h3 class="subtitulo-lista" data-tx="Tus {bolinchas}"></h3>
       <p class="nota" id="coleccion-cuenta"></p>
-      <div id="coleccion-fichas" class="coleccion"></div>
+      <div id="coleccion-filtros" class="filtros" role="group" aria-label="Filtrar por rareza"></div>
+      <div id="coleccion-fichas" class="coleccion-series"></div>
       <h3 class="subtitulo-lista">Desafíos</h3>
       <p class="nota" data-tx="Cada desafío cumplido te regala una {bolincha} para la colección."></p>
       <ul id="coleccion-desafios" class="placa lista-logros"></ul>
@@ -177,12 +179,37 @@
           <div id="detalle-vista" class="detalle-vista"></div>
           <p id="detalle-rareza" class="detalle-rareza"></p>
           <h3 id="detalle-nombre" class="detalle-nombre"></h3>
-          <p id="detalle-poder" class="detalle-poder"></p>
+          <p id="detalle-serie" class="nota"></p>
+          <ul id="detalle-stats" class="detalle-stats"></ul>
+          <p id="detalle-habilidad" class="detalle-poder"></p>
           <p id="detalle-como" class="nota"></p>
           <div class="detalle-botones">
             <button id="detalle-usar" class="boton boton-claro" type="button">Usar</button>
             <button id="detalle-cerrar" class="boton boton-plano" type="button">Cerrar</button>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pantalla-ruleta" class="pantalla pantalla-lista" hidden>
+      <header class="pantalla-cabeza"><button class="volver" type="button" data-volver aria-label="Volver">←</button><h2>Ruleta diaria</h2></header>
+      <p class="nota" data-tx="Una vez por día, gira la ruleta y gana {una} {bolincha} para tu colección. La rareza la decide la casilla donde para."></p>
+      <div class="ruleta-caja">
+        <div class="ruleta-flecha"></div>
+        <svg id="ruleta-rueda" viewBox="-100 -100 200 200" aria-hidden="true"></svg>
+      </div>
+      <p class="ruleta-leyenda"><span style="--color: #2f8f86">Común 75 %</span><span style="--color: #7d45d0">Rara 20 %</span><span style="--color: #f2cf4a">Ultra rara 5 %</span></p>
+      <button id="ruleta-girar" class="boton-menu" type="button">Girar</button>
+      <p id="ruleta-espera" class="nota ruleta-espera"></p>
+      <div id="ruleta-premio" class="placa ruleta-premio" hidden>
+        <div id="ruleta-vista"></div>
+        <p id="ruleta-rareza" class="detalle-rareza"></p>
+        <h3 id="ruleta-nombre" class="detalle-nombre"></h3>
+        <ul id="ruleta-stats" class="detalle-stats"></ul>
+        <p id="ruleta-habilidad" class="detalle-poder"></p>
+        <div class="detalle-botones">
+          <button id="ruleta-usar" class="boton boton-claro" type="button">Usar</button>
+          <button id="ruleta-coleccion" class="boton boton-plano" type="button">Ver la colección</button>
         </div>
       </div>
     </section>
@@ -200,8 +227,9 @@
         <p data-tx="Toca tu {bolincha} y arrastra el dedo hacia atrás, como estirando una liga. La dirección es el ángulo y el largo es la fuerza; la fuerza se ve en la barra de la derecha. Al soltar, sale."></p>
         <h3>Efectos</h3>
         <p data-tx="Abajo a la izquierda está tu {bolincha} en grande: toca dónde quieres pegarle antes de tirar. Arriba, sigue de largo después de chocar. Abajo, frena o vuelve hacia ti. A un costado, se curva hacia ese lado. En el medio, sin efecto."></p>
-        <h3>Bolinchas raras</h3>
-        <p data-tx="Algunas {bolinchas} de la Colección tienen un poder: fuerza, salto, peso, efecto doble u ojo fino. Si juegas con una, antes de tirar aparece un botón con un rayo: tócalo y tu próximo tiro usa el poder. Se puede una vez por partida. El ojo fino funciona siempre, sin tocar nada."></p>
+        <h3>Colección y ruleta</h3>
+        <p data-tx="Hay más de 100 {bolinchas} para coleccionar: comunes, raras y ultra raras. Cada día puedes girar la Ruleta una vez y ganar {una}: común (75 %), rara (20 %) o ultra rara (5 %). También se ganan subiendo de nivel y cumpliendo desafíos."></p>
+        <p data-tx="Muchas traen estadísticas, como Fuerza +10 % o Peso +15 %, que valen en todos tus tiros. Las del rayo tienen además una habilidad: las activas (súper fuerza, salto, peso triple, efecto doble) se usan una vez por partida tocando el botón del rayo antes de tirar; las pasivas (rompe piedras, escudo, perdón, anti hueco) funcionan solas. Solo las tiene quien juega en el Lugar 1."></p>
         <h3>Cómo mirar</h3>
         <p>Arrastra el dedo en cualquier otro lugar de la pantalla para girar la cámara, o hacia arriba y abajo para verlo desde más alto. Con dos dedos, pellizca para acercar o alejar. Toca dos veces rápido para volver a la vista normal. El botón del mapa (arriba) muestra todo desde arriba, y desde ahí también se puede tirar.</p>
         <h3>Círculo</h3>

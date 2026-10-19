@@ -23,10 +23,11 @@ import { crearMenu3d } from './escenario/menu3d.js';
 import { crearSonido } from './sonido.js';
 import { crearProgreso } from './progreso.js';
 import { crearPantallaColeccion } from './ui/coleccion.js';
+import { crearPantallaRuleta } from './ui/ruleta.js';
 import { crearInstrucciones } from './ui/instrucciones.js';
 import { crearSelectorEfecto } from './ui/efecto.js';
 import { crearBotonPoder } from './ui/poder.js';
-import { PODERES } from './poderes.js';
+import { perfilDe, multiplicador } from './habilidades.js';
 import { MAPAS, MAPAS_CIRCULO } from './mapas.js';
 import { DISENOS } from './disenos.js';
 import { PAISES } from './paises.js';
@@ -85,11 +86,20 @@ async function iniciar() {
   progreso.usarNombres(Object.fromEntries(Object.entries(DISENOS).map(([id, d]) => [id, d.nombre])));
   const instrucciones = crearInstrucciones({ hud, nivel: () => progreso.nivel().numero });
   const pantallaColeccion = crearPantallaColeccion(progreso, { alBorrar: () => instrucciones.borrar() });
+  const pantallaRuleta = crearPantallaRuleta(progreso, {
+    sonido,
+    alVerColeccion: (id) => {
+      mostrarPantalla('pantalla-coleccion');
+      if (id) pantallaColeccion.abrir(id);
+    },
+  });
   // Lo que los modos necesitan del progreso.
   const delProgreso = {
     alTerminar: (resultado) => progreso.registrar(resultado),
     disenoDueno: () => progreso.estado.elegido,
     nivelJugador: () => progreso.nivel().numero,
+    // La habilidad pasiva de la bolincha de la persona del Lugar 1 (o null).
+    habilidadDueno: () => perfilDe(progreso.estado.elegido).idHabilidad,
     // Bolinchas ganadas en la partida, para ofrecer usarlas en la tarjeta del final.
     nuevasBolinchas: () => progreso.nuevas.map((id) => ({ id, nombre: tx(DISENOS[id].nombre) })),
     usarBolincha: (id) => progreso.elegir(id),
@@ -135,9 +145,9 @@ async function iniciar() {
   crearPanelAjustes({ alCambiar: () => todas.forEach((b) => b.aplicarConfig()) });
 
   const efecto = crearSelectorEfecto();
-  // El poder de la bolincha que usa la persona del Lugar 1 (si es rara).
-  const poderDelDueno = () => PODERES[DISENOS[progreso.estado.elegido]?.poder] || null;
-  botonPoder = crearBotonPoder({ obtenerPoder: poderDelDueno });
+  // Estadísticas y habilidad de la bolincha que usa la persona del Lugar 1.
+  const perfilDueno = () => perfilDe(progreso.estado.elegido);
+  botonPoder = crearBotonPoder({ obtenerPoder: () => perfilDueno().habilidad });
   let conPesoExtra = null; // { bolincha, tiempo }: el poder "Peso" dura solo ese tiro
   control = crearControlTiro({
     lienzo,
@@ -146,21 +156,32 @@ async function iniciar() {
     controlCamara,
     obtenerBolincha: () => modo.tirador,
     obtenerEfecto: () => efecto.valor(),
-    obtenerLargoPunteria: () => (modo.turnoDelDueno && poderDelDueno()?.punteria) || 1,
+    obtenerLargoPunteria: () => (modo.turnoDelDueno ? multiplicador(perfilDueno().stats, 'punteria') : 1),
     puedeTirar: () => modo.puedeTirar(),
     alApuntar: (f) => hud.fuerza(f),
     alTirar: (direccion, fuerza) => {
       sonido.tiro(fuerza);
       let elEfecto = efecto.valor();
+      let peso = 1;
+      if (modo.turnoDelDueno) {
+        // Las estadísticas de su bolincha valen en todos sus tiros.
+        const { stats } = perfilDueno();
+        fuerza *= multiplicador(stats, 'fuerza');
+        peso *= multiplicador(stats, 'peso');
+        const m = multiplicador(stats, 'efecto');
+        if (elEfecto) elEfecto = { arriba: elEfecto.arriba * m, costado: elEfecto.costado * m };
+      }
+      // La habilidad activa, si la preparó con el botón del rayo.
       const poder = modo.turnoDelDueno ? botonPoder.usar() : null;
       if (poder) {
         hud.aviso(`¡${poder.nombre}!`);
         if (poder.fuerza) fuerza *= poder.fuerza;
         if (poder.efecto && elEfecto) elEfecto = { arriba: elEfecto.arriba * poder.efecto, costado: elEfecto.costado * poder.efecto };
-        if (poder.peso) {
-          modo.tirador.cambiarPeso(poder.peso);
-          conPesoExtra = { bolincha: modo.tirador, tiempo: 0 };
-        }
+        if (poder.peso) peso *= poder.peso;
+      }
+      if (peso !== 1) {
+        modo.tirador.cambiarPeso(peso);
+        conPesoExtra = { bolincha: modo.tirador, tiempo: 0 };
       }
       modo.tirar(direccion, fuerza, elEfecto);
       if (poder?.salto) modo.tirador.saltar(poder.salto);
@@ -206,7 +227,7 @@ async function iniciar() {
   }
 
   // ---------------- Pantallas del menú ----------------
-  const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-coleccion', 'pantalla-reglas', 'pantalla-paises', 'pantalla-privacidad'];
+  const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-coleccion', 'pantalla-reglas', 'pantalla-paises', 'pantalla-privacidad', 'pantalla-ruleta'];
   let enMenu = true;
   let pantallaActual = 'portada';
   function mostrarPantalla(id) {
@@ -217,8 +238,10 @@ async function iniciar() {
     if (id === 'menu-principal') {
       const n = progreso.nivel();
       document.getElementById('menu-nivel').textContent = `Nivel ${n.numero} · ${n.titulo}`;
+      document.getElementById('ruleta-aviso').hidden = !pantallaRuleta.disponible();
     }
     if (id === 'pantalla-coleccion') pantallaColeccion.dibujar();
+    if (id === 'pantalla-ruleta') pantallaRuleta.dibujar();
     if (id === 'pantalla-reglas') {
       for (const m of ['circulo', 'cano', 'explosivas']) {
         $(`reglas-${m}`).replaceChildren(
@@ -247,6 +270,7 @@ async function iniciar() {
   $('menu-ajustes').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
   $('menu-reglas').addEventListener('click', () => mostrarPantalla('pantalla-reglas'));
   $('menu-coleccion').addEventListener('click', () => mostrarPantalla('pantalla-coleccion'));
+  $('menu-ruleta').addEventListener('click', () => mostrarPantalla('pantalla-ruleta'));
   $('ajuste-privacidad').addEventListener('click', () => mostrarPantalla('pantalla-privacidad'));
   $('privacidad-volver').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
   for (const b of document.querySelectorAll('[data-volver]')) b.addEventListener('click', () => mostrarPantalla('menu-principal'));

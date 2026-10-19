@@ -54,7 +54,7 @@ function frases(j) {
 
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
 // variante: 'circulo' (el de siempre) o 'explosivas' (con algunas bolinchas que explotan al golpearlas).
-export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, nuevasBolinchas, usarBolincha, patio, nivelJugador = () => 1 }) {
+export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, nuevasBolinchas, usarBolincha, habilidadDueno = () => null, patio, nivelJugador = () => 1 }) {
   const centro = new THREE.Vector3(0, 0, 0);
   // Lo que depende del nivel (CONFIG.dificultadCirculo): se fija al empezar cada partida.
   let reglas = dificultadDe(1);
@@ -87,6 +87,10 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
   const conOrden = CONFIG.reglasCirculo.ordenComoPool;
   let primerTiroDeLaPartida = true; // el primero puede pegarle a cualquiera
   let primerContacto = null; // a qué le pegó primero el tirador en este tiro
+  // Habilidades pasivas de la bolincha del dueño (Lugar 1): se gastan una vez por partida.
+  const esDueno = (j) => !!j && j.lugar === 0 && !j.esComputadora;
+  let escudoUsado = false;
+  let perdonUsado = false;
   // Etiqueta con el número, siempre del mismo tamaño en la pantalla y visible.
   function crearEtiqueta(numero) {
     const lienzo = document.createElement('canvas');
@@ -227,10 +231,17 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     e.activa = false;
     e.bolincha.quitar();
     explosionesDelTiro++;
+    const dueno = jugadores.find(esDueno);
     for (const b of todas) {
       if (!enJuego(b)) continue;
       const p = b.posicion;
       const dx = p.x - centroExplosion.x;
+      // Habilidad "Escudo": la primera explosión de la partida no mueve la bolincha del dueño.
+      if (dueno && b === dueno.bolincha && !escudoUsado && habilidadDueno() === 'escudo' && Math.hypot(dx, p.z - centroExplosion.z) <= CONFIG.explosivas.radio) {
+        escudoUsado = true;
+        hud.aviso('¡Escudo! La explosión no movió tu bolincha.');
+        continue;
+      }
       const dz = p.z - centroExplosion.z;
       const d = Math.hypot(dx, dz);
       if (d > c.radio) continue;
@@ -343,6 +354,8 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     }
     const formacion = armarCirculo();
     primerTiroDeLaPartida = true;
+    escudoUsado = false;
+    perdonUsado = false;
     turno = Math.floor(Math.random() * jugadores.length); // se sortea quién empieza
     ponerEnSalida(jugadores[turno]);
     enfocada = jugadores[turno].bolincha;
@@ -403,6 +416,13 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
       else if (primerContacto !== tocaba) falta = 'orden';
     }
     primerTiroDeLaPartida = false;
+    // Habilidad "Perdón": la primera falta de la partida del dueño no se cobra.
+    let perdonado = false;
+    if (falta && esDueno(j) && !perdonUsado && habilidadDueno() === 'perdon') {
+      perdonUsado = true;
+      perdonado = true;
+      falta = null;
+    }
     const r = resolverTiro({ sacadas: n, tiradorDentro, falta, exploto: explosionesDelTiro > 0 });
 
     if (r.cuentan) {
@@ -423,7 +443,7 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     }
 
     if (r.repite) {
-      hud.aviso((explosionesDelTiro > 0 ? '¡Bum! ' : '') + dice.repite(n));
+      hud.aviso((explosionesDelTiro > 0 ? '¡Bum! ' : '') + (perdonado ? '¡Perdón! Esa falta no se cobra. ' : '') + dice.repite(n));
       seguirTirando();
       return;
     }
@@ -442,7 +462,7 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     } else {
       motivo = dice.ninguna;
     }
-    motivo = bum + motivo;
+    motivo = bum + (perdonado ? '¡Perdón! Esa falta no se cobra. ' : '') + motivo;
 
     turno = (turno + 1) % jugadores.length;
     const siguiente = jugadores[turno];
@@ -546,8 +566,18 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
 
     // Después de cada paso de la física: ¿a qué le pegó primero el tirador?
     alPaso() {
-      if (fase !== 'rodando' || primerContacto) return;
+      if (fase !== 'rodando') return;
       const colTirador = jugadores[turno].bolincha.cuerpo.collider(0);
+      // Habilidad "Rompe piedras": si la bolincha del dueño toca una piedra, la rompe.
+      if (esDueno(jugadores[turno]) && piedras.length && habilidadDueno() === 'rompePiedras') {
+        const rota = patio?.romperPiedraQueToca?.(colTirador);
+        if (rota) {
+          piedras = piedras.filter((p) => !(Math.abs(p.x - rota.x) < 0.01 && Math.abs(p.z - rota.z) < 0.01));
+          efectos.romper?.(rota);
+          hud.aviso('¡Rompió una piedra!');
+        }
+      }
+      if (primerContacto) return;
       const candidatas = [...blancos.filter((b) => b.enCirculo && enJuego(b.bolincha)), ...explosivas.filter((e) => e.activa)];
       for (const c of candidatas) {
         let toca = false;

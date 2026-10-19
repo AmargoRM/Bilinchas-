@@ -2,6 +2,7 @@
 // Se guarda en este teléfono. Cuenta para el Lugar 1 de la mesa, cuando juega una persona.
 // Si se borran los datos del navegador o de la app, el progreso se pierde.
 import { tx } from './textos.js';
+import { CATALOGO, RAREZAS } from './catalogo.js';
 
 // ---------------------------------------------------------------
 // NIVELES: título, puntos necesarios y bolincha que se gana al llegar.
@@ -48,7 +49,7 @@ const INICIALES = ['azul', 'clasica']; // las que se tienen desde el principio
 const CLAVE = 'ojo-de-gato.progreso';
 
 function vacio() {
-  return { puntos: 0, partidas: 0, victorias: 0, racha: 0, logros: [], disenos: [...INICIALES], elegido: 'azul', mapasGanados: [] };
+  return { puntos: 0, partidas: 0, victorias: 0, racha: 0, logros: [], disenos: [...INICIALES], elegido: 'azul', mapasGanados: [], ultimaRuleta: null };
 }
 
 export function crearProgreso({ cantidadMapas, desbloqueosDeNivel = () => [] }) {
@@ -165,13 +166,52 @@ export function crearProgreso({ cantidadMapas, desbloqueosDeNivel = () => [] }) 
     },
 
     // Qué falta para desbloquear una bolincha (para la colección).
+    // ---------------- Ruleta diaria ----------------
+    // hoy: la fecha de hoy como texto ('2026-10-19'). Se puede girar una vez por día.
+    ruletaDisponible(hoy) {
+      return estado.ultimaRuleta !== hoy;
+    },
+
+    // Gira la ruleta: sortea la rareza (75 % común, 20 % rara, 5 % ultra rara) y da una
+    // bolincha de esa rareza que todavía no se tenga. Si ya se tienen todas las de esa
+    // rareza, da otra que falte; si ya se tienen todas, da puntos.
+    // Devuelve { id, rareza, puntos } o null si ya se giró hoy.
+    girarRuleta(hoy, azar = Math.random) {
+      if (estado.ultimaRuleta === hoy) return null;
+      const x = azar();
+      let acumulado = 0;
+      let rareza = 'comun';
+      for (const r of ['ultra', 'rara', 'comun']) {
+        acumulado += RAREZAS[r].probabilidad;
+        if (x < acumulado) {
+          rareza = r;
+          break;
+        }
+      }
+      const falta = (b) => !estado.disenos.includes(b.id);
+      let opciones = CATALOGO.filter((b) => b.rareza === rareza && falta(b));
+      if (opciones.length === 0) opciones = CATALOGO.filter(falta);
+      estado.ultimaRuleta = hoy;
+      nuevas = [];
+      if (opciones.length === 0) {
+        estado.puntos += 30;
+        guardar();
+        return { id: null, rareza, puntos: 30 };
+      }
+      const b = opciones[Math.floor(azar() * opciones.length)];
+      estado.disenos.push(b.id);
+      nuevas.push(b.id);
+      guardar();
+      return { id: b.id, rareza: b.rareza, puntos: 0 };
+    },
+
     comoSeGana(id) {
       if (INICIALES.includes(id)) return 'Desde el principio';
       const n = NIVELES.find((x) => x.premio === id);
       if (n) return `Nivel ${NIVELES.indexOf(n) + 1}: ${tx(n.titulo)}`;
       const l = LOGROS.find((x) => x.premio === id);
       if (l) return `Desafío «${l.nombre}»: ${tx(l.texto)}`;
-      return '';
+      return 'En la ruleta diaria';
     },
 
     borrarTodo() {
@@ -181,5 +221,5 @@ export function crearProgreso({ cantidadMapas, desbloqueosDeNivel = () => [] }) 
   };
 }
 
-// Todas las bolinchas que se pueden coleccionar, en orden.
-export const COLECCION = [...INICIALES, ...NIVELES.map((n) => n.premio).filter(Boolean), ...LOGROS.map((l) => l.premio).filter(Boolean)];
+// Todas las bolinchas que se pueden coleccionar (el catálogo completo, por series).
+export const COLECCION = CATALOGO.map((b) => b.id);

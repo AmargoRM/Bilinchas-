@@ -83,6 +83,23 @@ export function crearPatio(escena, fisica) {
       mostrar();
     },
     usarRadio,
+    // Si la bolincha (su colisionador) toca una piedra en uso, la rompe: la saca del juego.
+    // Devuelve { x, z } de la piedra rota, o null.
+    romperPiedraQueToca(colisionador) {
+      for (const p of piedras) {
+        if (!p.enUso) continue;
+        let toca = false;
+        fisica.mundo.contactPair(colisionador, p.cuerpo, (m) => {
+          if (m.numContacts() > 0) toca = true;
+        });
+        if (!toca) continue;
+        p.enUso = false;
+        p.cuerpo.setEnabled(false);
+        p.dibujo.visible = false;
+        return { x: p.dibujo.position.x, z: p.dibujo.position.z };
+      }
+      return null;
+    },
     // lista: [{ x, z, radio }] (vacía = sin piedras).
     ponerPiedras,
     // Cambia de lugar ('patio' o 'calle'). La calle se arma la primera vez que se usa.
