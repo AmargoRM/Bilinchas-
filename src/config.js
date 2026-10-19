@@ -67,6 +67,22 @@ export const CONFIG = {
     },
   },
 
+  // ---------------------------------------------------------------
+  // EFECTOS AL TIRAR (pegarle a la bolincha arriba, abajo o de costado)
+  // ---------------------------------------------------------------
+  // Como en el billar: la bolincha sale patinando con un giro distinto al de
+  // rodar, y el roce con el suelo la va empujando hasta que rueda normal.
+  //   roce: cuánto agarra el suelo mientras patina (más alto = el efecto dura menos)
+  //   arriba: "seguir": cuánto giro de más lleva hacia adelante (1 = el doble)
+  //   abajo: "retroceso": cuánto giro hacia atrás (más de 1 = vuelve después del choque)
+  //   costado: "curva": cuánto giro de costado (cuánto se tuerce el camino)
+  efecto: {
+    roce: 0.2,
+    arriba: 1.2,
+    abajo: 3.5,
+    costado: 0.7,
+  },
+
   // Por debajo de esta velocidad (cm/s) la bolincha se considera detenida.
   velocidadParada: 2.5,
 
@@ -101,6 +117,22 @@ export const CONFIG = {
     // Dónde arranca la bolincha del tirador: a esta distancia del centro.
     distanciaSalida: 60, // cm
   },
+  // Dificultad del Círculo según el nivel de quien juega (Lugar 1).
+  // Cada fila cambia algo desde ese nivel en adelante; lo que no dice, sigue igual.
+  // Cada cambio se le explica al jugador una vez (src/reglas.js).
+  //   bolinchas: cuántas hay en el círculo   radio: tamaño del círculo (cm)
+  //   salida: a qué distancia del centro se tira la primera vez (cm)
+  //   piedras: piedras fijas dentro del círculo
+  //   punteriaRival: multiplica el error de la computadora (menos = apunta mejor)
+  dificultadCirculo: [
+    { desde: 1, bolinchas: 10, radio: 40, salida: 60, piedras: 0, punteriaRival: 1 },
+    { desde: 3, bolinchas: 12, radio: 46 },
+    { desde: 4, piedras: 3 },
+    { desde: 5, salida: 80 },
+    { desde: 6, punteriaRival: 0.7 },
+    { desde: 7, bolinchas: 14, radio: 52 },
+  ],
+
 
   // ---------------------------------------------------------------
   // ESCENARIO DEL MODO CAÑO (los recorridos están en src/mapas.js)

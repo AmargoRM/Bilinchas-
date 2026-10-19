@@ -27,7 +27,44 @@ export const REGLAS = {
 //   nivel: desde qué nivel aparece (1 = el primero)
 //   titulo, texto: lo que se le explica a quien juega
 //   soloAviso: true si no es una regla (no se suma a la lista de reglas), solo un aviso
-export const NOVEDADES = [];
+export const NOVEDADES = [
+  // Círculo: van con CONFIG.dificultadCirculo (src/config.js).
+  {
+    id: 'circulo-grande',
+    modo: 'circulo',
+    nivel: 3,
+    titulo: 'Círculo más grande',
+    texto: 'Desde el nivel 3, el círculo es más grande y tiene 12 {bolinchas}: hay que pegar más fuerte para sacarlas.',
+  },
+  {
+    id: 'circulo-piedras',
+    modo: 'circulo',
+    nivel: 4,
+    titulo: 'Piedras en el círculo',
+    texto: 'Desde el nivel 4, hay piedras dentro del círculo. No se mueven: si una {bolincha} choca con una, rebota.',
+  },
+  {
+    id: 'circulo-salida-lejos',
+    modo: 'circulo',
+    nivel: 5,
+    titulo: 'Salida más lejos',
+    texto: 'Desde el nivel 5, el primer tiro de cada uno sale desde más lejos del círculo.',
+  },
+  {
+    id: 'circulo-rivales',
+    modo: 'circulo',
+    nivel: 6,
+    titulo: 'Rivales más finos',
+    texto: 'Desde el nivel 6, la computadora apunta mejor en Fácil, Medio y Difícil.',
+  },
+  {
+    id: 'circulo-gigante',
+    modo: 'circulo',
+    nivel: 7,
+    titulo: 'El círculo grande',
+    texto: 'Desde el nivel 7, el círculo es todavía más grande y tiene 14 {bolinchas}.',
+  },
+];
 
 // Cada mapa que se desbloquea con el nivel se avisa una vez.
 for (const [modo, lista] of [['circulo', MAPAS_CIRCULO], ['cano', MAPAS]]) {

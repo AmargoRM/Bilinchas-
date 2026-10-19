@@ -23,11 +23,44 @@ export function azarFijo(semilla) {
 
 export function crearPatio(escena, fisica) {
   const grupo = new THREE.Group();
-  const tiza = crearTiza(CONFIG.circulo.radio);
   const lugares = { patio: new THREE.Group() };
   lugares.patio.add(crearTierra(), crearZacate(), crearCerca());
-  grupo.add(tiza, lugares.patio);
+  grupo.add(lugares.patio);
   escena.add(grupo);
+
+  // Un dibujo de tiza por cada tamaño de círculo (se hace la primera vez que se usa).
+  const tizas = {};
+  function usarRadio(radio) {
+    if (!tizas[radio]) {
+      tizas[radio] = crearTiza(radio);
+      grupo.add(tizas[radio]);
+    }
+    for (const [r, t] of Object.entries(tizas)) t.visible = Number(r) === radio;
+  }
+  usarRadio(CONFIG.circulo.radio);
+
+  // Piedras fijas dentro del círculo (con su cuerpo en la física). Se crean cuando hacen falta.
+  const piedras = [];
+  function ponerPiedras(lista) {
+    while (piedras.length < lista.length) {
+      const dibujo = crearPiedra(piedras.length);
+      grupo.add(dibujo);
+      const cuerpo = fisica.crearFijo(fisica.RAPIER.ColliderDesc.ball(1), 0.5);
+      piedras.push({ dibujo, cuerpo, radio: 1 });
+    }
+    piedras.forEach((p, i) => {
+      const datos = lista[i];
+      p.dibujo.visible = !!datos;
+      p.enUso = !!datos;
+      p.cuerpo.setEnabled(!!datos && activo);
+      if (!datos) return;
+      // Media piedra enterrada: el centro de la esfera queda un poco sobre el suelo.
+      p.cuerpo.setShape(new fisica.RAPIER.Ball(datos.radio));
+      p.cuerpo.setTranslation({ x: datos.x, y: datos.radio * 0.35, z: datos.z });
+      p.dibujo.position.set(datos.x, datos.radio * 0.35, datos.z);
+      p.dibujo.scale.setScalar(datos.radio);
+    });
+  }
 
   const suelo = crearSueloPatio(fisica);
   const nieblaNormal = escena.fog ? [escena.fog.near, escena.fog.far] : null;
@@ -46,8 +79,12 @@ export function crearPatio(escena, fisica) {
     activar(si) {
       activo = si;
       suelo.setEnabled(si);
+      for (const p of piedras) p.cuerpo.setEnabled(si && p.enUso);
       mostrar();
     },
+    usarRadio,
+    // lista: [{ x, z, radio }] (vacía = sin piedras).
+    ponerPiedras,
     // Cambia de lugar ('patio' o 'calle'). La calle se arma la primera vez que se usa.
     usarMapa(id) {
       if (!lugares[id]) {
@@ -59,6 +96,23 @@ export function crearPatio(escena, fisica) {
       mostrar();
     },
   };
+}
+
+// Piedra gris-café, irregular, de radio 1 (se escala al tamaño que toque).
+function crearPiedra(semilla) {
+  const azar = azarFijo(300 + semilla);
+  const geo = new THREE.IcosahedronGeometry(1, 2);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const k = 0.85 + azar() * 0.3;
+    pos.setXYZ(i, pos.getX(i) * k, pos.getY(i) * k * 0.8, pos.getZ(i) * k);
+  }
+  geo.computeVertexNormals();
+  const tono = 0.18 + azar() * 0.1;
+  const piedra = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: new THREE.Color(tono + 0.08, tono, tono - 0.04), roughness: 0.95, flatShading: true }));
+  piedra.castShadow = true;
+  piedra.receiveShadow = true;
+  return piedra;
 }
 
 // Suelo de tierra para la física: una losa plana de 6 x 6 metros.

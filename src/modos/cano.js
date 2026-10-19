@@ -272,8 +272,8 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
     });
   }
 
-  function tirar(direccion, fuerza) {
-    jugadores[turno].bolincha.tirar(direccion, fuerza);
+  function tirar(direccion, fuerza, efecto = null) {
+    jugadores[turno].bolincha.tirar(direccion, fuerza, efecto);
     fase = 'rodando';
     tiempoQuieta = 0;
   }
@@ -309,8 +309,8 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
 
     puedeTirar: () => fase === 'apuntar',
 
-    tirar(direccion, fuerza) {
-      tirar(direccion, fuerza);
+    tirar(direccion, fuerza, efecto) {
+      tirar(direccion, fuerza, efecto);
       hud.ayudaDeTiro(false);
     },
 

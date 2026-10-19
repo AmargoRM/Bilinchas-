@@ -9,11 +9,19 @@ import { planificarTiro } from '../ia/rival.js';
 import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 import { tx } from '../textos.js';
 import { MAPAS_CIRCULO, buscarMapa, mapasDisponibles, proximoMapa } from '../mapas.js';
+import { armarFormacion, NOMBRES_FORMACIONES } from './formaciones.js';
 
 
 
 const LIMITE_PATIO = 280; // cm: más allá de esto, la bolincha se cayó del patio
 const DURACION_PUNTERIA = 0.9; // segundos que se ve a la computadora apuntando
+
+// La dificultad del Círculo para un nivel: suma las filas de CONFIG.dificultadCirculo hasta ese nivel.
+export function dificultadDe(nivel) {
+  const d = {};
+  for (const fila of CONFIG.dificultadCirculo) if (fila.desde <= nivel) Object.assign(d, fila);
+  return d;
+}
 
 // Frases según quién juega: "Tú" se trata de tú; los demás, en tercera persona.
 function frases(j) {
@@ -41,15 +49,20 @@ function frases(j) {
 
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
 export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, patio, nivelJugador = () => 1 }) {
-  const radio = CONFIG.circulo.radio;
   const centro = new THREE.Vector3(0, 0, 0);
-  const salida = new THREE.Vector3(0, 0, CONFIG.circulo.distanciaSalida);
+  // Lo que depende del nivel (CONFIG.dificultadCirculo): se fija al empezar cada partida.
+  let reglas = dificultadDe(1);
+  let radio = reglas.radio;
+  // La salida cambia de lado en cada partida (ángulo al azar alrededor del círculo).
+  const salida = new THREE.Vector3(0, 0, reglas.salida);
+  let piedras = []; // [{ x, z, radio }]
 
   const todos = crearJugadores({ escena, fisica });
   const preferencias = leerPreferencias();
   let jugadores = []; // los que juegan esta partida
   const blancos = [];
-  for (let i = 0; i < CONFIG.circulo.cantidadBolinchas; i++) {
+  const maximo = Math.max(...CONFIG.dificultadCirculo.map((d) => d.bolinchas || 0));
+  for (let i = 0; i < maximo; i++) {
     // Diseños clásicos de barrio (verdes y claros, para no confundirlas con las de tiro).
     const diseno = DISENOS_CIRCULO[i % DISENOS_CIRCULO.length];
     blancos.push({ enCirculo: true, bolincha: crearBolincha({ escena, fisica, posicion: centro, diseno }) });
@@ -87,9 +100,42 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
 
   // ¿Hay lugar en (x, z) sin tocar ninguna bolincha en juego?
   function libre(x, z, ignorar) {
-    return todas.every(
-      (b) => b === ignorar || !enJuego(b) || Math.hypot(b.posicion.x - x, b.posicion.z - z) >= CONFIG.circulo.separacionMinima
+    return (
+      todas.every((b) => b === ignorar || !enJuego(b) || Math.hypot(b.posicion.x - x, b.posicion.z - z) >= CONFIG.circulo.separacionMinima) &&
+      piedras.every((p) => Math.hypot(p.x - x, p.z - z) >= p.radio + 2.5)
     );
+  }
+
+  // Prepara el círculo para una partida: tamaño según el nivel, salida al azar,
+  // piedras (si tocan) y las bolinchas en una formación al azar.
+  function armarCirculo() {
+    reglas = dificultadDe(nivelJugador());
+    radio = reglas.radio;
+    patio?.usarRadio(radio);
+    const angulo = Math.random() * Math.PI * 2;
+    salida.set(Math.sin(angulo) * reglas.salida, 0, Math.cos(angulo) * reglas.salida);
+    piedras = [];
+    for (let intento = 0; piedras.length < reglas.piedras && intento < 200; intento++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = (0.3 + Math.random() * 0.55) * radio;
+      const p = { x: Math.cos(a) * r, z: Math.sin(a) * r, radio: 1.6 + Math.random() * 1.2 };
+      if (piedras.every((q) => Math.hypot(q.x - p.x, q.z - p.z) > 14)) piedras.push(p);
+    }
+    patio?.ponerPiedras(piedras);
+    for (const b of blancos) {
+      b.bolincha.quitar();
+      b.enCirculo = false;
+    }
+    const enJuegoAhora = blancos.slice(0, reglas.bolinchas);
+    const { nombre, posiciones } = armarFormacion(enJuegoAhora.length, radio * CONFIG.circulo.zonaBolinchas, piedras);
+    enJuegoAhora.forEach((b, i) => {
+      if (!posiciones[i]) return;
+      b.bolincha.colocar(posiciones[i].x, posiciones[i].z);
+      b.enCirculo = true;
+    });
+    // Si alguna no entró en la formación, va suelta.
+    acomodar(enJuegoAhora.filter((b) => !b.enCirculo));
+    return nombre;
   }
 
   // Reparte bolinchas al azar dentro del círculo, sin que se toquen.
@@ -114,9 +160,18 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
   // Pone la bolincha del jugador en la salida (corrida a un lado si hay otra encima).
   function ponerEnSalida(j) {
     j.bolincha.quitar();
+    // Hacia el costado de la salida (perpendicular a la línea al centro).
+    const largo = Math.hypot(salida.x, salida.z) || 1;
+    const lx = salida.z / largo;
+    const lz = -salida.x / largo;
     let x = salida.x;
-    for (let i = 1; !libre(x, salida.z) && i < 20; i++) x = salida.x + Math.ceil(i / 2) * 4 * (i % 2 ? 1 : -1);
-    j.bolincha.colocar(x, salida.z);
+    let z = salida.z;
+    for (let i = 1; !libre(x, z) && i < 20; i++) {
+      const corrida = Math.ceil(i / 2) * 4 * (i % 2 ? 1 : -1);
+      x = salida.x + lx * corrida;
+      z = salida.z + lz * corrida;
+    }
+    j.bolincha.colocar(x, z);
     j.enCancha = true;
   }
 
@@ -151,10 +206,11 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
         radioBolincha: j.bolincha.radio,
         pesoTirador: j.bolincha.peso,
         blancos: blancos.filter((b) => b.enCirculo).map((b) => b.bolincha.posicion.clone()),
-        obstaculos: otros,
+        obstaculos: [...otros, ...piedras.map((p) => new THREE.Vector3(p.x, 0, p.z))],
         nivel: j.nivel,
         radioCirculo: radio,
         superficie: mapa.superficie,
+        afinado: reglas.punteriaRival,
       });
       controlCamara.mirarDesde(j.bolincha.posicion, planComputadora.objetivo);
       relojComputadora = 0;
@@ -173,12 +229,16 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos, disenoDueno());
     for (const j of jugadores) j.puntos = 0;
     mejorTiroDueno = 0;
-    acomodar(blancos);
+    for (const j of todos) {
+      j.bolincha.quitar();
+      j.enCancha = false;
+    }
+    const formacion = armarCirculo();
     turno = Math.floor(Math.random() * jugadores.length); // se sortea quién empieza
     ponerEnSalida(jugadores[turno]);
     enfocada = jugadores[turno].bolincha;
     controlCamara.mirarDesde(enfocada.posicion, centro, true);
-    hud.aviso(`Se sorteó quién empieza: ${sujeto(jugadores[turno])}.`);
+    hud.aviso(`${tx(`{Las} {bolinchas} están ${NOMBRES_FORMACIONES[formacion]}.`)} Empieza ${sujeto(jugadores[turno], false)}.`);
     seguirTirando();
   }
 
@@ -188,8 +248,8 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
   function nuevaPartida() {
     fase = 'espera';
     mostrarPunteria(null);
-    acomodar(blancos); // que se vean en el círculo detrás de la mesa
     usarMapa(preferencias.mapaCirculo);
+    armarCirculo(); // que se vean en el círculo detrás de la mesa
     // Detrás de la tarjeta, el círculo visto desde la salida.
     enfocada = { posicion: salida };
     controlCamara.mirarDesde(salida, centro, true);
@@ -313,10 +373,10 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
   }
 
   // Al crearse, las bolinchas nacen todas en el centro: acomodarlas para que no se encimen.
-  acomodar(blancos);
+  armarCirculo();
 
-  function tirar(direccion, fuerza) {
-    jugadores[turno].bolincha.tirar(direccion, fuerza);
+  function tirar(direccion, fuerza, efecto = null) {
+    jugadores[turno].bolincha.tirar(direccion, fuerza, efecto);
     fase = 'rodando';
     tiempoQuieta = 0;
   }
@@ -350,9 +410,9 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
 
     puedeTirar: () => fase === 'apuntar',
 
-    // Tiro de la persona (desde el control táctil).
-    tirar(direccion, fuerza) {
-      tirar(direccion, fuerza);
+    // Tiro de la persona (desde el control táctil), con el efecto elegido (o null).
+    tirar(direccion, fuerza, efecto) {
+      tirar(direccion, fuerza, efecto);
       hud.ayudaDeTiro(false);
     },
 

@@ -74,10 +74,12 @@ function azarCampana() {
 //   obstaculos: otras bolinchas en el suelo (por ejemplo, la del rival)
 // ---------------------------------------------------------------
 // pesoTirador: gramos de la bolincha que tira (un boliche empuja más fuerte).
+// afinado: multiplica los errores del nivel (menos de 1 = apunta mejor; ver CONFIG.dificultadCirculo).
 // Las del círculo son siempre bolinchas normales.
-export function planificarTiro({ tirador, radioBolincha, pesoTirador = CONFIG.bolinchas.normal.peso, blancos, obstaculos = [], nivel, radioCirculo, superficie = 'tierra' }) {
+export function planificarTiro({ tirador, radioBolincha, pesoTirador = CONFIG.bolinchas.normal.peso, blancos, obstaculos = [], nivel, radioCirculo, superficie = 'tierra', afinado = 1 }) {
   const f = frenos(superficie);
-  const n = CONFIG.rival[nivel];
+  const base = CONFIG.rival[nivel];
+  const n = { ...base, errorAngulo: base.errorAngulo * afinado, errorFuerza: base.errorFuerza * afinado, despiste: base.despiste * afinado };
   const vMax = CONFIG.tiro.velocidadMaxima;
   const e = CONFIG.bolinchas.rebote;
   const normal = CONFIG.bolinchas.normal;

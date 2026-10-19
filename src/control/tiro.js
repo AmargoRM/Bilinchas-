@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 
-export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtenerBolincha, puedeTirar, alApuntar, alTirar }) {
+export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtenerBolincha, obtenerEfecto = () => null, puedeTirar, alApuntar, alTirar }) {
   const t = CONFIG.tiro;
   let arrastre = null; // un dedo: { id, x, y, tipo: 'tiro' | 'camara' }
   const dedos = new Map(); // dedos apoyados: id → { x, y }
@@ -177,13 +177,23 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
       const pos = bolincha.posicion;
       const inicio = bolincha.radio + 1;
       const tramo = (t.largoPunteria - inicio) / cantidadPuntos;
+      // Con curva, la línea se tuerce hacia ese lado (solo en el tiro de la persona).
+      const curva = externa ? 0 : obtenerEfecto()?.costado || 0;
+      const torcer = (d) => curva * 3 * (d / t.largoPunteria) ** 2;
+      // Derecha de la dirección, en el suelo.
+      const dx = -direccion.z;
+      const dz = direccion.x;
       for (let i = 0; i < cantidadPuntos; i++) {
         const d = inicio + tramo * i;
-        punteria.children[i].position.set(pos.x + direccion.x * d, 0.05, pos.z + direccion.z * d);
+        const lado = torcer(d);
+        punteria.children[i].position.set(pos.x + direccion.x * d + dx * lado, 0.05, pos.z + direccion.z * d + dz * lado);
       }
       const dPunta = t.largoPunteria + 0.6;
-      punta.position.set(pos.x + direccion.x * dPunta, 0.06, pos.z + direccion.z * dPunta);
-      punta.rotation.y = Math.atan2(direccion.x, direccion.z);
+      const ladoPunta = torcer(dPunta);
+      punta.position.set(pos.x + direccion.x * dPunta + dx * ladoPunta, 0.06, pos.z + direccion.z * dPunta + dz * ladoPunta);
+      // La punta apunta según la tangente de la curva.
+      const pendiente = (curva * 6 * dPunta) / t.largoPunteria ** 2;
+      punta.rotation.y = Math.atan2(direccion.x + dx * pendiente, direccion.z + dz * pendiente);
     },
   };
 }

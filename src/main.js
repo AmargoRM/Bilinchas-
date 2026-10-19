@@ -23,6 +23,7 @@ import { crearSonido } from './sonido.js';
 import { crearProgreso } from './progreso.js';
 import { crearPantallaLogros } from './ui/logros.js';
 import { crearInstrucciones } from './ui/instrucciones.js';
+import { crearSelectorEfecto } from './ui/efecto.js';
 import { MAPAS, MAPAS_CIRCULO } from './mapas.js';
 import { DISENOS } from './disenos.js';
 import { PAISES } from './paises.js';
@@ -99,17 +100,20 @@ async function iniciar() {
   const todas = [...modos.circulo.todas, ...modos.cano.todas];
   crearPanelAjustes({ alCambiar: () => todas.forEach((b) => b.aplicarConfig()) });
 
+  const efecto = crearSelectorEfecto();
   control = crearControlTiro({
     lienzo,
     escena,
     camara,
     controlCamara,
     obtenerBolincha: () => modo.tirador,
+    obtenerEfecto: () => efecto.valor(),
     puedeTirar: () => modo.puedeTirar() && !vistaMapa,
     alApuntar: (f) => hud.fuerza(f),
     alTirar: (direccion, fuerza) => {
       sonido.tiro(fuerza);
-      modo.tirar(direccion, fuerza);
+      modo.tirar(direccion, fuerza, efecto.valor());
+      efecto.reiniciar();
     },
   });
 
@@ -319,6 +323,7 @@ async function iniciar() {
   renderer.setAnimationLoop(() => {
     const dt = reloj.getDelta();
     if (enMenu) {
+      efecto.mostrar(false);
       sonido.rodar(0, 0);
       menu3d.actualizar(dt);
       renderer.render(menu3d.escena, menu3d.camara);
@@ -339,6 +344,7 @@ async function iniciar() {
     });
     seguirSombra(foco);
     control.actualizar();
+    efecto.mostrar(modo.puedeTirar() && !vistaMapa);
     sonidosDelCuadro();
     renderer.render(escena, camara);
   });
