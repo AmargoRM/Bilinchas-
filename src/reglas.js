@@ -1,3 +1,5 @@
+import { MAPAS, MAPAS_CIRCULO } from './mapas.js';
+
 // Las reglas de cada modo (con huecos para las palabras del país, ver src/textos.js).
 // Se muestran la primera vez que se juega cada modo y en la pantalla "Reglas".
 export const NOMBRES_MODOS = { circulo: 'Círculo', cano: '{Caño}' };
@@ -24,4 +26,20 @@ export const REGLAS = {
 //   modo: 'circulo' | 'cano'
 //   nivel: desde qué nivel aparece (1 = el primero)
 //   titulo, texto: lo que se le explica a quien juega
+//   soloAviso: true si no es una regla (no se suma a la lista de reglas), solo un aviso
 export const NOVEDADES = [];
+
+// Cada mapa que se desbloquea con el nivel se avisa una vez.
+for (const [modo, lista] of [['circulo', MAPAS_CIRCULO], ['cano', MAPAS]]) {
+  for (const m of lista) {
+    if ((m.nivel || 1) <= 1) continue;
+    NOVEDADES.push({
+      id: `mapa-${m.id}`,
+      modo,
+      nivel: m.nivel,
+      titulo: `Nuevo mapa: ${m.nombre}`,
+      texto: `${m.descripcion} Lo eliges en «¿Quién juega?».`,
+      soloAviso: true,
+    });
+  }
+}

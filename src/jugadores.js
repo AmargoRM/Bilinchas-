@@ -149,9 +149,10 @@ function cargar() {
       mesa: valida ? p.mesa : [...MESA_INICIAL],
       tamanos: tamanosValidos ? p.tamanos : [...TAMANOS_INICIALES],
       mapa: typeof p.mapa === 'string' ? p.mapa : null,
+      mapaCirculo: typeof p.mapaCirculo === 'string' ? p.mapaCirculo : null,
     };
   } catch {
-    return { mesa: [...MESA_INICIAL], tamanos: [...TAMANOS_INICIALES], mapa: null };
+    return { mesa: [...MESA_INICIAL], tamanos: [...TAMANOS_INICIALES], mapa: null, mapaCirculo: null };
   }
 }
 export function guardarPreferencias(p) {

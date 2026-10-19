@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { resolverTiroCano } from './reglas-cano.js';
 import { planificarTiroCanal } from '../ia/rival.js';
-import { MAPAS, buscarMapa } from '../mapas.js';
+import { MAPAS, buscarMapa, mapasDisponibles, proximoMapa } from '../mapas.js';
 import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 import { tx } from '../textos.js';
 
@@ -13,11 +13,11 @@ const metros = (cm) => `${(Math.max(cm, 0) / 100).toFixed(1).replace('.', ',')} 
 
 // canal: el escenario (src/escenario/canal.js), que arma el mapa elegido.
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
-export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones }) {
+export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, nivelJugador = () => 1 }) {
   const todos = crearJugadores({ escena, fisica, superficie: 'concreto' });
   const todas = bolinchasDe(todos);
   const preferencias = leerPreferencias();
-  let mapa = buscarMapa(preferencias.mapa);
+  let mapa = buscarMapa(preferencias.mapa); // se revisa que esté desbloqueado al abrir la mesa
   let traza = null;
 
   let jugadores = []; // los que juegan esta partida
@@ -128,18 +128,22 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
   function nuevaPartida() {
     fase = 'espera';
     mostrarPunteria(null);
+    const nivel = nivelJugador();
+    const disponibles = mapasDisponibles(MAPAS, nivel);
+    mapa = buscarMapa(mapa.id, disponibles); // si el guardado todavía está bloqueado, el primero
     traza = canal.usarMapa(mapa);
-    const indice = MAPAS.indexOf(mapa);
+    const proximo = proximoMapa(MAPAS, nivel);
     hud.tarjeta({
       titulo: '¿Quién juega?',
       subtitulo: tx('{Caño}'),
+      texto: proximo ? `Próximo mapa: ${proximo.nombre}, en el nivel ${proximo.nivel}.` : '',
       selectores: [
         {
           etiqueta: 'Mapa',
-          opciones: MAPAS.map((m) => ({ valor: m.id, texto: m.nombre })),
-          valor: MAPAS[indice].id,
+          opciones: disponibles.map((m) => ({ valor: m.id, texto: m.nombre })),
+          valor: mapa.id,
           alCambiar: (id) => {
-            mapa = buscarMapa(id);
+            mapa = buscarMapa(id, disponibles);
             traza = canal.usarMapa(mapa);
             preferencias.mapa = id;
             guardarPreferencias(preferencias);

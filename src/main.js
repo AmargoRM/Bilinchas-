@@ -23,7 +23,7 @@ import { crearSonido } from './sonido.js';
 import { crearProgreso } from './progreso.js';
 import { crearPantallaLogros } from './ui/logros.js';
 import { crearInstrucciones } from './ui/instrucciones.js';
-import { MAPAS } from './mapas.js';
+import { MAPAS, MAPAS_CIRCULO } from './mapas.js';
 import { DISENOS } from './disenos.js';
 import { PAISES } from './paises.js';
 import { tx, aplicarTextos, paisActual, paisElegido, usarPais } from './textos.js';
@@ -59,7 +59,11 @@ async function iniciar() {
   // El navegador solo deja sonar después de un toque: se habilita en el primero.
   window.addEventListener('pointerdown', () => sonido.desbloquear(), { capture: true });
   const efectos = { hueco: () => sonido.hueco(), victoria: () => sonido.victoria() };
-  const progreso = crearProgreso({ cantidadMapas: MAPAS.length });
+  const progreso = crearProgreso({
+    cantidadMapas: MAPAS.length,
+    // Lo que se desbloquea al llegar a cada nivel, para la tarjeta del final de la partida.
+    desbloqueosDeNivel: (n) => [...MAPAS_CIRCULO, ...MAPAS].filter((m) => m.nivel === n).map((m) => `Nuevo mapa: ${m.nombre}.`),
+  });
   progreso.usarNombres(Object.fromEntries(Object.entries(DISENOS).map(([id, d]) => [id, d.nombre])));
   const instrucciones = crearInstrucciones({ hud, nivel: () => progreso.nivel().numero });
   const pantallaLogros = crearPantallaLogros(progreso, { alBorrar: () => instrucciones.borrar() });
@@ -67,6 +71,7 @@ async function iniciar() {
   const delProgreso = {
     alTerminar: (resultado) => progreso.registrar(resultado),
     disenoDueno: () => progreso.estado.elegido,
+    nivelJugador: () => progreso.nivel().numero,
     instrucciones,
   };
   const controlCamara = crearCamara(camara);
@@ -77,7 +82,7 @@ async function iniciar() {
     hud.fuerza(direccion ? fuerza : null);
   };
   const modos = {
-    circulo: crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria, efectos, alSalir: (a) => irA(a), ...delProgreso }),
+    circulo: crearModoCirculo({ escena, fisica, hud, controlCamara, patio: escenarios.circulo, mostrarPunteria, efectos, alSalir: (a) => irA(a), ...delProgreso }),
     cano: crearModoCano({
       escena,
       fisica,
@@ -278,7 +283,8 @@ async function iniciar() {
   const anteriores = new Map();
   const vel = new THREE.Vector3();
   function sonidosDelCuadro() {
-    const superficie = modo === modos.cano ? 'concreto' : 'tierra';
+    // El asfalto suena como el concreto.
+    const superficie = modo === modos.cano || modo.superficie === 'asfalto' ? 'concreto' : 'tierra';
     const enJuego = modo.todas.filter((b) => b.cuerpo.isEnabled());
     const yaSonaron = new Set();
     let rodando = 0;

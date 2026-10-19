@@ -51,7 +51,7 @@ function vacio() {
   return { puntos: 0, partidas: 0, victorias: 0, racha: 0, logros: [], disenos: [...INICIALES], elegido: 'azul', mapasGanados: [] };
 }
 
-export function crearProgreso({ cantidadMapas }) {
+export function crearProgreso({ cantidadMapas, desbloqueosDeNivel = () => [] }) {
   let estado = vacio();
   try {
     const guardado = JSON.parse(localStorage.getItem(CLAVE));
@@ -150,6 +150,7 @@ export function crearProgreso({ cantidadMapas }) {
       for (let i = nivelAntes + 1; i <= nivelAhora; i++) {
         mensajes.push(`¡Subiste de nivel! Ahora eres ${tx(NIVELES[i].titulo)}.`);
         desbloquear(NIVELES[i].premio, mensajes, nombreDe(NIVELES[i].premio));
+        mensajes.push(...desbloqueosDeNivel(i + 1));
       }
       guardar();
       return mensajes;

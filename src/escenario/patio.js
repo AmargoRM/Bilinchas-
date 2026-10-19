@@ -1,7 +1,13 @@
-// Escenario del Modo Círculo: tierra de barrio, círculo de tiza, zacate y cerca de madera.
+// Escenario del Modo Círculo: el círculo de tiza y el lugar donde está dibujado.
+//   "patio": tierra de barrio, zacate y cerca de madera.
+//   "calle": asfalto, casas y un marco de fútbol (ver calle.js).
 // Todas las texturas se dibujan por código: no hace falta descargar fotos.
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
+import { crearCalle } from './calle.js';
+
+// Hasta dónde se ve antes de que la niebla tape todo (cm), según el lugar.
+const NIEBLA = { patio: [250, 750], calle: [450, 1700] };
 
 // Números al azar pero siempre los mismos, para que el patio no cambie en cada carga.
 export function azarFijo(semilla) {
@@ -17,16 +23,40 @@ export function azarFijo(semilla) {
 
 export function crearPatio(escena, fisica) {
   const grupo = new THREE.Group();
-  grupo.add(crearTierra(), crearTiza(CONFIG.circulo.radio), crearZacate(), crearCerca());
+  const tiza = crearTiza(CONFIG.circulo.radio);
+  const lugares = { patio: new THREE.Group() };
+  lugares.patio.add(crearTierra(), crearZacate(), crearCerca());
+  grupo.add(tiza, lugares.patio);
   escena.add(grupo);
 
   const suelo = crearSueloPatio(fisica);
+  const nieblaNormal = escena.fog ? [escena.fog.near, escena.fog.far] : null;
+  let actual = 'patio';
+  let activo = true;
+
+  function mostrar() {
+    grupo.visible = activo;
+    for (const [id, g] of Object.entries(lugares)) g.visible = id === actual;
+    const niebla = activo ? NIEBLA[actual] : nieblaNormal;
+    if (escena.fog && niebla) [escena.fog.near, escena.fog.far] = niebla;
+  }
 
   return {
-    // Muestra u oculta el patio, y prende o apaga su suelo.
+    // Muestra u oculta el escenario, y prende o apaga su suelo.
     activar(si) {
-      grupo.visible = si;
+      activo = si;
       suelo.setEnabled(si);
+      mostrar();
+    },
+    // Cambia de lugar ('patio' o 'calle'). La calle se arma la primera vez que se usa.
+    usarMapa(id) {
+      if (!lugares[id]) {
+        if (id !== 'calle') return;
+        lugares.calle = crearCalle();
+        grupo.add(lugares.calle);
+      }
+      actual = id;
+      mostrar();
     },
   };
 }

@@ -8,6 +8,7 @@ import { resolverTiro, ganador } from './reglas-circulo.js';
 import { planificarTiro } from '../ia/rival.js';
 import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 import { tx } from '../textos.js';
+import { MAPAS_CIRCULO, buscarMapa, mapasDisponibles, proximoMapa } from '../mapas.js';
 
 
 
@@ -39,7 +40,7 @@ function frases(j) {
 }
 
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
-export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones }) {
+export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, patio, nivelJugador = () => 1 }) {
   const radio = CONFIG.circulo.radio;
   const centro = new THREE.Vector3(0, 0, 0);
   const salida = new THREE.Vector3(0, 0, CONFIG.circulo.distanciaSalida);
@@ -54,6 +55,15 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     blancos.push({ enCirculo: true, bolincha: crearBolincha({ escena, fisica, posicion: centro, diseno }) });
   }
   const todas = [...bolinchasDe(todos), ...blancos.map((b) => b.bolincha)];
+
+  // Mapa (lugar donde está dibujado el círculo): solo los que ya se desbloquearon.
+  let mapa = MAPAS_CIRCULO[0];
+  function usarMapa(id) {
+    const disponibles = mapasDisponibles(MAPAS_CIRCULO, nivelJugador());
+    mapa = buscarMapa(id, disponibles);
+    patio?.usarMapa(mapa.id);
+    for (const b of todas) b.usarSuperficie(mapa.superficie);
+  }
 
   let turno = 0;
   let fase = 'espera'; // 'apuntar' | 'computadora' | 'rodando' | 'espera' | 'fin'
@@ -144,6 +154,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
         obstaculos: otros,
         nivel: j.nivel,
         radioCirculo: radio,
+        superficie: mapa.superficie,
       });
       controlCamara.mirarDesde(j.bolincha.posicion, planComputadora.objetivo);
       relojComputadora = 0;
@@ -158,6 +169,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
 
   // Sienta a los jugadores de la mesa y arranca con las bolinchas en su lugar.
   function empezarPartida() {
+    usarMapa(mapa.id);
     jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos, disenoDueno());
     for (const j of jugadores) j.puntos = 0;
     mejorTiroDueno = 0;
@@ -177,10 +189,29 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     fase = 'espera';
     mostrarPunteria(null);
     acomodar(blancos); // que se vean en el círculo detrás de la mesa
+    usarMapa(preferencias.mapaCirculo);
+    // Detrás de la tarjeta, el círculo visto desde la salida.
+    enfocada = { posicion: salida };
+    controlCamara.mirarDesde(salida, centro, true);
+    const nivel = nivelJugador();
+    const proximo = proximoMapa(MAPAS_CIRCULO, nivel);
     hud.tarjeta({
       titulo: '¿Quién juega?',
       subtitulo: 'Círculo',
-      selectores: selectoresMesa(preferencias, () => guardarPreferencias(preferencias)),
+      texto: proximo ? `Próximo mapa: ${proximo.nombre}, en el nivel ${proximo.nivel}.` : '',
+      selectores: [
+        {
+          etiqueta: 'Mapa',
+          opciones: mapasDisponibles(MAPAS_CIRCULO, nivel).map((m) => ({ valor: m.id, texto: m.nombre })),
+          valor: mapa.id,
+          alCambiar: (id) => {
+            usarMapa(id);
+            preferencias.mapaCirculo = id;
+            guardarPreferencias(preferencias);
+          },
+        },
+        ...selectoresMesa(preferencias, () => guardarPreferencias(preferencias)),
+      ],
       botones: [
         { texto: 'Jugar', alElegir: jugar },
         { texto: 'Cómo se juega', secundario: true, alElegir: () => instrucciones.mostrarReglas('circulo', nuevaPartida) },
@@ -294,6 +325,11 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     todas,
     nuevaPartida,
     empezarPartida,
+
+    // De qué es el suelo (para el sonido de rodar).
+    get superficie() {
+      return mapa.superficie;
+    },
 
     // Saca todas las bolinchas del suelo (al cambiar de juego).
     retirar() {

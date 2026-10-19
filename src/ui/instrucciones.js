@@ -23,6 +23,7 @@ export function crearInstrucciones({ hud, nivel }) {
     }
   };
   const novedadesDe = (modo) => NOVEDADES.filter((n) => n.modo === modo && n.nivel <= nivel());
+  const reglasExtra = (modo) => novedadesDe(modo).filter((n) => !n.soloAviso);
 
   function tarjetaReglas(modo, extra, boton, alCerrar) {
     hud.tarjeta({
@@ -36,15 +37,7 @@ export function crearInstrucciones({ hud, nivel }) {
   return {
     // Antes de empezar una partida: explica lo que todavía no se vio y después sigue.
     antesDeJugar(modo, seguir) {
-      const pendientes = novedadesDe(modo).filter((n) => !vistas.has(n.id));
-      if (!vistas.has(modo)) {
-        // Primera vez: las reglas, con lo que ya trae el nivel actual incluido.
-        tarjetaReglas(modo, pendientes, '¡A jugar!', () => {
-          marcar([modo, ...pendientes.map((n) => n.id)]);
-          seguir();
-        });
-        return;
-      }
+      let pendientes = novedadesDe(modo).filter((n) => !vistas.has(n.id));
       const mostrarSiguiente = (i) => {
         if (i >= pendientes.length) {
           seguir();
@@ -66,16 +59,27 @@ export function crearInstrucciones({ hud, nivel }) {
           ],
         });
       };
+      if (!vistas.has(modo)) {
+        // Primera vez: las reglas, con las dificultades que ya trae el nivel actual incluidas.
+        // Después, los avisos (mapas nuevos) que haya.
+        const reglas = pendientes.filter((n) => !n.soloAviso);
+        tarjetaReglas(modo, reglas, '¡A jugar!', () => {
+          marcar([modo, ...reglas.map((n) => n.id)]);
+          pendientes = pendientes.filter((n) => n.soloAviso);
+          mostrarSiguiente(0);
+        });
+        return;
+      }
       mostrarSiguiente(0);
     },
 
     // Para volver a leer las reglas cuando se quiera (incluye las novedades ya alcanzadas).
     mostrarReglas(modo, alCerrar) {
-      tarjetaReglas(modo, novedadesDe(modo), 'Entendido', alCerrar);
+      tarjetaReglas(modo, reglasExtra(modo), 'Entendido', alCerrar);
     },
 
     // Las reglas completas de un modo, ya con las palabras del país (para la pantalla "Reglas").
-    reglasDe: (modo) => [...REGLAS[modo], ...novedadesDe(modo).map((n) => n.texto)].map(tx),
+    reglasDe: (modo) => [...REGLAS[modo], ...reglasExtra(modo).map((n) => n.texto)].map(tx),
 
     borrar() {
       vistas = new Set();

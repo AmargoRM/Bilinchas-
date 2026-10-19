@@ -53,6 +53,12 @@ export const CONFIG = {
       frenado: 0.5,
       rebote: 0.1,
     },
+    asfalto: {
+      // Círculo en la calle: rueda más que en tierra y menos que en el caño.
+      resistenciaRodadura: 0.085,
+      frenado: 0.4,
+      rebote: 0.18,
+    },
     concreto: {
       // Modo Caño. Rueda más que en tierra: un tiro al 100 % llega a unos 5 m.
       resistenciaRodadura: 0.06,
