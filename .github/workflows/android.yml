@@ -8,6 +8,10 @@ on:
     branches: [main, ccr-92d8eb7c-jnz2xm]
   workflow_dispatch:
 
+# Lo mínimo: el proceso solo puede leer el código, no cambiarlo.
+permissions:
+  contents: read
+
 jobs:
   apk:
     runs-on: ubuntu-latest

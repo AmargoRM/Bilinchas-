@@ -29,7 +29,6 @@
         </provider>
     </application>
 
-    <!-- Permissions -->
-
-    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Sin permisos: el juego no usa internet, cámara, ubicación ni nada del teléfono.
+         (Capacitor trae el permiso de INTERNET por defecto; se quitó a propósito.) -->
 </manifest>

@@ -145,7 +145,7 @@ async function iniciar() {
   }
 
   // ---------------- Pantallas del menú ----------------
-  const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-logros', 'pantalla-reglas', 'pantalla-paises'];
+  const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-logros', 'pantalla-reglas', 'pantalla-paises', 'pantalla-privacidad'];
   let enMenu = true;
   let pantallaActual = 'portada';
   function mostrarPantalla(id) {
@@ -174,6 +174,8 @@ async function iniciar() {
   $('menu-ajustes').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
   $('menu-reglas').addEventListener('click', () => mostrarPantalla('pantalla-reglas'));
   $('menu-logros').addEventListener('click', () => mostrarPantalla('pantalla-logros'));
+  $('ajuste-privacidad').addEventListener('click', () => mostrarPantalla('pantalla-privacidad'));
+  $('privacidad-volver').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
   for (const b of document.querySelectorAll('[data-volver]')) b.addEventListener('click', () => mostrarPantalla('menu-principal'));
   $('modo-circulo').addEventListener('click', () => {
     mostrarPantalla(null);
@@ -239,6 +241,8 @@ async function iniciar() {
         App.exitApp();
       } else if (pantallaActual === 'pantalla-paises') {
         mostrarPantalla(despuesDePais);
+      } else if (pantallaActual === 'pantalla-privacidad') {
+        mostrarPantalla('pantalla-ajustes');
       } else if (enMenu) {
         mostrarPantalla('menu-principal');
       } else if (apretoUnaVez) {

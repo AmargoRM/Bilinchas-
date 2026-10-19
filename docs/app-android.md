@@ -58,6 +58,8 @@ edades y política de privacidad.
 - Paquete: `com.ojodegato.bolinchas` (en `capacitor.config.json`).
   **Una vez publicada, el paquete no se puede cambiar.** Si se quiere otro,
   hay que decidirlo antes de la primera publicación.
-- Ícono y pantalla de arranque: se dibujan con `herramientas/icono.html`,
-  quedan en `assets/` y se convierten con
-  `npx @capacitor/assets generate --android`.
+- Ícono y pantalla de arranque: salen de `assets/origen/icono-referencia.png`
+  con `python3 herramientas/iconos.py` (necesita Pillow), que escribe todos los
+  tamaños de Android y el ícono de 512 px de la tienda.
+- La app no tiene ningún permiso de Android (ni siquiera internet).
+- Todo lo que pide Google Play está en `docs/google-play.md`.
