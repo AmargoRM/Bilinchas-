@@ -30,6 +30,9 @@ export const DISENOS = {
   arcoiris: { nombre: 'Arcoíris', vidrio: 0xeef6f5, vetas: [0xd8402c, 0xf2cf4a, 0x2a8fd6], claro: 0.7 },
   fuego: { nombre: 'Fuego', vidrio: 0xff5a1f, vetas: [0xf2cf4a, 0xffffff, 0xb3200f], claro: 0.1 },
   caminante: { nombre: 'Caminante', vidrio: 0x8f8e88, vetas: [0xf3eee2, 0x3b9be0, 0xe2523d], claro: 0.2 },
+
+  // Modo Bolinchas explosivas: negra con vetas rojas y amarillas (de peligro).
+  explosiva: { nombre: 'Explosiva', vidrio: 0x2a1d1a, vetas: [0xff2a12, 0xffd21f, 0xff2a12], claro: 0.3 },
 };
 
 export const DISENOS_CIRCULO = ['clasica', 'verde', 'cristal', 'agua', 'menta'];

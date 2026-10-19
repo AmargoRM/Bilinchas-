@@ -2,7 +2,10 @@ import { MAPAS, MAPAS_CIRCULO } from './mapas.js';
 
 // Las reglas de cada modo (con huecos para las palabras del país, ver src/textos.js).
 // Se muestran la primera vez que se juega cada modo y en la pantalla "Reglas".
-export const NOMBRES_MODOS = { circulo: 'Círculo', cano: '{Caño}' };
+export const NOMBRES_MODOS = { circulo: 'Círculo', cano: '{Caño}', explosivas: 'Bolinchas explosivas', hoyito: 'El hoyito' };
+
+// Modos que comparten las novedades de otro (mismo círculo, misma dificultad y mismos mapas).
+export const NOVEDADES_DE = { explosivas: 'circulo' };
 
 export const REGLAS = {
   circulo: [
@@ -11,6 +14,21 @@ export const REGLAS = {
     'Si no sacas {ninguna}, pasa el turno.',
     'Tu {bolincha} se queda donde paró: en tu próximo turno tiras desde ahí.',
     'Gana quien tenga más cuando el círculo quede vacío.',
+  ],
+  explosivas: [
+    'Es un Círculo, pero entre {las} {bolinchas} hay 3 explosivas: negras, con vetas rojas y amarillas.',
+    'Si una explosiva recibe un golpe, explota y empuja hacia afuera a todas {las} que estén cerca, también a la tuya.',
+    'Si empuja a otra explosiva, esa también explota.',
+    '{Las} que salgan del círculo por la explosión son {tuyas}. Las explosivas no cuentan.',
+    'Lo demás es igual que en el Círculo: si sacas al menos {una}, sigues tirando.',
+  ],
+  hoyito: [
+    'Todos tiran desde la raya hacia el hoyito. Si tu {bolincha} cae en el hoyo, hiciste hoyo y vuelves a tirar.',
+    'Hay que llegar despacio: si pasa rápido por encima, salta el hoyo y sigue de largo.',
+    'Con hoyo puedes matar: si tu {bolincha} le pega a la de otro, ese jugador queda fuera del juego.',
+    'Si matas a alguien, vuelves a tirar. Si no, pasa el turno.',
+    'Sin hoyo, pegarle a otra {bolincha} no mata: solo la mueve. {La} que está dentro del hoyo está a salvo.',
+    'Tu {bolincha} se queda donde paró. Gana el último que queda.',
   ],
   cano: [
     'Por turnos, cada uno tira su {bolincha} por {el_c} {caño}. Gana el primero que pase la meta.',

@@ -882,6 +882,17 @@ button {
   background-position: 50% 28%;
 }
 
+.modo-explosivas .modo-foto {
+  background-image: url('../assets/modo-explosivas.jpg');
+  background-size: 210%;
+  background-position: 50% 22%;
+}
+
+.modo-hoyito .modo-foto {
+  background-image: url('../assets/modo-hoyito.jpg');
+  background-position: 50% 60%;
+}
+
 .modo-cano .modo-foto {
   background-image: url('../assets/modo-cano.jpg');
   background-position: 50% 70%;

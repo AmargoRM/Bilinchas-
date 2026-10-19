@@ -18,6 +18,8 @@ import { crearHud } from './ui/hud.js';
 import { cargarAjustesGuardados, crearPanelAjustes } from './ui/ajustes.js';
 import { crearModoCirculo } from './modos/circulo.js';
 import { crearModoCano } from './modos/cano.js';
+import { crearModoHoyito } from './modos/hoyito.js';
+import { crearExplosiones } from './efectos/explosion.js';
 import { crearMenu3d } from './escenario/menu3d.js';
 import { crearSonido } from './sonido.js';
 import { crearProgreso } from './progreso.js';
@@ -59,7 +61,16 @@ async function iniciar() {
   const sonido = crearSonido();
   // El navegador solo deja sonar después de un toque: se habilita en el primero.
   window.addEventListener('pointerdown', () => sonido.desbloquear(), { capture: true });
-  const efectos = { hueco: () => sonido.hueco(), victoria: () => sonido.victoria() };
+  const explosiones = crearExplosiones(escena);
+  const efectos = {
+    hueco: () => sonido.hueco(),
+    victoria: () => sonido.victoria(),
+    explosion: (pos) => {
+      sonido.explosion();
+      explosiones.lanzar(pos);
+      navigator.vibrate?.(120); // en el teléfono, una vibración corta
+    },
+  };
   const progreso = crearProgreso({
     cantidadMapas: MAPAS.length,
     // Lo que se desbloquea al llegar a cada nivel, para la tarjeta del final de la partida.
@@ -84,6 +95,19 @@ async function iniciar() {
   };
   const modos = {
     circulo: crearModoCirculo({ escena, fisica, hud, controlCamara, patio: escenarios.circulo, mostrarPunteria, efectos, alSalir: (a) => irA(a), ...delProgreso }),
+    explosivas: crearModoCirculo({
+      variante: 'explosivas',
+      escena,
+      fisica,
+      hud,
+      controlCamara,
+      patio: escenarios.circulo,
+      mostrarPunteria,
+      efectos,
+      alSalir: (a) => irA(a),
+      ...delProgreso,
+    }),
+    hoyito: crearModoHoyito({ escena, fisica, hud, controlCamara, patio: escenarios.circulo, mostrarPunteria, efectos, alSalir: (a) => irA(a), ...delProgreso }),
     cano: crearModoCano({
       escena,
       fisica,
@@ -97,7 +121,9 @@ async function iniciar() {
     }),
   };
   let modo = modos.circulo;
-  const todas = [...modos.circulo.todas, ...modos.cano.todas];
+  const todas = Object.values(modos).flatMap((m) => m.todas);
+  // En qué escenario se juega cada modo.
+  const ESCENARIO_DE = { circulo: 'circulo', explosivas: 'circulo', hoyito: 'circulo', cano: 'cano' };
   crearPanelAjustes({ alCambiar: () => todas.forEach((b) => b.aplicarConfig()) });
 
   const efecto = crearSelectorEfecto();
@@ -148,10 +174,8 @@ async function iniciar() {
   function usarJuego(nombre) {
     mostrarMapa(false);
     hud.mostrarBotonMapa(nombre === 'cano');
-    for (const [clave, m] of Object.entries(modos)) {
-      if (clave !== nombre) m.retirar();
-      escenarios[clave].activar(clave === nombre);
-    }
+    for (const [clave, m] of Object.entries(modos)) if (clave !== nombre) m.retirar();
+    for (const [clave, e] of Object.entries(escenarios)) e.activar(clave === ESCENARIO_DE[nombre]);
     modo = modos[nombre];
     modo.nuevaPartida();
   }
@@ -171,7 +195,7 @@ async function iniciar() {
     }
     if (id === 'pantalla-logros') pantallaLogros.dibujar();
     if (id === 'pantalla-reglas') {
-      for (const m of ['circulo', 'cano']) {
+      for (const m of ['circulo', 'cano', 'explosivas', 'hoyito']) {
         $(`reglas-${m}`).replaceChildren(
           ...instrucciones.reglasDe(m).map((t) => {
             const li = document.createElement('li');
@@ -334,6 +358,8 @@ async function iniciar() {
     modo.actualizar(dt);
     const foco = modo.enfoque.posicion;
     controlCamara.actualizar(dt, foco);
+    const temblor = explosiones.actualizar(dt);
+    if (temblor > 0) camara.position.add(new THREE.Vector3((Math.random() - 0.5) * temblor, (Math.random() - 0.5) * temblor, (Math.random() - 0.5) * temblor));
     const marcas = vistaMapa && modo.marcas ? modo.marcas() : [];
     while (puntos.length < marcas.length) puntos.push(puntoDeColor());
     puntos.forEach((s, i) => {
@@ -351,6 +377,8 @@ async function iniciar() {
 
   escenarios.cano.activar(false);
   modos.cano.retirar();
+  modos.explosivas.retirar();
+  modos.hoyito.retirar();
   mostrarPantalla('portada');
   hud.listo();
 }

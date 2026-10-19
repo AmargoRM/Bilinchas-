@@ -48,7 +48,8 @@ function frases(j) {
 }
 
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
-export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, patio, nivelJugador = () => 1 }) {
+// variante: 'circulo' (el de siempre) o 'explosivas' (con algunas bolinchas que explotan al golpearlas).
+export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, patio, nivelJugador = () => 1 }) {
   const centro = new THREE.Vector3(0, 0, 0);
   // Lo que depende del nivel (CONFIG.dificultadCirculo): se fija al empezar cada partida.
   let reglas = dificultadDe(1);
@@ -67,7 +68,18 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     const diseno = DISENOS_CIRCULO[i % DISENOS_CIRCULO.length];
     blancos.push({ enCirculo: true, bolincha: crearBolincha({ escena, fisica, posicion: centro, diseno }) });
   }
-  const todas = [...bolinchasDe(todos), ...blancos.map((b) => b.bolincha)];
+  // Bolinchas explosivas (solo en esa variante): negras con vetas rojas y amarillas.
+  const conExplosivas = variante === 'explosivas';
+  const nombreModo = conExplosivas ? 'Bolinchas explosivas' : 'Círculo';
+  const explosivas = conExplosivas
+    ? Array.from({ length: CONFIG.explosivas.cantidad }, () => ({
+        activa: false,
+        bolincha: crearBolincha({ escena, fisica, posicion: centro, diseno: 'explosiva' }),
+      }))
+    : [];
+  let porExplotar = []; // [{ explosiva, reloj }]: golpeadas que explotan en un momento
+  let explosionesDelTiro = 0;
+  const todas = [...bolinchasDe(todos), ...blancos.map((b) => b.bolincha), ...explosivas.map((e) => e.bolincha)];
 
   // Mapa (lugar donde está dibujado el círculo): solo los que ya se desbloquearon.
   let mapa = MAPAS_CIRCULO[0];
@@ -126,11 +138,27 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
       b.bolincha.quitar();
       b.enCirculo = false;
     }
+    for (const e of explosivas) {
+      e.bolincha.quitar();
+      e.activa = false;
+    }
+    porExplotar = [];
     const enJuegoAhora = blancos.slice(0, reglas.bolinchas);
-    const { nombre, posiciones } = armarFormacion(enJuegoAhora.length, radio * CONFIG.circulo.zonaBolinchas, piedras);
+    const total = enJuegoAhora.length + explosivas.length;
+    const { nombre, posiciones } = armarFormacion(total, radio * CONFIG.circulo.zonaBolinchas, piedras);
+    // Las explosivas quedan escondidas en lugares al azar de la formación.
+    const lugares = posiciones.map((p, i) => i).sort(() => Math.random() - 0.5);
+    explosivas.forEach((e, k) => {
+      const p = posiciones[lugares[k]];
+      if (!p) return;
+      e.bolincha.colocar(p.x, p.z);
+      e.activa = true;
+    });
+    const resto = lugares.slice(explosivas.length);
     enJuegoAhora.forEach((b, i) => {
-      if (!posiciones[i]) return;
-      b.bolincha.colocar(posiciones[i].x, posiciones[i].z);
+      const p = posiciones[resto[i]];
+      if (!p) return;
+      b.bolincha.colocar(p.x, p.z);
       b.enCirculo = true;
     });
     // Si alguna no entró en la formación, va suelta.
@@ -155,6 +183,43 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
       b.bolincha.colocar(x, z);
       b.enCirculo = true;
     }
+  }
+
+  // Explota una bolincha explosiva: desaparece y empuja hacia afuera (y un poco hacia arriba)
+  // a todas las que estén cerca. Si empuja a otra explosiva, esa también explota.
+  function explotar(e) {
+    const c = CONFIG.explosivas;
+    const centroExplosion = e.bolincha.posicion.clone();
+    e.activa = false;
+    e.bolincha.quitar();
+    explosionesDelTiro++;
+    for (const b of todas) {
+      if (!enJuego(b)) continue;
+      const p = b.posicion;
+      const dx = p.x - centroExplosion.x;
+      const dz = p.z - centroExplosion.z;
+      const d = Math.hypot(dx, dz);
+      if (d > c.radio) continue;
+      const fuerza = 1 - d / c.radio;
+      const ux = d > 0.01 ? dx / d : Math.random() - 0.5;
+      const uz = d > 0.01 ? dz / d : Math.random() - 0.5;
+      const v = b.cuerpo.linvel();
+      b.cuerpo.wakeUp();
+      b.cuerpo.setLinvel({ x: v.x + ux * c.empuje * fuerza, y: v.y + c.salto * fuerza, z: v.z + uz * c.empuje * fuerza }, true);
+    }
+    efectos.explosion?.(centroExplosion);
+  }
+
+  // Revisa si alguna explosiva recibió un golpe, y hace explotar las que ya les tocaba.
+  function vigilarExplosivas(dt) {
+    for (const e of explosivas) {
+      if (!e.activa || porExplotar.some((x) => x.explosiva === e)) continue;
+      if (e.bolincha.velocidad() > CONFIG.explosivas.velocidadParaExplotar) porExplotar.push({ explosiva: e, reloj: CONFIG.explosivas.retardo });
+    }
+    for (const x of porExplotar) x.reloj -= dt;
+    const ahora = porExplotar.filter((x) => x.reloj <= 0);
+    porExplotar = porExplotar.filter((x) => x.reloj > 0);
+    for (const x of ahora) if (x.explosiva.activa) explotar(x.explosiva);
   }
 
   // Pone la bolincha del jugador en la salida (corrida a un lado si hay otra encima).
@@ -206,7 +271,12 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
         radioBolincha: j.bolincha.radio,
         pesoTirador: j.bolincha.peso,
         blancos: blancos.filter((b) => b.enCirculo).map((b) => b.bolincha.posicion.clone()),
-        obstaculos: [...otros, ...piedras.map((p) => new THREE.Vector3(p.x, 0, p.z))],
+        obstaculos: [
+          ...otros,
+          ...piedras.map((p) => new THREE.Vector3(p.x, 0, p.z)),
+          // (la computadora no se arriesga: esquiva las explosivas)
+          ...explosivas.filter((e) => e.activa).map((e) => e.bolincha.posicion.clone()),
+        ],
         nivel: j.nivel,
         radioCirculo: radio,
         superficie: mapa.superficie,
@@ -242,7 +312,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     seguirTirando();
   }
 
-  const jugar = () => instrucciones.antesDeJugar('circulo', empezarPartida);
+  const jugar = () => instrucciones.antesDeJugar(variante, empezarPartida);
 
   // Elegir quién juega (las reglas se explican aparte, solo la primera vez).
   function nuevaPartida() {
@@ -257,7 +327,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     const proximo = proximoMapa(MAPAS_CIRCULO, nivel);
     hud.tarjeta({
       titulo: '¿Quién juega?',
-      subtitulo: 'Círculo',
+      subtitulo: nombreModo,
       texto: proximo ? `Próximo mapa: ${proximo.nombre}, en el nivel ${proximo.nivel}.` : '',
       selectores: [
         {
@@ -274,7 +344,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
       ],
       botones: [
         { texto: 'Jugar', alElegir: jugar },
-        { texto: 'Cómo se juega', secundario: true, alElegir: () => instrucciones.mostrarReglas('circulo', nuevaPartida) },
+        { texto: 'Cómo se juega', secundario: true, alElegir: () => instrucciones.mostrarReglas(variante, nuevaPartida) },
         { texto: 'Volver', secundario: true, alElegir: () => alSalir('modos') },
       ],
     });
@@ -307,12 +377,13 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     }
 
     if (r.repite) {
-      hud.aviso(dice.repite(n));
+      hud.aviso((explosionesDelTiro > 0 ? '¡Bum! ' : '') + dice.repite(n));
       seguirTirando();
       return;
     }
 
     let motivo;
+    const bum = explosionesDelTiro > 0 ? (explosionesDelTiro > 1 ? `¡Bum! ¡Explotaron ${explosionesDelTiro}! ` : '¡Bum! ') : '';
     if (r.motivo === 'dentro') {
       motivo = dice.dentro;
       if (n > 0) motivo += ' ' + (r.cuentan ? dice.seLleva(n) : dice.devuelve(n));
@@ -321,6 +392,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     } else {
       motivo = dice.ninguna;
     }
+    motivo = bum + motivo;
 
     turno = (turno + 1) % jugadores.length;
     const siguiente = jugadores[turno];
@@ -348,7 +420,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     actualizarMarcador();
     const g = ganador(jugadores);
     const r = resultadoParaProgreso({
-      modo: 'circulo',
+      modo: variante,
       jugadores,
       ganador: g === null ? null : jugadores[g],
       extra: { sacadas: todos[0].puntos || 0, mejorTiro: mejorTiroDueno },
@@ -379,6 +451,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     jugadores[turno].bolincha.tirar(direccion, fuerza, efecto);
     fase = 'rodando';
     tiempoQuieta = 0;
+    explosionesDelTiro = 0;
   }
 
   return {
@@ -424,6 +497,8 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
           b.quitar();
           const j = jugadores.find((x) => x.bolincha === b);
           if (j) j.enCancha = false;
+          const e = explosivas.find((x) => x.bolincha === b);
+          if (e) e.activa = false;
         }
       }
 
@@ -442,8 +517,9 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
       }
 
       if (fase !== 'rodando') return;
-      // Se resuelve el tiro cuando TODAS las bolinchas se detuvieron.
-      let quietas = true;
+      vigilarExplosivas(dt);
+      // Se resuelve el tiro cuando TODAS las bolinchas se detuvieron (y no falta ninguna explosión).
+      let quietas = porExplotar.length === 0;
       for (const b of todas) if (!b.frenarSiCasiQuieta()) quietas = false;
       tiempoQuieta = quietas ? tiempoQuieta + dt : 0;
       if (tiempoQuieta > 0.3) resolver();

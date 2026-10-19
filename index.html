@@ -109,6 +109,30 @@
           <button id="modo-cano" class="boton-jugar" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>Jugar</button>
         </div>
       </article>
+      <article class="modo modo-explosivas" data-modo="explosivas">
+        <div class="modo-foto">
+          <div class="modo-titulo trazo">
+            <span class="modo-icono"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" /><circle cx="22" cy="27" r="9" class="lleno" /><path d="M28 20l4-4M33 12l1-3M36 15l3-1M35 9l2 2" /></svg></span>
+            <h3>Explosivas</h3>
+          </div>
+        </div>
+        <div class="modo-pie">
+          <p data-tx="Un círculo con {bolinchas} explosivas escondidas: si les pegas, explotan y vuelan todas."></p>
+          <button id="modo-explosivas" class="boton-jugar" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>Jugar</button>
+        </div>
+      </article>
+      <article class="modo modo-hoyito" data-modo="hoyito">
+        <div class="modo-foto">
+          <div class="modo-titulo trazo">
+            <span class="modo-icono"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" /><ellipse cx="24" cy="30" rx="9" ry="4" class="lleno" /><path d="M10 14h12" /><circle cx="15" cy="20" r="2.6" class="lleno" /></svg></span>
+            <h3>El hoyito</h3>
+          </div>
+        </div>
+        <div class="modo-pie">
+          <p data-tx="Mete tu {bolincha} en el hoyo desde la raya y después mata a las de los demás."></p>
+          <button id="modo-hoyito" class="boton-jugar" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>Jugar</button>
+        </div>
+      </article>
     </section>
 
     <section id="pantalla-ajustes" class="pantalla pantalla-lista" hidden>
@@ -171,6 +195,10 @@
         <ul id="reglas-circulo"></ul>
         <h3 data-tx="{Caño}"></h3>
         <ul id="reglas-cano"></ul>
+        <h3>Bolinchas explosivas</h3>
+        <ul id="reglas-explosivas"></ul>
+        <h3>El hoyito</h3>
+        <ul id="reglas-hoyito"></ul>
         <h3 data-tx="Normal o {boliche}"></h3>
         <p data-tx="{La} normal mide 16 mm. {El_g} {boliche} mide 25 mm y pesa casi cuatro veces más: empuja más fuerte, pero es más difícil de frenar."></p>
       </div>

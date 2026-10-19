@@ -265,3 +265,50 @@ export function planificarTiroCanal({ traza, tirador, radioBolincha, pesoTirador
   const fuerza = THREE.MathUtils.clamp(elegido.fuerza * (1 + azarCampana() * n.errorFuerza), 0.06, 1);
   return { direccion, fuerza, objetivo: elegido.objetivo, intencion: elegido.intencion };
 }
+
+// ---------------------------------------------------------------
+// Modo El hoyito: planificarTiroHoyo devuelve { direccion, fuerza, objetivo }.
+//   tirador: posición propia      hoyo: posición del hoyito
+//   cazador: true si ya hizo hoyo (entonces tira a matar)
+//   presas:  posiciones de las bolinchas que puede matar
+//   obstaculos: las demás bolinchas en el suelo
+// Sin hoyo: busca llegar al hoyo despacito (si llega rápido, lo salta).
+// Con hoyo: le tira a la presa más fácil, con fuerza para llegar con golpe.
+// ---------------------------------------------------------------
+export function planificarTiroHoyo({ tirador, radioBolincha, hoyo, cazador, presas = [], obstaculos = [], nivel, superficie = 'tierra' }) {
+  const f = frenos(superficie);
+  const n = CONFIG.rival[nivel];
+  const vMax = CONFIG.tiro.velocidadMaxima;
+  const plano = (p) => new THREE.Vector3(p.x, 0, p.z);
+  const desde = plano(tirador);
+  let objetivo;
+  let v;
+
+  if (!cazador) {
+    objetivo = plano(hoyo);
+    // Que se detenga apenas pasado el centro del hoyo (así cruza el hoyo lenta y cae).
+    v = buscar((x) => distanciaHastaParar(x, f), desde.distanceTo(objetivo) + 1.5, vMax) ?? vMax;
+  } else {
+    const contacto = radioBolincha + CONFIG.bolinchas.normal.diametro / 2;
+    const opciones = presas
+      .map((p) => {
+        const q = plano(p);
+        const libre = obstaculos.every((o) => distanciaASegmento(o, desde, q) > contacto);
+        return { q, d: desde.distanceTo(q), libre };
+      })
+      .sort((a, b) => (a.libre === b.libre ? a.d - b.d : a.libre ? -1 : 1));
+    if (opciones.length === 0) {
+      objetivo = plano(hoyo);
+      v = vMax * 0.3;
+    } else {
+      objetivo = opciones[0].q;
+      // Que llegue todavía con buena velocidad (80 cm/s).
+      v = buscar((x) => velocidadTras(x, opciones[0].d, f), 80, vMax) ?? vMax;
+    }
+  }
+
+  const recto = new THREE.Vector3().subVectors(objetivo, desde).setY(0).normalize();
+  const direccion = recto.applyAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(azarCampana() * n.errorAngulo));
+  const fuerza = THREE.MathUtils.clamp((v / vMax) * (1 + azarCampana() * n.errorFuerza), 0.05, 1);
+  return { direccion, fuerza, objetivo };
+}

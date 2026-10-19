@@ -9,7 +9,7 @@ for (const modo of process.argv.slice(2).length ? process.argv.slice(2) : ['circ
   const p = await navegador.newPage({ viewport: { width: 640, height: 290 }, deviceScaleFactor: 1.5 });
   await p.addInitScript(() => {
     localStorage.setItem('ojo-de-gato.pais', 'cr');
-    localStorage.setItem('ojo-de-gato.instrucciones', JSON.stringify(['circulo', 'cano']));
+    localStorage.setItem('ojo-de-gato.instrucciones', JSON.stringify(['circulo', 'cano', 'explosivas', 'hoyito']));
   });
   await p.goto(DIRECCION);
   await p.waitForFunction(() => document.getElementById('cargando').classList.contains('oculto'), null, { timeout: 60000 });

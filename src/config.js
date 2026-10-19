@@ -117,6 +117,24 @@ export const CONFIG = {
     // Dónde arranca la bolincha del tirador: a esta distancia del centro.
     distanciaSalida: 60, // cm
   },
+  // Modo Bolinchas explosivas (un Círculo con algunas bolinchas que explotan al recibir un golpe).
+  explosivas: {
+    cantidad: 3, // cuántas explosivas hay mezcladas en el círculo
+    radio: 16, // cm: hasta dónde llega el empujón de la explosión
+    empuje: 150, // cm/s que gana una bolincha pegada a la explosión (menos cuanto más lejos)
+    salto: 50, // cm/s hacia arriba (las hace saltar un poco)
+    velocidadParaExplotar: 25, // cm/s: si la mueven más rápido que esto, explota
+    retardo: 0.12, // segundos entre el golpe y la explosión
+  },
+
+  // Modo El hoyito.
+  hoyito: {
+    distanciaRaya: 170, // cm de la raya al hoyo
+    radioHoyo: 3, // cm
+    velocidadParaCaer: 75, // cm/s: si pasa por el hoyo más lenta que esto, cae; si no, lo salta
+    separacionEnRaya: 10, // cm entre los lugares de salida sobre la raya
+  },
+
   // Dificultad del Círculo según el nivel de quien juega (Lugar 1).
   // Cada fila cambia algo desde ese nivel en adelante; lo que no dice, sigue igual.
   // Cada cambio se le explica al jugador una vez (src/reglas.js).

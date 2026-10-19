@@ -1,6 +1,6 @@
 // Instrucciones de cada modo: se muestran la primera vez que se juega,
 // y después solo las novedades de dificultad que trae cada nivel nuevo.
-import { REGLAS, NOVEDADES, NOMBRES_MODOS } from '../reglas.js';
+import { REGLAS, NOVEDADES, NOMBRES_MODOS, NOVEDADES_DE } from '../reglas.js';
 import { tx } from '../textos.js';
 
 const CLAVE = 'ojo-de-gato.instrucciones';
@@ -22,7 +22,7 @@ export function crearInstrucciones({ hud, nivel }) {
       // no se pudo recordar
     }
   };
-  const novedadesDe = (modo) => NOVEDADES.filter((n) => n.modo === modo && n.nivel <= nivel());
+  const novedadesDe = (modo) => NOVEDADES.filter((n) => n.modo === (NOVEDADES_DE[modo] || modo) && n.nivel <= nivel());
   const reglasExtra = (modo) => novedadesDe(modo).filter((n) => !n.soloAviso);
 
   function tarjetaReglas(modo, extra, boton, alCerrar) {

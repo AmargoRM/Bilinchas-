@@ -136,6 +136,16 @@ export function crearSonido() {
       });
     },
 
+    // Explosión: un golpe grave largo, un retumbe y chisporroteo.
+    explosion() {
+      if (!listo()) return;
+      golpe({ frecuencia: 160, q: 0.7, tipo: 'lowpass', duracion: 0.7, volumen: 1 });
+      nota(55, 0.5, 0.5, 0, 'sine');
+      for (let i = 0; i < 6; i++) {
+        setTimeout(() => golpe({ frecuencia: 3000 + Math.random() * 2000, q: 1, tipo: 'highpass', duracion: 0.03, volumen: 0.15 }), 60 + Math.random() * 350);
+      }
+    },
+
     // Repique al ganar.
     victoria() {
       if (!listo()) return;
