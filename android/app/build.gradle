@@ -16,7 +16,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Llave SOLO para las versiones de prueba (debug). Siempre la misma, así cada APK
+    // nuevo se instala encima del anterior sin borrar el progreso.
+    // No sirve para Google Play: la de publicación es otra y nunca se sube aquí.
+    signingConfigs {
+        debug {
+            storeFile file('llave-de-prueba.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'

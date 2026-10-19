@@ -29,6 +29,14 @@ da permiso a la app con la que se abre el archivo (el navegador o "Archivos").
   desconocidos pueden ser dañinos. Este es seguro porque lo fabrica GitHub a
   partir del código de este proyecto.
 - Es una versión **de prueba** ("debug"): sirve para probar, no para la tienda.
+- Los APK de prueba se firman siempre con la misma llave de prueba
+  (`android/app/llave-de-prueba.keystore`), así cada APK nuevo se instala
+  encima del anterior sin perder el progreso. Esa llave es pública a propósito
+  y **no sirve para Google Play**: la de publicación es otra, se crea aparte
+  y nunca se sube al repositorio.
+- Los APK hechos antes del 19-10-2026 (etapas 9 a 16) tenían cada uno una
+  llave distinta: para pasar de uno de esos a uno nuevo hay que desinstalar
+  la app primero (una sola vez).
 
 ## Antes de publicar en Google Play (no hecho todavía, a propósito)
 
