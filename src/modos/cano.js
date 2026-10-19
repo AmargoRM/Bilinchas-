@@ -9,7 +9,6 @@ import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, ha
 import { tx } from '../textos.js';
 import { botonUsarNueva } from '../ui/final.js';
 
-const DURACION_PUNTERIA = 0.9; // segundos que se ve a la computadora apuntando
 const metros = (cm) => `${(Math.max(cm, 0) / 100).toFixed(1).replace('.', ',')} m`;
 
 // canal: el escenario (src/escenario/canal.js), que arma el mapa elegido.
@@ -32,6 +31,13 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
   let huecoPerdonado = null; // el hueco que ya no la hace caer en este paso
   let planComputadora = null;
   let relojComputadora = 0;
+  // Pausas para que se vea lo que pasó antes de seguir. "ficha" invalida las pausas
+  // pendientes si se sale de la partida o empieza otra.
+  let ficha = 0;
+  const despues = (segundos, fn) => {
+    const mia = ficha;
+    setTimeout(() => mia === ficha && fn(), segundos * 1000);
+  };
 
   const enJuego = (b) => b.cuerpo.isEnabled();
   const recorrido = (j) => traza.proyectar(j.bolincha.posicion.x, j.bolincha.posicion.z).s;
@@ -115,6 +121,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
   }
 
   function empezarPartida() {
+    ficha++;
     efectos.nuevaPartida?.();
     traza = canal.usarMapa(mapa);
     jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos, disenoDueno());
@@ -226,7 +233,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
     }
 
     if (r.ganador !== null) {
-      terminar(todos[r.ganador]);
+      despues(CONFIG.ritmo.pausaFinal, () => terminar(todos[r.ganador]));
       return;
     }
 
@@ -240,7 +247,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
       // Nadie tiene que pasar el teléfono: un aviso y sigue el juego.
       const quien = siguiente.esTu ? 'Tu turno.' : `Turno de ${sujeto(siguiente, false)}.`;
       hud.aviso(motivo ? `${motivo} ${quien}` : quien);
-      seguirTirando();
+      despues(CONFIG.ritmo.pausaEntreTurnos, seguirTirando);
       return;
     }
     hud.tarjeta({
@@ -312,6 +319,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
     },
 
     retirar() {
+      ficha++;
       fase = 'espera';
       mostrarPunteria(null);
       for (const j of todos) {
@@ -344,7 +352,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
     actualizar(dt) {
       if (fase === 'computadora') {
         relojComputadora += dt;
-        const avance = (relojComputadora - CONFIG.rival[jugadores[turno].nivel].pensar) / DURACION_PUNTERIA;
+        const avance = (relojComputadora - CONFIG.rival[jugadores[turno].nivel].pensar) / CONFIG.ritmo.punteriaComputadora;
         if (avance >= 1) {
           mostrarPunteria(null);
           tirar(planComputadora.direccion, planComputadora.fuerza);
@@ -360,7 +368,10 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
         let quietas = true;
         for (const b of todas) if (!b.frenarSiCasiQuieta()) quietas = false;
         tiempoQuieta = quietas ? tiempoQuieta + dt : 0;
-        if (tiempoQuieta > 0.3) resolver();
+        if (tiempoQuieta > CONFIG.ritmo.esperaQuietas) {
+        fase = 'espera';
+        resolver();
+      }
       }
     },
   };

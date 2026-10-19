@@ -18,6 +18,19 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
   const derecha = new THREE.Vector3();
   const proyectada = new THREE.Vector3();
 
+  // Zona para arrepentirse: aparece mientras se apunta; si se suelta el dedo encima, no tira.
+  const zonaCancelar = document.getElementById('zona-cancelar');
+  function sobreZona(e) {
+    if (zonaCancelar.hidden) return false;
+    const r = zonaCancelar.getBoundingClientRect();
+    const margen = 16; // un poco más grande que lo que se ve, para el dedo
+    return e.clientX > r.left - margen && e.clientX < r.right + margen && e.clientY > r.top - margen && e.clientY < r.bottom + margen;
+  }
+  function mostrarZona(si) {
+    zonaCancelar.hidden = !si;
+    zonaCancelar.classList.remove('encima');
+  }
+
   // Línea corta de puntería: puntos de tiza.
   const punteria = new THREE.Group();
   const cantidadPuntos = 7;
@@ -62,6 +75,7 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
       punteria.visible = false;
       alApuntar(null);
       fuerza = 0;
+      mostrarZona(false);
     }
     arrastre = null;
   }
@@ -94,6 +108,7 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
     if (tipo === 'tiro') {
       fuerza = 0;
       alApuntar(0);
+      mostrarZona(true);
     }
   });
 
@@ -118,6 +133,7 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
     } else {
       calcularTiro(e);
       alApuntar(fuerza);
+      zonaCancelar.classList.toggle('encima', sobreZona(e));
     }
   });
 
@@ -143,7 +159,9 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
     }
     punteria.visible = false;
     alApuntar(null);
-    if (!cancelado && fuerza >= t.fuerzaMinima) alTirar(direccion.clone(), fuerza);
+    const enLaZona = sobreZona(e);
+    mostrarZona(false);
+    if (!cancelado && !enLaZona && fuerza >= t.fuerzaMinima) alTirar(direccion.clone(), fuerza);
     fuerza = 0;
   }
   lienzo.addEventListener('pointerup', (e) => soltar(e, false));

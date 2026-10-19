@@ -1,6 +1,7 @@
 // La información en pantalla: marcador, barra de fuerza, avisos, tarjetas y botones.
 import { tx } from '../textos.js';
-const AYUDA_TIRO = 'Toca tu {bolincha} y arrastra hacia atrás para tirar.\nArrastra en otro lado para mirar; pellizca para acercar.';
+import { CONFIG } from '../config.js';
+const AYUDA_TIRO = 'Toca tu {bolincha} y arrastra hacia atrás para tirar.\nPara cancelar, suelta el dedo en el recuadro de arriba.';
 // Después de esta cantidad de tiros, la ayuda de cómo tirar deja de aparecer.
 const TIROS_CON_AYUDA = 2;
 
@@ -79,7 +80,7 @@ export function crearHud() {
       aviso.textContent = texto;
       aviso.hidden = false;
       clearTimeout(relojAviso);
-      relojAviso = setTimeout(() => (aviso.hidden = true), 2600);
+      relojAviso = setTimeout(() => (aviso.hidden = true), CONFIG.ritmo.aviso * 1000);
     },
 
     // Tarjeta en el centro que espera a que el jugador toque un botón.

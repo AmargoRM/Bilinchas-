@@ -15,7 +15,6 @@ import { armarFormacion, NOMBRES_FORMACIONES } from './formaciones.js';
 
 
 const LIMITE_PATIO = 280; // cm: más allá de esto, la bolincha se cayó del patio
-const DURACION_PUNTERIA = 0.9; // segundos que se ve a la computadora apuntando
 
 // La dificultad del Círculo para un nivel: suma las filas de CONFIG.dificultadCirculo hasta ese nivel.
 export function dificultadDe(nivel) {
@@ -133,6 +132,13 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
   let mejorTiroDueno = 0; // más bolinchas sacadas de un tiro por el Lugar 1 (para los logros)
   let planComputadora = null;
   let relojComputadora = 0;
+  // Pausas para que se vea lo que pasó antes de seguir. "ficha" invalida las pausas
+  // pendientes si se sale de la partida o empieza otra.
+  let ficha = 0;
+  const despues = (segundos, fn) => {
+    const mia = ficha;
+    setTimeout(() => mia === ficha && fn(), segundos * 1000);
+  };
 
   const enJuego = (b) => b.cuerpo.isEnabled();
   const dentro = (b) => enJuego(b) && Math.hypot(b.posicion.x, b.posicion.z) <= radio;
@@ -343,6 +349,7 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
 
   // Sienta a los jugadores de la mesa y arranca con las bolinchas en su lugar.
   function empezarPartida() {
+    ficha++;
     efectos.nuevaPartida?.();
     usarMapa(mapa.id);
     jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos, disenoDueno());
@@ -438,13 +445,13 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     actualizarMarcador();
 
     if (quedan() === 0) {
-      terminar();
+      despues(CONFIG.ritmo.pausaFinal, terminar);
       return;
     }
 
     if (r.repite) {
       hud.aviso((explosionesDelTiro > 0 ? '¡Bum! ' : '') + (perdonado ? '¡Perdón! Esa falta no se cobra. ' : '') + dice.repite(n));
-      seguirTirando();
+      despues(CONFIG.ritmo.pausaEntreTurnos, seguirTirando);
       return;
     }
 
@@ -472,7 +479,7 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     if (!hayVariasPersonas(jugadores) || siguiente.esComputadora) {
       // Nadie tiene que pasar el teléfono: un aviso y sigue el juego.
       hud.aviso(`${motivo} ${siguiente.esTu ? 'Tu turno.' : `Turno de ${sujeto(siguiente, false)}.`}`);
-      empezarTurno();
+      despues(CONFIG.ritmo.pausaEntreTurnos, empezarTurno);
       return;
     }
     hud.tarjeta({
@@ -546,6 +553,7 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
 
     // Saca todas las bolinchas del suelo (al cambiar de juego).
     retirar() {
+      ficha++;
       fase = 'espera';
       mostrarPunteria(null);
       for (const b of todas) b.quitar();
@@ -634,7 +642,7 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
         // Piensa, muestra cómo apunta llenando la barra de fuerza, y tira.
         relojComputadora += dt;
         const pensar = CONFIG.rival[jugadores[turno].nivel].pensar;
-        const avance = (relojComputadora - pensar) / DURACION_PUNTERIA;
+        const avance = (relojComputadora - pensar) / CONFIG.ritmo.punteriaComputadora;
         if (avance >= 1) {
           mostrarPunteria(null);
           tirar(planComputadora.direccion, planComputadora.fuerza);
@@ -650,7 +658,10 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
       let quietas = porExplotar.length === 0;
       for (const b of todas) if (!b.frenarSiCasiQuieta()) quietas = false;
       tiempoQuieta = quietas ? tiempoQuieta + dt : 0;
-      if (tiempoQuieta > 0.3) resolver();
+      if (tiempoQuieta > CONFIG.ritmo.esperaQuietas) {
+        fase = 'espera';
+        resolver();
+      }
     },
   };
 }

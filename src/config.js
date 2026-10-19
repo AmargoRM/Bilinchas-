@@ -83,6 +83,17 @@ export const CONFIG = {
     costado: 0.7,
   },
 
+  // ---------------------------------------------------------------
+  // RITMO: cuánto tiempo se deja ver cada cosa (segundos). Más alto = más tranquilo.
+  // ---------------------------------------------------------------
+  ritmo: {
+    esperaQuietas: 0.6, // con todas quietas, cuánto esperar antes de anunciar el resultado
+    pausaEntreTurnos: 1.3, // después del resultado, antes de que empiece el próximo tiro
+    pausaFinal: 1.5, // después del último tiro, antes de la tarjeta de fin de partida
+    punteriaComputadora: 1.5, // cuánto se ve a la computadora apuntando y cargando fuerza
+    aviso: 3.6, // cuánto queda en pantalla un aviso
+  },
+
   // Por debajo de esta velocidad (cm/s) la bolincha se considera detenida.
   velocidadParada: 2.5,
 
@@ -202,9 +213,9 @@ export const CONFIG = {
   // margenFuerza: fuerza extra "por las dudas" (1.15 = 15 % más de lo justo).
   // pensar:       segundos que espera antes de tirar, para que se vea natural.
   rival: {
-    facil: { errorAngulo: 4, errorFuerza: 0.25, despiste: 0.35, margenFuerza: 1.1, pensar: 1.2 },
-    medio: { errorAngulo: 1.8, errorFuerza: 0.12, despiste: 0.12, margenFuerza: 1.15, pensar: 1.0 },
-    dificil: { errorAngulo: 1.1, errorFuerza: 0.08, despiste: 0.04, margenFuerza: 1.2, pensar: 0.8 },
+    facil: { errorAngulo: 4, errorFuerza: 0.25, despiste: 0.35, margenFuerza: 1.1, pensar: 1.8 },
+    medio: { errorAngulo: 1.8, errorFuerza: 0.12, despiste: 0.12, margenFuerza: 1.15, pensar: 1.6 },
+    dificil: { errorAngulo: 1.1, errorFuerza: 0.08, despiste: 0.04, margenFuerza: 1.2, pensar: 1.4 },
   },
 
   // ---------------------------------------------------------------

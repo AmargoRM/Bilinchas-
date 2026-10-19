@@ -79,7 +79,7 @@ export function crearCamara(camara) {
         // Girar por el camino más corto.
         let dif = giroDeseado - giro;
         dif = Math.atan2(Math.sin(dif), Math.cos(dif));
-        giro += dif * (1 - Math.exp(-dt * 3));
+        giro += dif * (1 - Math.exp(-dt * 2)); // giro tranquilo hacia el próximo tiro
         if (Math.abs(dif) < 0.001) giroDeseado = null;
       }
       const horizontal = Math.cos(altura) * distancia;

@@ -1541,3 +1541,24 @@ button {
   font-style: normal;
   letter-spacing: 0;
 }
+
+/* Recuadro de arriba para cancelar el tiro: se suelta el dedo encima y no tira. */
+.zona-cancelar {
+  position: fixed;
+  left: 50%;
+  top: calc(120px + env(safe-area-inset-top, 0px));
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border: 2px dashed rgba(255, 255, 255, 0.45);
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.zona-cancelar.encima {
+  background: var(--rojo);
+  border-color: #fff;
+  color: #fff;
+  transform: translateX(-50%) scale(1.08);
+}
