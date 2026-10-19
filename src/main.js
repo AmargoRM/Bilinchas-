@@ -375,7 +375,6 @@ async function iniciar() {
   renderer.setAnimationLoop(() => {
     const dt = reloj.getDelta();
     if (enMenu) {
-      hud.barraDeTiro(false, false);
       efecto.mostrar(false);
       botonPoder.mostrar(false);
       sonido.rodar(0, 0);
@@ -405,7 +404,6 @@ async function iniciar() {
     control.actualizar();
     efecto.mostrar(modo.puedeTirar());
     botonPoder.mostrar(modo.puedeTirar() && modo.turnoDelDueno);
-    hud.barraDeTiro(true, modo.puedeTirar());
     // El peso extra se termina cuando la bolincha se detiene.
     if (conPesoExtra) {
       conPesoExtra.tiempo += dt;

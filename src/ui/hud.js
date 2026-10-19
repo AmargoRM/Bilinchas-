@@ -1,6 +1,6 @@
 // La información en pantalla: marcador, barra de fuerza, avisos, tarjetas y botones.
 import { tx } from '../textos.js';
-const AYUDA_TIRO = 'Desliza el dedo de lado a lado para apuntar.\nPara tirar, baja la barra de la derecha y suéltala.';
+const AYUDA_TIRO = 'Toca tu {bolincha} y arrastra hacia atrás para tirar.\nArrastra en otro lado para mirar; pellizca para acercar.';
 // Después de esta cantidad de tiros, la ayuda de cómo tirar deja de aparecer.
 const TIROS_CON_AYUDA = 2;
 
@@ -30,10 +30,12 @@ export function crearHud() {
   }
 
   return {
-    // Muestra la fuerza de 0 a 1 en la barra de la derecha (null = vacía).
+    // Muestra la fuerza de 0 a 1 en la barra de la derecha, o la oculta con null.
+    // (La barra solo muestra: la fuerza se elige arrastrando la bolincha.)
     fuerza(valor) {
       apuntando = valor !== null;
       mostrarAyuda();
+      barra.hidden = valor === null;
       const v = valor ?? 0;
       const pct = Math.round(v * 100);
       relleno.style.height = pct + '%';
@@ -43,11 +45,6 @@ export function crearHud() {
       numero.textContent = pct + ' %';
     },
 
-    // La barra se ve durante el juego; apagada cuando no se puede tirar.
-    barraDeTiro(visible, activa) {
-      barra.hidden = !visible;
-      barra.classList.toggle('apagada', !activa);
-    },
 
     // true cuando el jugador puede tirar; false cuando acaba de tirar.
     ayudaDeTiro(si) {

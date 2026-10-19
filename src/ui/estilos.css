@@ -521,7 +521,7 @@ button {
   color: var(--amarillo);
 }
 
-/* Barra de fuerza vertical, a la derecha: se baja con el dedo y se suelta para tirar. */
+/* Barra de fuerza vertical, a la derecha: solo muestra la fuerza mientras se apunta. */
 .barra-tiro {
   position: fixed;
   right: max(10px, env(safe-area-inset-right, 0px));
@@ -533,13 +533,7 @@ button {
   align-items: center;
   gap: 6px;
   padding: 8px 0;
-  pointer-events: auto;
-  touch-action: none;
-  cursor: grab;
-}
-
-.barra-tiro.apagada {
-  opacity: 0.45;
+  pointer-events: none;
 }
 
 .barra-etiqueta,
@@ -576,7 +570,7 @@ button {
   background: var(--rojo);
 }
 
-/* La "manija" que se agarra: en la punta del relleno. */
+/* Una rayita en la punta del relleno, para que se vea bien hasta dónde llega. */
 .barra-taco {
   position: absolute;
   left: -3px;
