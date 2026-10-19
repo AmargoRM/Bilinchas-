@@ -50,7 +50,7 @@ export const bolinchasDe = (todos) => todos.flatMap((j) => [j.tipos.normal, j.ti
 
 // Prepara los jugadores según la mesa y devuelve solo los que juegan, en orden.
 // Nombres: si hay una sola persona, es "Tú"; si hay varias, "Jugador 1", "Jugador 2"...
-// disenoDueno: la bolincha que eligió en Logros quien juega en el Lugar 1 (si es persona).
+// disenoDueno: la bolincha que eligió en la Colección quien juega en el Lugar 1 (si es persona).
 export function sentarJugadores(todos, mesa, tamanos = TAMANOS_INICIALES, disenoDueno = null) {
   const personas = mesa.filter((a) => a === 'persona').length;
   const compus = mesa.filter((a) => a !== 'persona' && a !== 'nadie').length;

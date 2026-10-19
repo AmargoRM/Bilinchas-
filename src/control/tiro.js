@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 
-export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtenerBolincha, obtenerEfecto = () => null, puedeTirar, alApuntar, alTirar }) {
+export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtenerBolincha, obtenerEfecto = () => null, obtenerLargoPunteria = () => 1, puedeTirar, alApuntar, alTirar }) {
   const t = CONFIG.tiro;
   let arrastre = null; // un dedo: { id, x, y, tipo: 'tiro' | 'camara' }
   const dedos = new Map(); // dedos apoyados: id → { x, y }
@@ -176,10 +176,12 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
       const bolincha = obtenerBolincha();
       const pos = bolincha.posicion;
       const inicio = bolincha.radio + 1;
-      const tramo = (t.largoPunteria - inicio) / cantidadPuntos;
+      // (más larga con el poder "Ojo fino"; la de la computadora, siempre normal)
+      const largo = t.largoPunteria * (externa ? 1 : obtenerLargoPunteria());
+      const tramo = (largo - inicio) / cantidadPuntos;
       // Con curva, la línea se tuerce hacia ese lado (solo en el tiro de la persona).
       const curva = externa ? 0 : obtenerEfecto()?.costado || 0;
-      const torcer = (d) => curva * 3 * (d / t.largoPunteria) ** 2;
+      const torcer = (d) => curva * 3 * (d / largo) ** 2;
       // Derecha de la dirección, en el suelo.
       const dx = -direccion.z;
       const dz = direccion.x;
@@ -188,11 +190,11 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
         const lado = torcer(d);
         punteria.children[i].position.set(pos.x + direccion.x * d + dx * lado, 0.05, pos.z + direccion.z * d + dz * lado);
       }
-      const dPunta = t.largoPunteria + 0.6;
+      const dPunta = largo + 0.6;
       const ladoPunta = torcer(dPunta);
       punta.position.set(pos.x + direccion.x * dPunta + dx * ladoPunta, 0.06, pos.z + direccion.z * dPunta + dz * ladoPunta);
       // La punta apunta según la tangente de la curva.
-      const pendiente = (curva * 6 * dPunta) / t.largoPunteria ** 2;
+      const pendiente = (curva * 6 * dPunta) / largo ** 2;
       punta.rotation.y = Math.atan2(direccion.x + dx * pendiente, direccion.z + dz * pendiente);
     },
   };

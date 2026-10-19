@@ -23,9 +23,11 @@ import { crearExplosiones } from './efectos/explosion.js';
 import { crearMenu3d } from './escenario/menu3d.js';
 import { crearSonido } from './sonido.js';
 import { crearProgreso } from './progreso.js';
-import { crearPantallaLogros } from './ui/logros.js';
+import { crearPantallaColeccion } from './ui/coleccion.js';
 import { crearInstrucciones } from './ui/instrucciones.js';
 import { crearSelectorEfecto } from './ui/efecto.js';
+import { crearBotonPoder } from './ui/poder.js';
+import { PODERES } from './poderes.js';
 import { MAPAS, MAPAS_CIRCULO } from './mapas.js';
 import { DISENOS } from './disenos.js';
 import { PAISES } from './paises.js';
@@ -62,9 +64,14 @@ async function iniciar() {
   // El navegador solo deja sonar después de un toque: se habilita en el primero.
   window.addEventListener('pointerdown', () => sonido.desbloquear(), { capture: true });
   const explosiones = crearExplosiones(escena);
+  let botonPoder = null;
   const efectos = {
     hueco: () => sonido.hueco(),
     victoria: () => sonido.victoria(),
+    nuevaPartida: () => {
+      botonPoder?.reiniciar();
+      progreso.nuevas.length = 0; // lo ganado antes ya se ofreció en su partida
+    },
     explosion: (pos) => {
       sonido.explosion();
       explosiones.lanzar(pos);
@@ -78,12 +85,15 @@ async function iniciar() {
   });
   progreso.usarNombres(Object.fromEntries(Object.entries(DISENOS).map(([id, d]) => [id, d.nombre])));
   const instrucciones = crearInstrucciones({ hud, nivel: () => progreso.nivel().numero });
-  const pantallaLogros = crearPantallaLogros(progreso, { alBorrar: () => instrucciones.borrar() });
+  const pantallaColeccion = crearPantallaColeccion(progreso, { alBorrar: () => instrucciones.borrar() });
   // Lo que los modos necesitan del progreso.
   const delProgreso = {
     alTerminar: (resultado) => progreso.registrar(resultado),
     disenoDueno: () => progreso.estado.elegido,
     nivelJugador: () => progreso.nivel().numero,
+    // Bolinchas ganadas en la partida, para ofrecer usarlas en la tarjeta del final.
+    nuevasBolinchas: () => progreso.nuevas.map((id) => ({ id, nombre: tx(DISENOS[id].nombre) })),
+    usarBolincha: (id) => progreso.elegir(id),
     instrucciones,
   };
   const controlCamara = crearCamara(camara);
@@ -127,6 +137,10 @@ async function iniciar() {
   crearPanelAjustes({ alCambiar: () => todas.forEach((b) => b.aplicarConfig()) });
 
   const efecto = crearSelectorEfecto();
+  // El poder de la bolincha que usa la persona del Lugar 1 (si es rara).
+  const poderDelDueno = () => PODERES[DISENOS[progreso.estado.elegido]?.poder] || null;
+  botonPoder = crearBotonPoder({ obtenerPoder: poderDelDueno });
+  let conPesoExtra = null; // { bolincha, tiempo }: el poder "Peso" dura solo ese tiro
   control = crearControlTiro({
     lienzo,
     escena,
@@ -134,11 +148,24 @@ async function iniciar() {
     controlCamara,
     obtenerBolincha: () => modo.tirador,
     obtenerEfecto: () => efecto.valor(),
+    obtenerLargoPunteria: () => (modo.turnoDelDueno && poderDelDueno()?.punteria) || 1,
     puedeTirar: () => modo.puedeTirar() && !vistaMapa,
     alApuntar: (f) => hud.fuerza(f),
     alTirar: (direccion, fuerza) => {
       sonido.tiro(fuerza);
-      modo.tirar(direccion, fuerza, efecto.valor());
+      let elEfecto = efecto.valor();
+      const poder = modo.turnoDelDueno ? botonPoder.usar() : null;
+      if (poder) {
+        hud.aviso(`¡${poder.nombre}!`);
+        if (poder.fuerza) fuerza *= poder.fuerza;
+        if (poder.efecto && elEfecto) elEfecto = { arriba: elEfecto.arriba * poder.efecto, costado: elEfecto.costado * poder.efecto };
+        if (poder.peso) {
+          modo.tirador.cambiarPeso(poder.peso);
+          conPesoExtra = { bolincha: modo.tirador, tiempo: 0 };
+        }
+      }
+      modo.tirar(direccion, fuerza, elEfecto);
+      if (poder?.salto) modo.tirador.saltar(poder.salto);
       efecto.reiniciar();
     },
   });
@@ -181,7 +208,7 @@ async function iniciar() {
   }
 
   // ---------------- Pantallas del menú ----------------
-  const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-logros', 'pantalla-reglas', 'pantalla-paises', 'pantalla-privacidad'];
+  const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-coleccion', 'pantalla-reglas', 'pantalla-paises', 'pantalla-privacidad'];
   let enMenu = true;
   let pantallaActual = 'portada';
   function mostrarPantalla(id) {
@@ -193,7 +220,7 @@ async function iniciar() {
       const n = progreso.nivel();
       document.getElementById('menu-nivel').textContent = `Nivel ${n.numero} · ${n.titulo}`;
     }
-    if (id === 'pantalla-logros') pantallaLogros.dibujar();
+    if (id === 'pantalla-coleccion') pantallaColeccion.dibujar();
     if (id === 'pantalla-reglas') {
       for (const m of ['circulo', 'cano', 'explosivas', 'hoyito']) {
         $(`reglas-${m}`).replaceChildren(
@@ -206,6 +233,7 @@ async function iniciar() {
       }
     }
     if (enMenu) hud.cerrarTarjeta();
+    if (id !== 'pantalla-coleccion') pantallaColeccion.cerrar();
   }
   // Salir de una partida: a la lista de modos o al menú principal.
   function irA(destino) {
@@ -220,7 +248,7 @@ async function iniciar() {
   $('menu-jugar').addEventListener('click', () => mostrarPantalla('pantalla-modos'));
   $('menu-ajustes').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
   $('menu-reglas').addEventListener('click', () => mostrarPantalla('pantalla-reglas'));
-  $('menu-logros').addEventListener('click', () => mostrarPantalla('pantalla-logros'));
+  $('menu-coleccion').addEventListener('click', () => mostrarPantalla('pantalla-coleccion'));
   $('ajuste-privacidad').addEventListener('click', () => mostrarPantalla('pantalla-privacidad'));
   $('privacidad-volver').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
   for (const b of document.querySelectorAll('[data-volver]')) b.addEventListener('click', () => mostrarPantalla('menu-principal'));
@@ -287,6 +315,8 @@ async function iniciar() {
         App.exitApp();
       } else if (pantallaActual === 'pantalla-paises') {
         mostrarPantalla(despuesDePais);
+      } else if (pantallaActual === 'pantalla-coleccion' && pantallaColeccion.abierta) {
+        pantallaColeccion.cerrar();
       } else if (pantallaActual === 'pantalla-privacidad') {
         mostrarPantalla('pantalla-ajustes');
       } else if (enMenu) {
@@ -348,6 +378,7 @@ async function iniciar() {
     const dt = reloj.getDelta();
     if (enMenu) {
       efecto.mostrar(false);
+      botonPoder.mostrar(false);
       sonido.rodar(0, 0);
       menu3d.actualizar(dt);
       renderer.render(menu3d.escena, menu3d.camara);
@@ -371,6 +402,15 @@ async function iniciar() {
     seguirSombra(foco);
     control.actualizar();
     efecto.mostrar(modo.puedeTirar() && !vistaMapa);
+    botonPoder.mostrar(modo.puedeTirar() && modo.turnoDelDueno && !vistaMapa);
+    // El peso extra se termina cuando la bolincha se detiene.
+    if (conPesoExtra) {
+      conPesoExtra.tiempo += dt;
+      if (conPesoExtra.tiempo > 0.5 && conPesoExtra.bolincha.velocidad() < 1) {
+        conPesoExtra.bolincha.cambiarPeso(1);
+        conPesoExtra = null;
+      }
+    }
     sonidosDelCuadro();
     renderer.render(escena, camara);
   });

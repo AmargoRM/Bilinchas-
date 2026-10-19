@@ -4,13 +4,14 @@
 //   3. Gana el último que queda.
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
+import { botonUsarNueva } from '../ui/final.js';
 import { planificarTiroHoyo } from '../ia/rival.js';
 import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 
 const LIMITE_PATIO = 280; // cm: más allá, la bolincha se cayó del patio y vuelve a la raya
 const DURACION_PUNTERIA = 0.9;
 
-export function crearModoHoyito({ escena, fisica, hud, controlCamara, patio, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones }) {
+export function crearModoHoyito({ escena, fisica, hud, controlCamara, patio, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, nuevasBolinchas, usarBolincha }) {
   const c = CONFIG.hoyito;
   const hoyo = new THREE.Vector3(0, 0, -40);
   const haciaRaya = new THREE.Vector3(0, 0, 1); // cambia de lado en cada partida
@@ -100,6 +101,7 @@ export function crearModoHoyito({ escena, fisica, hud, controlCamara, patio, mos
   }
 
   function empezarPartida() {
+    efectos.nuevaPartida?.();
     jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos, disenoDueno());
     for (const j of jugadores) {
       j.cazador = false;
@@ -229,17 +231,20 @@ export function crearModoHoyito({ escena, fisica, hud, controlCamara, patio, mos
     if (ganador.esTu) titulo = '¡Ganaste!';
     else if (ganador.nombre === 'Computadora') titulo = 'Ganó la computadora';
     else titulo = `¡Ganó ${ganador.nombre}!`;
-    hud.tarjeta({
-      titulo,
-      color: ganador.color,
-      texto: ganador.esTu ? 'Les ganaste a todos en el hoyito.' : `${sujeto(ganador)} les ganó a todos en el hoyito.`,
-      lista: premios,
-      botones: [
-        { texto: 'Jugar otra vez', alElegir: jugar },
-        { texto: 'Cambiar jugadores', secundario: true, alElegir: () => nuevaPartida() },
-        { texto: 'Menú', secundario: true, alElegir: () => alSalir('menu') },
-      ],
-    });
+    const mostrar = (extra = null) =>
+      hud.tarjeta({
+        titulo,
+        color: ganador.color,
+        texto: ganador.esTu ? 'Les ganaste a todos en el hoyito.' : `${sujeto(ganador)} les ganó a todos en el hoyito.`,
+        lista: extra ? [...premios, extra] : premios,
+        botones: [
+          ...(extra ? [] : botonUsarNueva({ nuevas: nuevasBolinchas, usar: usarBolincha, mostrar })),
+          { texto: 'Jugar otra vez', alElegir: jugar },
+          { texto: 'Cambiar jugadores', secundario: true, alElegir: () => nuevaPartida() },
+          { texto: 'Menú', secundario: true, alElegir: () => alSalir('menu') },
+        ],
+      });
+    mostrar();
   }
 
   function tirar(direccion, fuerza, efecto = null) {
@@ -271,6 +276,12 @@ export function crearModoHoyito({ escena, fisica, hud, controlCamara, patio, mos
     },
 
     puedeTirar: () => fase === 'apuntar',
+
+    // ¿Tira ahora la persona del Lugar 1? (la única con la bolincha de su colección y su poder)
+    get turnoDelDueno() {
+      const j = jugadores[turno];
+      return !!j && j.lugar === 0 && !j.esComputadora;
+    },
 
     tirar(direccion, fuerza, efecto) {
       tirar(direccion, fuerza, efecto);

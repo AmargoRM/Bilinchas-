@@ -46,7 +46,7 @@ const capturas = [
   { nombre: '3-modos', pasos: async (p) => { await clic(p, '#portada'); await clic(p, '#menu-jugar'); } },
   { nombre: '4-circulo', pasos: async (p) => { await clic(p, '#portada'); await empezar(p, 'circulo'); } },
   { nombre: '5-cano', pasos: async (p) => { await clic(p, '#portada'); await empezar(p, 'cano'); } },
-  { nombre: '6-coleccion', pasos: async (p) => { await clic(p, '#portada'); await clic(p, '#menu-logros'); } },
+  { nombre: '6-coleccion', pasos: async (p) => { await clic(p, '#portada'); await clic(p, '#menu-coleccion'); } },
 ];
 for (const c of capturas) {
   const p = await abrir(360, 640, 3);

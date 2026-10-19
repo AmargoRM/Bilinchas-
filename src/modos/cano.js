@@ -7,13 +7,14 @@ import { planificarTiroCanal } from '../ia/rival.js';
 import { MAPAS, buscarMapa, mapasDisponibles, proximoMapa } from '../mapas.js';
 import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 import { tx } from '../textos.js';
+import { botonUsarNueva } from '../ui/final.js';
 
 const DURACION_PUNTERIA = 0.9; // segundos que se ve a la computadora apuntando
 const metros = (cm) => `${(Math.max(cm, 0) / 100).toFixed(1).replace('.', ',')} m`;
 
 // canal: el escenario (src/escenario/canal.js), que arma el mapa elegido.
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
-export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, nivelJugador = () => 1 }) {
+export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, nuevasBolinchas, usarBolincha, nivelJugador = () => 1 }) {
   const todos = crearJugadores({ escena, fisica, superficie: 'concreto' });
   const todas = bolinchasDe(todos);
   const preferencias = leerPreferencias();
@@ -111,6 +112,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
   }
 
   function empezarPartida() {
+    efectos.nuevaPartida?.();
     traza = canal.usarMapa(mapa);
     jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos, disenoDueno());
     huecosDelDueno = 0;
@@ -259,17 +261,20 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
     if (ganador.esTu) titulo = '¡Ganaste!';
     else if (ganador.nombre === 'Computadora') titulo = 'Ganó la computadora';
     else titulo = `¡Ganó ${ganador.nombre}!`;
-    hud.tarjeta({
-      titulo,
-      color: ganador.color,
-      texto: `${sujeto(ganador)} ${ganador.esTu ? 'llegaste' : 'llegó'} primero a la meta en ${mapa.nombre}.`,
-      lista: premios,
-      botones: [
-        { texto: 'Jugar otra vez', alElegir: jugar },
-        { texto: 'Cambiar mapa o jugadores', secundario: true, alElegir: () => nuevaPartida() },
-        { texto: 'Menú', secundario: true, alElegir: () => alSalir('menu') },
-      ],
-    });
+    const mostrar = (extra = null) =>
+      hud.tarjeta({
+        titulo,
+        color: ganador.color,
+        texto: `${sujeto(ganador)} ${ganador.esTu ? 'llegaste' : 'llegó'} primero a la meta en ${mapa.nombre}.`,
+        lista: extra ? [...premios, extra] : premios,
+        botones: [
+          ...(extra ? [] : botonUsarNueva({ nuevas: nuevasBolinchas, usar: usarBolincha, mostrar })),
+          { texto: 'Jugar otra vez', alElegir: jugar },
+          { texto: 'Cambiar mapa o jugadores', secundario: true, alElegir: () => nuevaPartida() },
+          { texto: 'Menú', secundario: true, alElegir: () => alSalir('menu') },
+        ],
+      });
+    mostrar();
   }
 
   function tirar(direccion, fuerza, efecto = null) {
@@ -308,6 +313,12 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
     },
 
     puedeTirar: () => fase === 'apuntar',
+
+    // ¿Tira ahora la persona del Lugar 1? (la única con la bolincha de su colección y su poder)
+    get turnoDelDueno() {
+      const j = jugadores[turno];
+      return !!j && j.lugar === 0 && !j.esComputadora;
+    },
 
     tirar(direccion, fuerza, efecto) {
       tirar(direccion, fuerza, efecto);

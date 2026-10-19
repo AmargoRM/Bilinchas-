@@ -105,6 +105,18 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', disen
       }
     },
 
+    // Poder "Salto": la empuja hacia arriba (cm/s) justo después de tirarla.
+    saltar(vy) {
+      const v = cuerpo.linvel();
+      cuerpo.setLinvel({ x: v.x, y: vy, z: v.z }, true);
+    },
+
+    // Poder "Peso": multiplica su peso (1 = vuelve al normal).
+    cambiarPeso(factor) {
+      colisionador.setMass(datos.peso * factor);
+      bolincha.peso = datos.peso * factor;
+    },
+
     // ¿Todavía patina con efecto?
     get conEfecto() {
       return giroEfecto !== null;

@@ -72,18 +72,20 @@ export function crearProgreso({ cantidadMapas, desbloqueosDeNivel = () => [] }) 
   function desbloquear(id, mensajes, motivo) {
     if (!id || estado.disenos.includes(id)) return;
     estado.disenos.push(id);
-    mensajes.push(tx(`{Nueva} {bolincha}: ${motivo}. Elíge{lo} en Logros.`));
+    mensajes.push(tx(`{Nueva} {bolincha} para tu colección: ${motivo}.`));
+    nuevas.push(id);
   }
 
   function lograr(id, mensajes) {
     if (estado.logros.includes(id)) return;
     const l = LOGROS.find((x) => x.id === id);
     estado.logros.push(id);
-    mensajes.push(`Logro: ${l.nombre}.`);
+    mensajes.push(`Desafío cumplido: ${l.nombre}.`);
     desbloquear(l.premio, mensajes, l.premio ? nombreDe(l.premio) : '');
   }
 
   let nombres = {};
+  let nuevas = []; // bolinchas ganadas en la última partida (para ofrecer usarlas)
   const nombreDe = (id) => tx(nombres[id] || id);
 
   return {
@@ -104,6 +106,11 @@ export function crearProgreso({ cantidadMapas, desbloqueosDeNivel = () => [] }) 
       return { numero: i + 1, titulo: tx(actual.titulo), siguiente: siguiente && { ...siguiente, titulo: tx(siguiente.titulo) }, avance, puntos: estado.puntos };
     },
 
+    // Las bolinchas que se ganaron en la última partida anotada.
+    get nuevas() {
+      return nuevas;
+    },
+
     elegir(id) {
       if (!estado.disenos.includes(id)) return false;
       estado.elegido = id;
@@ -116,6 +123,7 @@ export function crearProgreso({ cantidadMapas, desbloqueosDeNivel = () => [] }) 
     //      mejorTiro, huecos, mapa, conBoliche, jugadores }
     registrar(r) {
       const mensajes = [];
+      nuevas = [];
       const nivelAntes = indiceNivel();
       let puntos = PUNTOS.porJugar;
       if (r.gano) {
@@ -162,7 +170,7 @@ export function crearProgreso({ cantidadMapas, desbloqueosDeNivel = () => [] }) 
       const n = NIVELES.find((x) => x.premio === id);
       if (n) return `Nivel ${NIVELES.indexOf(n) + 1}: ${tx(n.titulo)}`;
       const l = LOGROS.find((x) => x.premio === id);
-      if (l) return `Logro: ${l.nombre}`;
+      if (l) return `Desafío «${l.nombre}»: ${tx(l.texto)}`;
       return '';
     },
 

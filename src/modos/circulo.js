@@ -8,6 +8,7 @@ import { resolverTiro, ganador } from './reglas-circulo.js';
 import { planificarTiro } from '../ia/rival.js';
 import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 import { tx } from '../textos.js';
+import { botonUsarNueva } from '../ui/final.js';
 import { MAPAS_CIRCULO, buscarMapa, mapasDisponibles, proximoMapa } from '../mapas.js';
 import { armarFormacion, NOMBRES_FORMACIONES } from './formaciones.js';
 
@@ -49,7 +50,7 @@ function frases(j) {
 
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
 // variante: 'circulo' (el de siempre) o 'explosivas' (con algunas bolinchas que explotan al golpearlas).
-export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, patio, nivelJugador = () => 1 }) {
+export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones, nuevasBolinchas, usarBolincha, patio, nivelJugador = () => 1 }) {
   const centro = new THREE.Vector3(0, 0, 0);
   // Lo que depende del nivel (CONFIG.dificultadCirculo): se fija al empezar cada partida.
   let reglas = dificultadDe(1);
@@ -295,6 +296,7 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
 
   // Sienta a los jugadores de la mesa y arranca con las bolinchas en su lugar.
   function empezarPartida() {
+    efectos.nuevaPartida?.();
     usarMapa(mapa.id);
     jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos, disenoDueno());
     for (const j of jugadores) j.puntos = 0;
@@ -431,17 +433,20 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     else if (jugadores[g].esTu) titulo = '¡Ganaste!';
     else if (jugadores[g].nombre === 'Computadora') titulo = 'Ganó la computadora';
     else titulo = `¡Ganó ${jugadores[g].nombre}!`;
-    hud.tarjeta({
-      titulo,
-      color: g === null ? null : jugadores[g].color,
-      texto: jugadores.map((x) => `${x.nombre}: ${x.puntos}`).join(' · '),
-      lista: premios,
-      botones: [
-        { texto: 'Jugar otra vez', alElegir: jugar },
-        { texto: 'Cambiar jugadores', secundario: true, alElegir: () => nuevaPartida() },
-        { texto: 'Menú', secundario: true, alElegir: () => alSalir('menu') },
-      ],
-    });
+    const mostrar = (extra = null) =>
+      hud.tarjeta({
+        titulo,
+        color: g === null ? null : jugadores[g].color,
+        texto: jugadores.map((x) => `${x.nombre}: ${x.puntos}`).join(' · '),
+        lista: extra ? [...premios, extra] : premios,
+        botones: [
+          ...(extra ? [] : botonUsarNueva({ nuevas: nuevasBolinchas, usar: usarBolincha, mostrar })),
+          { texto: 'Jugar otra vez', alElegir: jugar },
+          { texto: 'Cambiar jugadores', secundario: true, alElegir: () => nuevaPartida() },
+          { texto: 'Menú', secundario: true, alElegir: () => alSalir('menu') },
+        ],
+      });
+    mostrar();
   }
 
   // Al crearse, las bolinchas nacen todas en el centro: acomodarlas para que no se encimen.
@@ -482,6 +487,12 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     },
 
     puedeTirar: () => fase === 'apuntar',
+
+    // ¿Tira ahora la persona del Lugar 1? (la única con la bolincha de su colección y su poder)
+    get turnoDelDueno() {
+      const j = jugadores[turno];
+      return !!j && j.lugar === 0 && !j.esComputadora;
+    },
 
     // Tiro de la persona (desde el control táctil), con el efecto elegido (o null).
     tirar(direccion, fuerza, efecto) {
