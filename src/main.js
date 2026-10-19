@@ -23,7 +23,7 @@ import { crearMenu3d } from './escenario/menu3d.js';
 import { crearSonido } from './sonido.js';
 import { crearProgreso } from './progreso.js';
 import { crearPantallaColeccion } from './ui/coleccion.js';
-import { crearPantallaRuleta } from './ui/ruleta.js';
+import { crearPantallaRuleta, hoy } from './ui/ruleta.js';
 import { crearInstrucciones } from './ui/instrucciones.js';
 import { crearSelectorEfecto } from './ui/efecto.js';
 import { crearBotonPoder } from './ui/poder.js';
@@ -265,7 +265,22 @@ async function iniciar() {
   }
   const $ = (id) => document.getElementById(id);
   // La primera vez se pregunta el país; después se cambia en Ajustes.
-  $('portada').addEventListener('click', () => (paisElegido() ? mostrarPantalla('menu-principal') : elegirPais('menu-principal')));
+  // La primera vez que se abre el juego cada día, si la ruleta está libre, se va directo a ella.
+  function pantallaDeEntrada() {
+    const CLAVE_RULETA = 'ojo-de-gato.ruleta-mostrada';
+    let yaHoy = false;
+    try {
+      yaHoy = localStorage.getItem(CLAVE_RULETA) === hoy();
+      localStorage.setItem(CLAVE_RULETA, hoy());
+    } catch {
+      // sin almacenamiento: se muestra si está libre
+    }
+    return !yaHoy && pantallaRuleta.disponible() ? 'pantalla-ruleta' : 'menu-principal';
+  }
+  $('portada').addEventListener('click', () => {
+    const destino = pantallaDeEntrada();
+    paisElegido() ? mostrarPantalla(destino) : elegirPais(destino);
+  });
   $('menu-jugar').addEventListener('click', () => mostrarPantalla('pantalla-modos'));
   $('menu-ajustes').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
   $('menu-reglas').addEventListener('click', () => mostrarPantalla('pantalla-reglas'));
