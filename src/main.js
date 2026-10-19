@@ -22,6 +22,7 @@ import { crearMenu3d } from './escenario/menu3d.js';
 import { crearSonido } from './sonido.js';
 import { crearProgreso } from './progreso.js';
 import { crearPantallaLogros } from './ui/logros.js';
+import { crearInstrucciones } from './ui/instrucciones.js';
 import { MAPAS } from './mapas.js';
 import { DISENOS } from './disenos.js';
 import { PAISES } from './paises.js';
@@ -60,11 +61,13 @@ async function iniciar() {
   const efectos = { hueco: () => sonido.hueco(), victoria: () => sonido.victoria() };
   const progreso = crearProgreso({ cantidadMapas: MAPAS.length });
   progreso.usarNombres(Object.fromEntries(Object.entries(DISENOS).map(([id, d]) => [id, d.nombre])));
-  const pantallaLogros = crearPantallaLogros(progreso);
+  const instrucciones = crearInstrucciones({ hud, nivel: () => progreso.nivel().numero });
+  const pantallaLogros = crearPantallaLogros(progreso, { alBorrar: () => instrucciones.borrar() });
   // Lo que los modos necesitan del progreso.
   const delProgreso = {
     alTerminar: (resultado) => progreso.registrar(resultado),
     disenoDueno: () => progreso.estado.elegido,
+    instrucciones,
   };
   const controlCamara = crearCamara(camara);
 
@@ -158,6 +161,17 @@ async function iniciar() {
       document.getElementById('menu-nivel').textContent = `Nivel ${n.numero} · ${n.titulo}`;
     }
     if (id === 'pantalla-logros') pantallaLogros.dibujar();
+    if (id === 'pantalla-reglas') {
+      for (const m of ['circulo', 'cano']) {
+        $(`reglas-${m}`).replaceChildren(
+          ...instrucciones.reglasDe(m).map((t) => {
+            const li = document.createElement('li');
+            li.textContent = t;
+            return li;
+          })
+        );
+      }
+    }
     if (enMenu) hud.cerrarTarjeta();
   }
   // Salir de una partida: a la lista de modos o al menú principal.
@@ -177,14 +191,13 @@ async function iniciar() {
   $('ajuste-privacidad').addEventListener('click', () => mostrarPantalla('pantalla-privacidad'));
   $('privacidad-volver').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
   for (const b of document.querySelectorAll('[data-volver]')) b.addEventListener('click', () => mostrarPantalla('menu-principal'));
-  $('modo-circulo').addEventListener('click', () => {
-    mostrarPantalla(null);
-    usarJuego('circulo');
-  });
-  $('modo-cano').addEventListener('click', () => {
-    mostrarPantalla(null);
-    usarJuego('cano');
-  });
+  // Toda la tarjeta del modo sirve para elegirlo, no solo el botón «Jugar».
+  for (const tarjeta of document.querySelectorAll('.modo')) {
+    tarjeta.addEventListener('click', () => {
+      mostrarPantalla(null);
+      usarJuego(tarjeta.dataset.modo);
+    });
+  }
   const botonSonido = $('ajuste-sonido');
   const mostrarSonido = () => {
     botonSonido.textContent = sonido.activo ? 'Sí' : 'No';

@@ -15,7 +15,10 @@ const navegador = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=
 async function abrir(ancho, alto, escala) {
   const pagina = await navegador.newPage({ viewport: { width: ancho, height: alto }, deviceScaleFactor: escala });
   // Que no pregunte el país ni use progreso de otra prueba.
-  await pagina.addInitScript(() => localStorage.setItem('ojo-de-gato.pais', 'cr'));
+  await pagina.addInitScript(() => {
+    localStorage.setItem('ojo-de-gato.pais', 'cr');
+    localStorage.setItem('ojo-de-gato.instrucciones', JSON.stringify(['circulo', 'cano']));
+  });
   await pagina.goto(DIRECCION);
   await pagina.waitForFunction(() => document.getElementById('cargando').classList.contains('oculto'), null, { timeout: 60000 });
   return pagina;
@@ -31,7 +34,7 @@ const clic = async (pagina, selector) => {
 async function empezar(pagina, modo) {
   await clic(pagina, '#menu-jugar');
   await clic(pagina, `#modo-${modo}`);
-  const jugar = pagina.locator('#tarjeta-botones button', { hasText: 'Jugar' });
+  const jugar = pagina.locator('#tarjeta-botones button', { hasText: /^Jugar$/ });
   if (await jugar.isVisible()) await jugar.click();
   await esperar(pagina, 2500);
 }

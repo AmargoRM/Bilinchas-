@@ -13,7 +13,7 @@ const metros = (cm) => `${(Math.max(cm, 0) / 100).toFixed(1).replace('.', ',')} 
 
 // canal: el escenario (src/escenario/canal.js), que arma el mapa elegido.
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
-export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null }) {
+export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones }) {
   const todos = crearJugadores({ escena, fisica, superficie: 'concreto' });
   const todas = bolinchasDe(todos);
   const preferencias = leerPreferencias();
@@ -122,19 +122,17 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
     seguirTirando();
   }
 
-  // Mesa: mapa y jugadores.
+  const jugar = () => instrucciones.antesDeJugar('cano', empezarPartida);
+
+  // Elegir mapa y quién juega (las reglas se explican aparte, solo la primera vez).
   function nuevaPartida() {
     fase = 'espera';
     mostrarPunteria(null);
     traza = canal.usarMapa(mapa);
     const indice = MAPAS.indexOf(mapa);
     hud.tarjeta({
-      titulo: tx('{Caño}'),
-      lista: [
-        'Por turnos, cada uno tira su {bolincha} por {el_c} {caño}. Gana el primero que pase la meta.',
-        'Puedes pegarle {a_la} {bolincha} de otro para atrasar{lo} o tirar{lo} a un hueco.',
-        'Si {un} {bolincha} salta la pared, vuelve a donde estaba. Si cae en un hueco, vuelve a la salida.',
-      ].map(tx),
+      titulo: '¿Quién juega?',
+      subtitulo: tx('{Caño}'),
       selectores: [
         {
           etiqueta: 'Mapa',
@@ -150,7 +148,8 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
         ...selectoresMesa(preferencias, () => guardarPreferencias(preferencias)),
       ],
       botones: [
-        { texto: 'Jugar', alElegir: () => empezarPartida() },
+        { texto: 'Jugar', alElegir: jugar },
+        { texto: 'Cómo se juega', secundario: true, alElegir: () => instrucciones.mostrarReglas('cano', nuevaPartida) },
         { texto: 'Volver', secundario: true, alElegir: () => alSalir('modos') },
       ],
     });
@@ -262,7 +261,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
       texto: `${sujeto(ganador)} ${ganador.esTu ? 'llegaste' : 'llegó'} primero a la meta en ${mapa.nombre}.`,
       lista: premios,
       botones: [
-        { texto: 'Jugar otra vez', alElegir: () => empezarPartida() },
+        { texto: 'Jugar otra vez', alElegir: jugar },
         { texto: 'Cambiar mapa o jugadores', secundario: true, alElegir: () => nuevaPartida() },
         { texto: 'Menú', secundario: true, alElegir: () => alSalir('menu') },
       ],

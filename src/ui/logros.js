@@ -4,7 +4,7 @@ import { DISENOS } from '../disenos.js';
 import { vistaPrevia } from '../aspecto.js';
 import { tx } from '../textos.js';
 
-export function crearPantallaLogros(progreso) {
+export function crearPantallaLogros(progreso, { alBorrar = () => {} } = {}) {
   const $ = (id) => document.getElementById(id);
 
   function dibujar() {
@@ -63,6 +63,7 @@ export function crearPantallaLogros(progreso) {
       delete borrar.dataset.confirmar;
       borrar.textContent = 'Borrar mi progreso';
       progreso.borrarTodo();
+      alBorrar();
       dibujar();
       return;
     }

@@ -39,7 +39,7 @@ function frases(j) {
 }
 
 // mostrarPunteria(direccion, fuerza): dibuja la puntería de la computadora (null la oculta).
-export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null }) {
+export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, alTerminar = () => null, disenoDueno = () => null, instrucciones }) {
   const radio = CONFIG.circulo.radio;
   const centro = new THREE.Vector3(0, 0, 0);
   const salida = new THREE.Vector3(0, 0, CONFIG.circulo.distanciaSalida);
@@ -170,23 +170,20 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
     seguirTirando();
   }
 
-  // Reglas y mesa de jugadores.
+  const jugar = () => instrucciones.antesDeJugar('circulo', empezarPartida);
+
+  // Elegir quién juega (las reglas se explican aparte, solo la primera vez).
   function nuevaPartida() {
     fase = 'espera';
     mostrarPunteria(null);
     acomodar(blancos); // que se vean en el círculo detrás de la mesa
     hud.tarjeta({
-      titulo: 'Círculo',
-      lista: [
-        'Tira desde afuera y saca {bolinchas} del círculo: {las} que saques son {tuyas}.',
-        'Si sacas al menos {una}, sigues tirando desde donde quedó tu {bolincha}, aunque haya quedado dentro del círculo.',
-        'Si no sacas {ninguna}, pasa el turno.',
-        'Tu {bolincha} se queda donde paró: en tu próximo turno tiras desde ahí.',
-        'Gana quien tenga más cuando el círculo quede vacío.',
-      ].map(tx),
+      titulo: '¿Quién juega?',
+      subtitulo: 'Círculo',
       selectores: selectoresMesa(preferencias, () => guardarPreferencias(preferencias)),
       botones: [
-        { texto: 'Jugar', alElegir: () => empezarPartida() },
+        { texto: 'Jugar', alElegir: jugar },
+        { texto: 'Cómo se juega', secundario: true, alElegir: () => instrucciones.mostrarReglas('circulo', nuevaPartida) },
         { texto: 'Volver', secundario: true, alElegir: () => alSalir('modos') },
       ],
     });
@@ -277,7 +274,7 @@ export function crearModoCirculo({ escena, fisica, hud, controlCamara, mostrarPu
       texto: jugadores.map((x) => `${x.nombre}: ${x.puntos}`).join(' · '),
       lista: premios,
       botones: [
-        { texto: 'Jugar otra vez', alElegir: () => empezarPartida() },
+        { texto: 'Jugar otra vez', alElegir: jugar },
         { texto: 'Cambiar jugadores', secundario: true, alElegir: () => nuevaPartida() },
         { texto: 'Menú', secundario: true, alElegir: () => alSalir('menu') },
       ],
