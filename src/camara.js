@@ -37,11 +37,17 @@ export function crearCamara(camara) {
       }
     },
 
-    // Girar con el dedo (modo cámara).
+    // Girar con el dedo.
     orbitar(dx, dy) {
       giroDeseado = null;
       giro -= dx * 0.008;
       altura = THREE.MathUtils.clamp(altura + dy * 0.005, c.alturaMinima, c.alturaMaxima);
+    },
+
+    // Vuelve a la altura y distancia de siempre (el giro queda donde está).
+    vistaNormal() {
+      altura = c.altura;
+      distancia = c.distancia;
     },
 
     acercar(factor) {

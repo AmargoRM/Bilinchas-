@@ -78,7 +78,7 @@ export const CONFIG = {
     // Largo de la línea de puntería, en cm. Corta a propósito, para que haya dificultad.
     largoPunteria: 12,
     // Qué tan lejos de la bolincha (en píxeles) se puede tocar para empezar a apuntar.
-    toleranciaToque: 90,
+    toleranciaToque: 100, // px alrededor de la bolincha donde un toque apunta (fuera de eso, mueve la cámara)
   },
 
   // ---------------------------------------------------------------

@@ -1,7 +1,6 @@
 // La información en pantalla: marcador, barra de fuerza, avisos, tarjetas y botones.
 import { tx } from '../textos.js';
-const AYUDA_TIRO = 'Toca tu {bolincha} y arrastra hacia atrás para tirar';
-const AYUDA_CAMARA = 'Arrastra para girar la cámara. Toca «Listo» para volver a tirar';
+const AYUDA_TIRO = 'Toca tu {bolincha} y arrastra hacia atrás para tirar.\nArrastra en otro lado para mirar; pellizca para acercar.';
 // Después de esta cantidad de tiros, la ayuda de cómo tirar deja de aparecer.
 const TIROS_CON_AYUDA = 2;
 
@@ -11,13 +10,10 @@ export function crearHud() {
   const relleno = $('fuerza-relleno');
   const numero = $('fuerza-numero');
   const ayuda = $('ayuda');
-  const btnCamara = $('btn-camara');
-  const btnCamaraTexto = $('btn-camara-texto');
   const cargando = $('cargando');
   const aviso = $('aviso');
   const tarjeta = $('tarjeta');
 
-  let modoCamara = false;
   let enMapa = false;
   let apuntando = false;
   let quiereAyudaTiro = false;
@@ -27,7 +23,6 @@ export function crearHud() {
   function mostrarAyuda() {
     let texto = null;
     if (enMapa) texto = null;
-    else if (modoCamara) texto = AYUDA_CAMARA;
     else if (quiereAyudaTiro && !apuntando && tirosHechos < TIROS_CON_AYUDA) texto = tx(AYUDA_TIRO);
     ayuda.hidden = !texto;
     if (texto) ayuda.textContent = texto;
@@ -54,13 +49,6 @@ export function crearHud() {
     ayudaDeTiro(si) {
       if (!si && quiereAyudaTiro) tirosHechos++;
       quiereAyudaTiro = si;
-      mostrarAyuda();
-    },
-
-    modoCamara(activo) {
-      modoCamara = activo;
-      btnCamara.setAttribute('aria-pressed', String(activo));
-      btnCamaraTexto.textContent = activo ? 'Listo' : 'Mover cámara';
       mostrarAyuda();
     },
 
@@ -183,10 +171,6 @@ export function crearHud() {
       );
       aviso.hidden = true;
       tarjeta.hidden = false;
-    },
-
-    alCamara(fn) {
-      btnCamara.addEventListener('click', fn);
     },
 
     // Botón "Ver mapa" (solo en el Caño).

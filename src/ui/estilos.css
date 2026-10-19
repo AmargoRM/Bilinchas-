@@ -416,6 +416,7 @@ button {
   text-align: center;
   max-width: 300px;
   text-wrap: balance;
+  white-space: pre-line;
 }
 
 /* Sin la ayuda en pantalla, los controles de abajo igual quedan pegados al borde. */

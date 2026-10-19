@@ -271,7 +271,6 @@ async function iniciar() {
   }
 
   hud.alNuevaPartida(() => irA('menu'));
-  hud.alCamara(() => hud.modoCamara(control.alternarModoCamara() === 'camara'));
 
   // ---------------- Sonidos de choques y rodado ----------------
   // Cada cuadro se mira cuánto cambió la velocidad de cada bolincha: un cambio
