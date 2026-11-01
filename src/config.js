@@ -238,7 +238,7 @@ export const CONFIG = {
   // CÁMARA
   // ---------------------------------------------------------------
   camara: {
-    distancia: 24, // cm detrás de la bolincha
+    distancia: 30, // cm detrás de la bolincha (más lejos, la propia no se ve gigante)
     altura: 0.36, // ángulo hacia abajo (0 = a ras del suelo, 1.4 = desde arriba)
     alturaMinima: 0.12,
     alturaMaxima: 1.35,

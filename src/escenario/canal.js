@@ -516,7 +516,7 @@ function texturaConcreto() {
   const t = new THREE.CanvasTexture(lienzo);
   t.colorSpace = THREE.SRGBColorSpace;
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.anisotropy = 4;
+  t.anisotropy = 16; // (se ve nítido de lejos y no "tiembla"; el teléfono usa lo que pueda)
   return t;
 }
 
@@ -537,6 +537,6 @@ function texturaSuelo(base, claro, oscuro, semilla) {
   const t = new THREE.CanvasTexture(lienzo);
   t.colorSpace = THREE.SRGBColorSpace;
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.anisotropy = 4;
+  t.anisotropy = 16; // (se ve nítido de lejos y no "tiembla"; el teléfono usa lo que pueda)
   return t;
 }

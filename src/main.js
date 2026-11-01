@@ -25,7 +25,9 @@ import { crearSonido } from './sonido.js';
 import { crearProgreso } from './progreso.js';
 import { crearPantallaColeccion } from './ui/coleccion.js';
 import { crearPantallaRuleta, hoy } from './ui/ruleta.js';
-import { buscarActualizacion, NUMERO_VERSION } from './actualizacion.js';
+import { crearPantallaMapas } from './ui/mapas-mundo.js';
+import { leerPreferencias, guardarPreferencias } from './jugadores.js';
+import { buscarActualizacion, consultarUltimaVersion, NUMERO_VERSION } from './actualizacion.js';
 import { crearInstrucciones } from './ui/instrucciones.js';
 import { crearSelectorEfecto } from './ui/efecto.js';
 import { crearBotonPoder } from './ui/poder.js';
@@ -70,6 +72,12 @@ async function iniciar() {
   const efectos = {
     hueco: () => sonido.hueco(),
     victoria: () => sonido.victoria(),
+    // Guías de la Práctica: dónde tocar el efecto y qué fuerza usar (null las quita).
+    guiaTutorial: (guia) => {
+      efecto.guia(guia?.efecto || null);
+      hud.guiaFuerza(guia?.fuerza || null);
+      if (guia) hud.fuerza(null);
+    },
     // Vista desde arriba de un mapa entero (detrás de la tarjeta para elegir mapa); null la quita.
     vistaPrevia: (bordes) => {
       controlCamara.vistaMapa(bordes);
@@ -93,6 +101,20 @@ async function iniciar() {
   progreso.usarNombres(Object.fromEntries(Object.entries(DISENOS).map(([id, d]) => [id, d.nombre])));
   const instrucciones = crearInstrucciones({ hud, nivel: () => progreso.nivel().numero });
   const pantallaColeccion = crearPantallaColeccion(progreso, { alBorrar: () => instrucciones.borrar() });
+  // Mapas del barrio: "Jugar aquí" deja elegido ese mapa y abre su modo.
+  const pantallaMapas = crearPantallaMapas({
+    nivel: () => progreso.nivel().numero,
+    puntos: () => progreso.estado.puntos,
+    alJugar: (m) => {
+      const pref = leerPreferencias();
+      if (m.modo === 'cano') pref.mapa = m.id;
+      else pref.mapaCirculo = m.id;
+      guardarPreferencias(pref);
+      modos[m.modo].elegirMapa?.(m.id);
+      mostrarPantalla(null);
+      usarJuego(m.modo);
+    },
+  });
   const pantallaRuleta = crearPantallaRuleta(progreso, {
     sonido,
     alVerColeccion: (id) => {
@@ -176,15 +198,15 @@ async function iniciar() {
     obtenerBolincha: () => modo.tirador,
     obtenerEfecto: () => efecto.valor(),
     obtenerObstaculos: () => modo.obstaculosPunteria?.() || [],
-    obtenerLargoPunteria: () => (modo.turnoDelDueno ? multiplicador(perfilDueno().stats, 'punteria') : 1),
+    obtenerLargoPunteria: () => (modo.turnoDelDueno && modo.usaEstadisticas !== false ? multiplicador(perfilDueno().stats, 'punteria') : 1),
     puedeTirar: () => modo.puedeTirar(),
     alApuntar: (f) => hud.fuerza(f),
     alTirar: (direccion, fuerza) => {
       sonido.tiro(fuerza);
       let elEfecto = efecto.valor();
       let peso = 1;
-      if (modo.turnoDelDueno) {
-        // Las estadísticas de su bolincha valen en todos sus tiros.
+      if (modo.turnoDelDueno && modo.usaEstadisticas !== false) {
+        // Las estadísticas de su bolincha valen en todos sus tiros (no en la Práctica).
         const { stats } = perfilDueno();
         fuerza *= multiplicador(stats, 'fuerza');
         peso *= multiplicador(stats, 'peso');
@@ -270,7 +292,7 @@ async function iniciar() {
   }
 
   // ---------------- Pantallas del menú ----------------
-  const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-coleccion', 'pantalla-reglas', 'pantalla-paises', 'pantalla-privacidad', 'pantalla-ruleta'];
+  const pantallas = ['portada', 'menu-principal', 'pantalla-modos', 'pantalla-ajustes', 'pantalla-coleccion', 'pantalla-reglas', 'pantalla-paises', 'pantalla-privacidad', 'pantalla-ruleta', 'pantalla-mapas'];
   let enMenu = true;
   let pantallaActual = 'portada';
   function mostrarPantalla(id) {
@@ -285,6 +307,8 @@ async function iniciar() {
     }
     if (id === 'pantalla-coleccion') pantallaColeccion.dibujar();
     if (id === 'pantalla-ruleta') pantallaRuleta.dibujar();
+    if (id === 'pantalla-mapas') pantallaMapas.dibujar();
+    if (id !== 'pantalla-mapas') pantallaMapas.cerrar();
     if (id === 'pantalla-reglas') {
       for (const m of ['circulo', 'cano', 'explosivas']) {
         $(`reglas-${m}`).replaceChildren(
@@ -310,6 +334,16 @@ async function iniciar() {
   // La primera vez se pregunta el país; después se cambia en Ajustes.
   // La primera vez que se abre el juego cada día, si la ruleta está libre, se va directo a ella.
   function pantallaDeEntrada() {
+    // La primera vez que se abre el juego, directo a la Práctica (una sola vez).
+    const CLAVE_PRACTICA = 'ojo-de-gato.practica-ofrecida';
+    try {
+      if (!localStorage.getItem(CLAVE_PRACTICA)) {
+        localStorage.setItem(CLAVE_PRACTICA, '1');
+        return 'practica';
+      }
+    } catch {
+      // sin almacenamiento: no se fuerza
+    }
     const CLAVE_RULETA = 'ojo-de-gato.ruleta-mostrada';
     let yaHoy = false;
     try {
@@ -320,15 +354,25 @@ async function iniciar() {
     }
     return !yaHoy && pantallaRuleta.disponible() ? 'pantalla-ruleta' : 'menu-principal';
   }
+  // Ir a una pantalla, o a la Práctica ('practica').
+  function irADestino(destino) {
+    if (destino === 'practica') {
+      mostrarPantalla(null);
+      usarJuego('tutorial');
+      return;
+    }
+    mostrarPantalla(destino);
+  }
   $('portada').addEventListener('click', () => {
     const destino = pantallaDeEntrada();
-    paisElegido() ? mostrarPantalla(destino) : elegirPais(destino);
+    paisElegido() ? irADestino(destino) : elegirPais(destino);
   });
   $('menu-jugar').addEventListener('click', () => mostrarPantalla('pantalla-modos'));
   $('menu-ajustes').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
   $('menu-reglas').addEventListener('click', () => mostrarPantalla('pantalla-reglas'));
   $('menu-coleccion').addEventListener('click', () => mostrarPantalla('pantalla-coleccion'));
   $('menu-ruleta').addEventListener('click', () => mostrarPantalla('pantalla-ruleta'));
+  $('menu-mapas').addEventListener('click', () => mostrarPantalla('pantalla-mapas'));
   $('ruleta-menu').addEventListener('click', () => mostrarPantalla('menu-principal'));
   $('ajuste-privacidad').addEventListener('click', () => mostrarPantalla('pantalla-privacidad'));
   $('privacidad-volver').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
@@ -372,7 +416,7 @@ async function iniciar() {
           usarPais(p.id);
           aplicarTextos();
           mostrarPais();
-          mostrarPantalla(despuesDePais);
+          irADestino(despuesDePais);
         });
         return b;
       })
@@ -386,13 +430,27 @@ async function iniciar() {
 
   // ---------------- Solo en la app de Android ----------------
   $('ajuste-version').textContent = NUMERO_VERSION ? `Versión de prueba ${NUMERO_VERSION}` : 'Versión armada a mano';
+  $('ajuste-actualizar').hidden = !Capacitor.isNativePlatform(); // (en el navegador no hace falta)
   if (Capacitor.isNativePlatform()) {
     // ¿Hay un APK de prueba más nuevo? Se avisa en el menú principal.
-    buscarActualizacion(({ numero, direccion }) => {
+    const avisar = ({ numero, direccion }) => {
       $('aviso-version-texto').textContent = `Hay una versión nueva del juego (${numero}). Tú tienes la ${NUMERO_VERSION}.`;
       $('aviso-version').hidden = false;
       // Capacitor abre las direcciones de afuera en el navegador del teléfono.
-      $('aviso-version-descargar').addEventListener('click', () => (window.location.href = direccion));
+      $('aviso-version-descargar').onclick = () => (window.location.href = direccion);
+    };
+    buscarActualizacion(avisar);
+    // En Ajustes: buscar a mano y decir qué pasó.
+    $('ajuste-actualizar').addEventListener('click', async () => {
+      const nota = $('ajuste-actualizar-nota');
+      nota.textContent = 'Preguntando a GitHub…';
+      const r = await consultarUltimaVersion();
+      if (!r) nota.textContent = 'No se pudo preguntar (¿hay internet?). Prueba otra vez en un rato.';
+      else if (r.numero > NUMERO_VERSION) {
+        nota.textContent = `Hay una versión nueva: la ${r.numero}. Bajando…`;
+        avisar(r);
+        window.location.href = r.direccion;
+      } else nota.textContent = `Tienes la más nueva (${NUMERO_VERSION}).`;
     });
     $('menu-salir').hidden = false;
     $('menu-salir').addEventListener('click', () => App.exitApp());
@@ -404,6 +462,8 @@ async function iniciar() {
         App.exitApp();
       } else if (pantallaActual === 'pantalla-paises') {
         mostrarPantalla(despuesDePais);
+      } else if (pantallaActual === 'pantalla-mapas' && pantallaMapas.abierta) {
+        pantallaMapas.cerrar();
       } else if (pantallaActual === 'pantalla-coleccion' && pantallaColeccion.abierta) {
         pantallaColeccion.cerrar();
       } else if (pantallaActual === 'pantalla-privacidad') {

@@ -12,17 +12,23 @@ export const NUMERO_VERSION = Number(typeof __NUMERO_VERSION__ !== 'undefined' ?
 // Llama a alHaber({ numero, direccion }) si hay una versión más nueva. Si no hay internet
 // o GitHub no responde, no pasa nada.
 export async function buscarActualizacion(alHaber) {
+  const r = await consultarUltimaVersion();
+  if (r && r.numero > NUMERO_VERSION) alHaber(r);
+}
+
+// La última versión publicada: { numero, direccion }, o null si no se pudo preguntar.
+export async function consultarUltimaVersion() {
   const d = CONFIG.desarrollo;
-  if (!d.buscarActualizaciones || !NUMERO_VERSION) return;
+  if (!d.buscarActualizaciones || !NUMERO_VERSION) return null;
   try {
     const url = `https://api.github.com/repos/${d.repositorio}/actions/workflows/${d.proceso}/runs?branch=${encodeURIComponent(d.rama)}&status=success&per_page=1`;
     const respuesta = await fetch(url, { headers: { Accept: 'application/vnd.github+json' } });
-    if (!respuesta.ok) return;
+    if (!respuesta.ok) return null;
     const ultima = (await respuesta.json()).workflow_runs?.[0];
-    if (ultima && ultima.run_number > NUMERO_VERSION) {
-      alHaber({ numero: ultima.run_number, direccion: `https://github.com/${d.repositorio}/releases/download/${d.paginaDescarga}/${d.archivo}` });
-    }
+    if (!ultima) return null;
+    return { numero: ultima.run_number, direccion: `https://github.com/${d.repositorio}/releases/download/${d.paginaDescarga}/${d.archivo}` };
   } catch {
     // sin internet: se vuelve a preguntar la próxima vez que se abra
+    return null;
   }
 }

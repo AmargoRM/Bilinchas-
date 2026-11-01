@@ -44,6 +44,7 @@
       <div id="barra-tiro" class="placa barra-tiro" hidden aria-hidden="true">
         <span class="barra-etiqueta">Fuerza</span>
         <div id="barra-carril" class="barra-carril">
+          <div id="barra-guia" class="barra-guia" hidden></div>
           <div id="barra-relleno" class="barra-relleno"></div>
           <div id="barra-taco" class="barra-taco"></div>
         </div>
@@ -56,7 +57,7 @@
 
       <div class="hud-abajo">
         <div id="efecto" class="placa efecto" hidden>
-          <div id="efecto-bola" class="efecto-bola" aria-label="Efecto: toca dónde pegarle a tu bolincha"><span id="efecto-punto" class="efecto-punto"></span></div>
+          <div id="efecto-bola" class="efecto-bola" aria-label="Efecto: toca dónde pegarle a tu bolincha"><span id="efecto-guia" class="efecto-guia" hidden></span><span id="efecto-punto" class="efecto-punto"></span></div>
           <span id="efecto-nombre" class="efecto-nombre">Sin efecto</span>
         </div>
         <button id="btn-poder" class="placa boton boton-poder" type="button" aria-pressed="false" hidden>
@@ -86,6 +87,7 @@
       <p id="menu-nivel" class="menu-nivel"></p>
       <nav class="menu-botones" aria-label="Menú principal">
         <button id="menu-jugar" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>Jugar</button>
+        <button id="menu-mapas" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>Mapas</button>
         <button id="menu-ruleta" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4" /></svg>Ruleta<i id="ruleta-aviso" class="aviso-punto" hidden>¡Gira!</i></button>
         <button id="menu-ajustes" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" class="icono-relleno"><path d="M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96a7 7 0 0 0-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.47.47 0 0 0-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.47.47 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.61zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z" /></svg>Ajustes</button>
         <button id="menu-coleccion" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="15" r="4" /><circle cx="16" cy="15" r="4" /><circle cx="12" cy="8" r="4" /></svg>Colección</button>
@@ -156,7 +158,8 @@
         <div class="fila-ajuste"><span>País</span><button id="ajuste-pais" class="boton selector-boton boton-pais" type="button"></button></div>
         <p class="nota" id="ajuste-pais-nota"></p>
         <p class="nota">La fuerza, el frenado y el rebote se ajustan durante el juego, con el botón del engranaje.</p>
-        <p class="nota" id="ajuste-version"></p>
+        <div class="fila-ajuste"><span id="ajuste-version">Versión</span><button id="ajuste-actualizar" class="boton selector-boton" type="button">Buscar versión nueva</button></div>
+        <p class="nota" id="ajuste-actualizar-nota"></p>
         <div class="fila-ajuste"><span>Privacidad</span><button id="ajuste-privacidad" class="boton selector-boton" type="button">Ver</button></div>
       </div>
     </section>
@@ -206,6 +209,28 @@
           <div class="detalle-botones">
             <button id="detalle-usar" class="boton boton-claro" type="button">Usar</button>
             <button id="detalle-cerrar" class="boton boton-plano" type="button">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pantalla-mapas" class="pantalla pantalla-lista" hidden>
+      <header class="pantalla-cabeza"><button class="volver" type="button" data-volver aria-label="Volver">←</button><h2>Mapas del barrio</h2></header>
+      <p class="nota" id="mapas-nivel"></p>
+      <div id="mapas-mundo" class="placa mapas-mundo"></div>
+      <p class="nota">Toca un lugar para verlo. Los grises se abren al subir de nivel.</p>
+      <h3 class="subtitulo-lista" id="mapas-proximos-titulo">Lo que viene</h3>
+      <ul id="mapas-proximos" class="placa lista-logros mapas-proximos"></ul>
+      <div id="mapas-ficha" class="detalle-fondo" hidden>
+        <div class="placa detalle" role="dialog" aria-modal="true" aria-labelledby="mapas-ficha-nombre">
+          <div id="mapas-ficha-mini"></div>
+          <h3 id="mapas-ficha-nombre" class="detalle-nombre"></h3>
+          <p id="mapas-ficha-modo" class="detalle-rareza"></p>
+          <p id="mapas-ficha-texto" class="detalle-poder"></p>
+          <p id="mapas-ficha-candado" class="nota"></p>
+          <div class="detalle-botones">
+            <button id="mapas-ficha-jugar" class="boton boton-claro" type="button">Jugar aquí</button>
+            <button id="mapas-ficha-cerrar" class="boton boton-plano" type="button">Cerrar</button>
           </div>
         </div>
       </div>

@@ -32,8 +32,10 @@ export function crearEscena(lienzo) {
   s.bottom = -130;
   s.near = 50;
   s.far = 700;
-  sol.shadow.bias = -0.0004;
-  sol.shadow.normalBias = 0.05;
+  // Corrimientos de la sombra: sin esto aparecen franjas de rayitas que "tiemblan"
+  // sobre el suelo (la superficie se hace sombra a sí misma). Medidas en cm.
+  sol.shadow.bias = -0.0006;
+  sol.shadow.normalBias = 0.4;
   escena.add(sol, sol.target);
 
   // Luz de cielo azul arriba y rebote de tierra rojiza abajo.

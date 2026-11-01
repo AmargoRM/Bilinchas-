@@ -176,6 +176,15 @@ export function crearHud() {
       tarjeta.hidden = false;
     },
 
+    // Guía de la Práctica en la barra de fuerza: la franja [desde, hasta] (0 a 1); null la quita.
+    guiaFuerza(franja) {
+      const g = $('barra-guia');
+      g.hidden = !franja;
+      if (!franja) return;
+      g.style.top = `${franja[0] * 100}%`;
+      g.style.height = `${(franja[1] - franja[0]) * 100}%`;
+    },
+
     // Botón de la vista desde arriba.
     mostrarBotonMapa(si) {
       $('btn-mapa').hidden = !si;

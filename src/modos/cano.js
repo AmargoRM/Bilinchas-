@@ -318,6 +318,10 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
     todas,
     nuevaPartida,
     empezarPartida,
+    // Deja elegido un mapa (desde la pantalla Mapas).
+    elegirMapa(id) {
+      mapa = buscarMapa(id);
+    },
     get traza() {
       return traza;
     },

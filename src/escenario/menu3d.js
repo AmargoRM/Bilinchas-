@@ -18,7 +18,7 @@ export function crearMenu3d({ entorno, fondo }) {
   sol.castShadow = true;
   sol.shadow.mapSize.set(1024, 1024);
   Object.assign(sol.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 5, far: 120 });
-  sol.shadow.normalBias = 0.05;
+  sol.shadow.normalBias = 0.4;
   escena.add(sol, new THREE.HemisphereLight(0xcfe3ff, 0x7a3e22, 0.8));
 
   escena.add(crearTierra());

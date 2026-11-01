@@ -50,7 +50,16 @@ export function crearSelectorEfecto() {
   mostrarValor();
 
   let visible = false;
+  // Guía de la Práctica: un aro amarillo donde conviene tocar (null lo quita).
+  const guia = document.getElementById('efecto-guia');
   return {
+    guia(valorGuia) {
+      guia.hidden = !valorGuia;
+      if (!valorGuia) return;
+      guia.style.left = `${50 + valorGuia.costado * 38}%`;
+      guia.style.top = `${50 - valorGuia.arriba * 38}%`;
+    },
+
     // El efecto elegido ({ arriba, costado } de −1 a 1), o null si no hay.
     valor: () => (valor.arriba || valor.costado ? { ...valor } : null),
     reiniciar() {

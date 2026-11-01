@@ -219,7 +219,7 @@ export function crearTierra() {
   for (const t of [mapa, mapaRelieve]) {
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.repeat.set(9, 9); // cada repetición mide unos 67 cm
-    t.anisotropy = 4;
+    t.anisotropy = 16; // (se ve nítido de lejos y no "tiembla"; el teléfono usa lo que pueda)
   }
 
   const suelo = new THREE.Mesh(
@@ -227,7 +227,7 @@ export function crearTierra() {
     new THREE.MeshStandardMaterial({
       map: mapa,
       bumpMap: mapaRelieve,
-      bumpScale: 0.6,
+      bumpScale: 0.3,
       roughness: 1,
       metalness: 0,
     })
@@ -282,7 +282,7 @@ export function crearTiza(radio) {
 
   const mapa = new THREE.CanvasTexture(c);
   mapa.colorSpace = THREE.SRGBColorSpace;
-  mapa.anisotropy = 4;
+  mapa.anisotropy = 16;
   const tiza = new THREE.Mesh(
     new THREE.PlaneGeometry(ladoCm, ladoCm),
     new THREE.MeshStandardMaterial({

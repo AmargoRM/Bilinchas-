@@ -18,10 +18,11 @@ function formaPetalo(radio) {
   for (let i = 0; i < p.count; i++) {
     const t = p.getX(i) * 2; // de -1 a 1 a lo largo
     const v = p.getY(i); // de -0.5 a 0.5 a lo ancho
-    const ancho = radio * 0.5 * Math.pow(Math.max(1 - t * t, 0), 0.6);
+    // (ancha, para que la veta se vea igual que en el dibujo de la Colección)
+    const ancho = radio * 0.85 * Math.pow(Math.max(1 - t * t, 0), 0.5);
     const giro = t * 1.3;
     const y = v * ancho;
-    p.setXYZ(i, t * radio * 0.84, y * Math.cos(giro), y * Math.sin(giro));
+    p.setXYZ(i, t * radio * 0.9, y * Math.cos(giro), y * Math.sin(giro));
   }
   geo.computeVertexNormals();
   return geo;
@@ -49,35 +50,72 @@ function materialesPara(idDiseno, radio) {
       });
       return materiales.get(clave);
     }
-    // Los vidrios muy oscuros (galaxia, volcán...) se veían negros: el color que "tiñe"
-    // por dentro se aclara hasta un mínimo y el vidrio brilla un poco de su color,
-    // así se parecen al dibujo de la Colección.
-    const hsl = color.getHSL({});
-    const tinte = color.clone().setHSL(hsl.h, hsl.s, Math.max(hsl.l, 0.32));
-    const oscuro = hsl.l < 0.25;
+    // Vidrio pulido con la veta pintada en la piel (como el dibujo de la Colección).
+    // Antes era vidrio transparente con la veta adentro: según el color, o se veía
+    // la veta o se veía el color, y la bolincha no se parecía a la elegida.
+    const textura = texturaVeta(d);
     materiales.set(clave, {
       vidrio: new THREE.MeshPhysicalMaterial({
-        color: tinte.clone().lerp(new THREE.Color(0xffffff), Math.max(d.claro, 0.12)),
-        emissive: oscuro ? tinte : 0x000000,
-        emissiveIntensity: oscuro ? 0.35 : 0,
+        map: textura,
+        emissiveMap: textura,
+        emissive: 0xffffff,
+        emissiveIntensity: 0.06, // un poco de brillo propio: se ve el color aunque esté a la sombra
         metalness: 0,
-        roughness: d.esmerilado ?? 0.03,
-        transmission: 1,
-        thickness: radio * 2,
-        ior: d.ior ?? 1.52,
-        attenuationColor: tinte,
-        attenuationDistance: radio * (4 + d.claro * 10),
+        roughness: d.esmerilado ? 0.3 + d.esmerilado * 0.4 : 0.06,
         clearcoat: 1,
-        clearcoatRoughness: 0.02,
-        specularIntensity: 1,
-        envMapIntensity: 1.5,
+        clearcoatRoughness: 0.03,
+        ior: d.ior ?? 1.52,
+        specularIntensity: 0.6,
+        envMapIntensity: 0.8,
       }),
-      petalos: d.vetas.map(
-        (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.3, side: THREE.DoubleSide, emissive: c, emissiveIntensity: 0.22 })
-      ),
+      petalos: [],
     });
   }
   return materiales.get(clave);
+}
+
+// La piel de la bolincha: su color con tres vetas onduladas alrededor (las mismas del
+// dibujo de la Colección). Una por diseño, compartida.
+const texturas = new Map();
+function texturaVeta(d) {
+  const clave = d.vidrio + ':' + d.vetas.join(',') + ':' + d.claro;
+  if (texturas.has(clave)) return texturas.get(clave);
+  if (typeof document === 'undefined') return null; // (simulaciones sin pantalla)
+  const lienzo = document.createElement('canvas');
+  lienzo.width = 512;
+  lienzo.height = 256;
+  const g = lienzo.getContext('2d');
+  const base = new THREE.Color(d.vidrio);
+  const hsl = base.getHSL({});
+  // (los muy oscuros se aclaran un poco para que se note el color)
+  base.setHSL(hsl.h, hsl.s, Math.max(hsl.l, 0.16)).lerp(new THREE.Color(0xffffff), d.claro * 0.2);
+  const degradado = g.createLinearGradient(0, 0, 0, 256);
+  degradado.addColorStop(0, '#' + base.clone().lerp(new THREE.Color(0xffffff), 0.18).getHexString());
+  degradado.addColorStop(0.5, '#' + base.getHexString());
+  degradado.addColorStop(1, '#' + base.clone().multiplyScalar(0.8).getHexString());
+  g.fillStyle = degradado;
+  g.fillRect(0, 0, 512, 256);
+  // Vetas: bandas onduladas que dan la vuelta (el borde izquierdo empalma con el derecho).
+  d.vetas.forEach((c, k) => {
+    g.strokeStyle = '#' + new THREE.Color(c).getHexString();
+    g.lineWidth = 26;
+    g.lineCap = 'round';
+    g.globalAlpha = 0.95;
+    g.beginPath();
+    for (let x = -10; x <= 522; x += 8) {
+      const y = 96 + k * 32 + Math.sin((x / 512) * Math.PI * 4 + k * 0.6) * 22;
+      if (x === -10) g.moveTo(x, y);
+      else g.lineTo(x, y);
+    }
+    g.stroke();
+  });
+  g.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(lienzo);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = THREE.RepeatWrapping;
+  t.anisotropy = 8;
+  texturas.set(clave, t);
+  return t;
 }
 
 // Devuelve un grupo listo para agregar a la escena.
@@ -87,6 +125,8 @@ export function crearAspecto(radio, idDiseno = 'clasica') {
   const grupo = new THREE.Group();
   const vidrio = new THREE.Mesh(forma.vidrio, mat.vidrio);
   vidrio.castShadow = true;
+  // Cada bolincha con la veta en otra posición, para que no se vean todas iguales.
+  vidrio.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
   grupo.add(vidrio);
   const veta = new THREE.Group();
   mat.petalos.forEach((m, k) => {

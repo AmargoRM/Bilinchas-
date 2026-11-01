@@ -1587,3 +1587,80 @@ button {
   font-size: 15px;
   line-height: 1.25;
 }
+
+/* Guías de la Práctica: dónde tocar el efecto y qué fuerza usar. */
+.efecto-guia {
+  position: absolute;
+  z-index: 1;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  border: 3px solid var(--amarillo);
+  box-shadow: 0 0 8px var(--amarillo);
+  animation: latido 1s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.barra-guia {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  border: 2px solid var(--amarillo);
+  border-radius: 4px;
+  background: rgba(242, 207, 74, 0.25);
+  pointer-events: none;
+}
+
+/* ---------------- Mapas del barrio ---------------- */
+.mapas-mundo {
+  flex-shrink: 0; /* (si no, la pantalla lo achica y el dibujo sale cortado) */
+  padding: 6px;
+  overflow: hidden;
+}
+
+.mapas-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+}
+
+.mapas-alfiler {
+  cursor: pointer;
+}
+
+.mapas-alfiler circle {
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+}
+
+.mapas-alfiler:not(.bloqueado) circle {
+  animation: latido 2.4s ease-in-out infinite;
+}
+
+.mapas-alfiler text {
+  font-family: var(--letra);
+  pointer-events: none;
+}
+
+.mapas-proximos {
+  flex-shrink: 0;
+}
+
+.mapas-proximos li {
+  display: flex;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.mapas-proximos li strong {
+  white-space: nowrap;
+  color: var(--amarillo);
+}
+
+.mapas-mini {
+  width: 140px;
+  height: 140px;
+  display: block;
+}

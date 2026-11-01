@@ -15,47 +15,53 @@ const LIMITE_PATIO = 280;
 const LECCIONES = [
   {
     titulo: 'Tirar',
-    texto: 'Toca tu {bolincha} y arrastra el dedo hacia atrás, como estirando una liga. La línea de tiza muestra hacia dónde sale y el aro blanco, dónde va a tocar. Suelta para tirar y pégale a la de adelante.',
+    texto: 'Toca tu {bolincha} (la de la flecha amarilla) y arrastra el dedo hacia atrás, como estirando una liga. La línea de tiza muestra hacia dónde sale y el aro blanco, dónde va a tocar. Arrastra hasta que la barra de la derecha llegue a la franja amarilla (entre 30 y 70 %) y suelta.',
     tirador: [0, 40],
     blancos: [[0, 0]],
+    guia: { fuerza: [0.3, 0.7] },
     exito: (r) => r.blancoMovido(0) > 3,
-    pista: 'Fíjate en el aro blanco de la puntería: si aparece sobre la otra {bolincha}, le vas a pegar.',
+    pista: 'Apunta derecho a la otra: el aro blanco tiene que quedar encima de ella. Suelta con la barra en la franja amarilla.',
   },
   {
     titulo: 'Curva',
-    texto: 'Una piedra tapa el camino. Abajo a la izquierda está tu {bolincha} en grande: toca su costado derecho («Curva →»). Apunta un poco a la izquierda de la piedra y tira con fuerza media: va a doblar a la derecha y pegarles a las de atrás.',
+    texto: '1) Abajo a la izquierda, en tu {bolincha} grande, toca el aro amarillo del borde derecho («Curva →»). 2) Arrastra apuntando a la marca amarilla del suelo, a la izquierda de la piedra. 3) Suelta con la fuerza en la franja amarilla (55 a 65 %). Va a doblar a la derecha y pegarles a las de atrás.',
     tirador: [0, 80],
     blancos: [[-4, 0], [0, 0], [4, 0]],
     piedras: [{ x: 0, z: 40, radio: 2.4 }],
+    apuntar: { x: -10, z: 40 },
+    guia: { efecto: { arriba: 0, costado: 1 }, fuerza: [0.55, 0.65] },
     exito: (r) => [0, 1, 2].some((i) => r.blancoMovido(i) > 3),
-    pista: 'Con la curva a la derecha, apunta más a la izquierda de la piedra. Si se queda corta, tira un poco más fuerte.',
+    pista: 'Revisa que diga «Curva →» abajo, que la línea pase por la marca amarilla y que la fuerza esté en la franja (55 a 65 %).',
   },
   {
     titulo: 'Retroceso',
-    texto: 'Ahora toca la parte de abajo de tu {bolincha} en grande («Retroceso»). Pégale de frente a la otra: la tuya tiene que volver hacia atrás y quedar dentro del aro.',
+    texto: '1) En tu {bolincha} grande, toca el aro amarillo de abajo («Retroceso»). 2) Apunta derecho a la otra. 3) Suelta con la fuerza en la franja amarilla (50 a 60 %). Tu {bolincha} le pega y vuelve hacia atrás, hasta el aro de tiza.',
     tirador: [0, 40],
     blancos: [[0, 0]],
     aro: { x: 0, z: 36, radio: 18 },
+    guia: { efecto: { arriba: -1, costado: 0 }, fuerza: [0.5, 0.6] },
     exito: (r) => r.blancoMovido(0) > 3 && r.tiradorEnAro(),
-    pista: 'Toca bien abajo de tu {bolincha} en grande y pégale de frente, con fuerza media.',
+    pista: 'Tiene que decir «Retroceso» abajo (toca bien el borde de abajo) y la fuerza entre 50 y 60 %.',
   },
   {
     titulo: 'Seguir',
-    texto: 'Toca la parte de arriba de tu {bolincha} en grande («Seguir»). Pégale de frente a la otra: la tuya tiene que seguir de largo y llegar al aro de atrás.',
+    texto: '1) En tu {bolincha} grande, toca el aro amarillo de arriba («Seguir»). 2) Apunta derecho a la otra. 3) Suelta con la fuerza en la franja amarilla (45 a 55 %). Tu {bolincha} le pega y sigue de largo hasta el aro de atrás.',
     tirador: [0, 40],
     blancos: [[0, 0]],
     aro: { x: 0, z: -24, radio: 15 },
+    guia: { efecto: { arriba: 1, costado: 0 }, fuerza: [0.45, 0.55] },
     exito: (r) => r.blancoMovido(0) > 3 && r.tiradorEnAro(),
-    pista: 'Toca bien arriba de tu {bolincha} en grande. Si no llega al aro, tira más fuerte; si se pasa, más suave.',
+    pista: 'Tiene que decir «Seguir» abajo (toca bien el borde de arriba). Si no llega al aro, un poco más fuerte; si se pasa, más suave.',
   },
   {
     titulo: 'Salto',
-    texto: 'Una fila de {bolinchas} tapa el paso. En esta lección tienes el Salto: toca el botón del rayo («Salto») y después tira. Tu {bolincha} pasa por encima y le pega a la de atrás.',
+    texto: 'Una fila de {bolinchas} tapa el paso. 1) Toca el botón del rayo («Salto»): cambia a «Salto: listo». 2) Apunta derecho a la de atrás. 3) Suelta con la fuerza en la franja amarilla (50 a 75 %). Tu {bolincha} pasa por encima de la fila.',
     tirador: [0, 60],
     blancos: [[0, 0], [-3.4, 30], [0, 30], [3.4, 30]],
     poder: 'salto',
+    guia: { fuerza: [0.5, 0.75] },
     exito: (r) => r.blancoMovido(0) > 3 && [1, 2, 3].every((i) => r.blancoMovido(i) < 2),
-    pista: 'Primero toca el botón del rayo («Salto: listo») y después tira con fuerza media, derecho a la de atrás.',
+    pista: 'Antes de tirar toca el botón del rayo hasta que diga «Salto: listo». Fuerza entre 50 y 75 %.',
   },
 ];
 
@@ -82,6 +88,14 @@ export function crearModoTutorial({ escena, fisica, hud, controlCamara, patio, m
   );
   aro.visible = false;
   escena.add(aro);
+  // Marca amarilla para apuntar (lección de curva).
+  const mira = new THREE.Mesh(
+    new THREE.RingGeometry(0.5, 1, 32).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0xffd23f, transparent: true, opacity: 0.95, depthWrite: false })
+  );
+  mira.scale.setScalar(2);
+  mira.visible = false;
+  escena.add(mira);
 
   const leccion = () => LECCIONES[numero];
 
@@ -100,6 +114,9 @@ export function crearModoTutorial({ escena, fisica, hud, controlCamara, patio, m
     patio?.usarMapa('patio');
     patio?.usarRadio(null);
     patio?.ponerPiedras(l.piedras || []);
+    mira.visible = !!l.apuntar;
+    if (l.apuntar) mira.position.set(l.apuntar.x, 0.06, l.apuntar.z);
+    efectos.guiaTutorial?.(l.guia || null);
     aro.visible = !!l.aro;
     if (l.aro) {
       aro.position.set(l.aro.x, 0.05, l.aro.z);
@@ -144,6 +161,8 @@ export function crearModoTutorial({ escena, fisica, hud, controlCamara, patio, m
 
   function terminarPractica() {
     fase = 'espera';
+    efectos.guiaTutorial?.(null);
+    mira.visible = false;
     efectos.victoria?.();
     hud.tarjeta({
       titulo: '¡Terminaste la práctica!',
@@ -218,6 +237,8 @@ export function crearModoTutorial({ escena, fisica, hud, controlCamara, patio, m
       mostrarPunteria(null);
       for (const b of todas) b.quitar();
       aro.visible = false;
+      mira.visible = false;
+      efectos.guiaTutorial?.(null);
     },
 
     get tirador() {
@@ -230,8 +251,10 @@ export function crearModoTutorial({ escena, fisica, hud, controlCamara, patio, m
 
     puedeTirar: () => fase === 'apuntar',
     apuntaComputadora: false,
-    // En la práctica tira siempre quien está aprendiendo.
+    // En la práctica tira siempre quien está aprendiendo, sin las estadísticas de su
+    // bolincha de la Colección (así las fuerzas que se indican sirven siempre).
     turnoDelDueno: true,
+    usaEstadisticas: false,
     // La habilidad que se presta en la lección (o null: ninguna, ni la de la Colección).
     get poderPrestado() {
       return HABILIDADES[leccion().poder] || null;

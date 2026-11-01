@@ -30,7 +30,7 @@ function textura(c, repetirX = 1, repetirY = 1) {
   t.colorSpace = THREE.SRGBColorSpace;
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(repetirX, repetirY);
-  t.anisotropy = 4;
+  t.anisotropy = 16; // (se ve nítido de lejos y no "tiembla"; el teléfono usa lo que pueda)
   return t;
 }
 
@@ -97,7 +97,7 @@ function crearAsfalto() {
     new THREE.MeshStandardMaterial({
       map: textura(c, ancho / 90, LARGO / 90),
       bumpMap: textura(cr, ancho / 90, LARGO / 90),
-      bumpScale: 0.5,
+      bumpScale: 0.3,
       roughness: 0.95,
     })
   );
