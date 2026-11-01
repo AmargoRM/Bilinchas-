@@ -137,10 +137,10 @@ export const CONFIG = {
     radio: 40, // cm. Círculo de tiza de 80 cm de ancho.
     // Cuántas bolinchas se ponen dentro del círculo.
     cantidadBolinchas: 10,
-    // Se reparten al azar dentro de esta fracción del radio (0.6 = 60 % del círculo).
-    zonaBolinchas: 0.6,
-    // Separación mínima entre bolinchas al acomodarlas, en cm.
-    separacionMinima: 3.5,
+    // Se desparraman al azar dentro de esta fracción del radio (0.85 = 85 % del círculo).
+    zonaBolinchas: 0.85,
+    // Separación mínima entre bolinchas al acomodarlas, en cm (casi siempre quedan mucho más lejos).
+    separacionMinima: 4,
     // Dónde arranca la bolincha del tirador: a esta distancia del centro.
     distanciaSalida: 60, // cm
   },
@@ -238,11 +238,13 @@ export const CONFIG = {
   // CÁMARA
   // ---------------------------------------------------------------
   camara: {
-    distancia: 30, // cm detrás de la bolincha (más lejos, la propia no se ve gigante)
-    altura: 0.36, // ángulo hacia abajo (0 = a ras del suelo, 1.4 = desde arriba)
-    alturaMinima: 0.12,
+    // Lejos y algo alta a propósito: con la cámara pegada, la bolincha propia (y las que
+    // quedan entre la cámara y ella) se ven mucho más grandes que las del círculo.
+    distancia: 48, // cm detrás de la bolincha
+    altura: 0.52, // ángulo hacia abajo (0 = a ras del suelo, 1.4 = desde arriba)
+    alturaMinima: 0.28,
     alturaMaxima: 1.35,
-    distanciaMinima: 15,
+    distanciaMinima: 32,
     distanciaMaxima: 120,
   },
 };

@@ -1,124 +1,52 @@
-// Formas de acomodar las bolinchas dentro del círculo. En cada partida se elige
-// una al azar, girada y corrida, para que nunca empiece igual.
-// Cada formación devuelve n posiciones { x, z } (cm), con el círculo en (0, 0).
-// separacion: distancia entre centros de bolinchas vecinas (cm).
+// Cómo se acomodan las bolinchas dentro del círculo: sueltas y desparramadas por todo
+// el círculo, al azar, sin filas ni montones (como cuando se tiran de la mano y ruedan).
+// Cada posición es { x, z } en cm, con el círculo en (0, 0).
 
-const SEPARACION = 3.8; // bolinchas casi tocándose
-
-export const FORMACIONES = {
-  // Sueltas por todo el centro del círculo.
-  sueltas(n, zona, estorbos = []) {
-    const lista = [];
-    for (let intento = 0; lista.length < n && intento < 3000; intento++) {
+// Reparte n bolinchas en un disco de radio "zona", lo más separadas posible entre sí,
+// sin tocar los "estorbos" ([{ x, z, radio }], las piedras).
+// Para cada bolincha se prueban varios lugares al azar y se queda el que tiene más
+// espacio libre alrededor: así quedan abiertas por el campo pero sin parecer ordenadas.
+export function repartirDispersas(n, zona, estorbos = [], separacionMinima = 4) {
+  const lista = [];
+  const holgura = (p) => {
+    let d = Infinity;
+    for (const q of lista) d = Math.min(d, Math.hypot(q.x - p.x, q.z - p.z));
+    for (const e of estorbos) d = Math.min(d, Math.hypot(e.x - p.x, e.z - p.z) - e.radio - 1.5);
+    return d;
+  };
+  for (let i = 0; i < n; i++) {
+    let mejor = null;
+    let mejorHolgura = -Infinity;
+    // Pocas pruebas = más desorden; muchas = más parejo. 8 queda natural.
+    for (let k = 0; k < 8 || (mejorHolgura < separacionMinima && k < 400); k++) {
       const a = Math.random() * Math.PI * 2;
       const r = Math.sqrt(Math.random()) * zona;
       const p = { x: Math.cos(a) * r, z: Math.sin(a) * r };
-      const lejos = estorbos.every((e) => Math.hypot(p.x - e.x, p.z - e.z) >= e.radio + 2.5);
-      if (lejos && lista.every((q) => Math.hypot(q.x - p.x, q.z - p.z) >= 4)) lista.push(p);
-    }
-    return lista;
-  },
-
-  // Montón apretado (como tiradas de la mano), en panal.
-  monton(n) {
-    const lista = [];
-    for (let anillo = 0; lista.length < n; anillo++) {
-      if (anillo === 0) {
-        lista.push({ x: 0, z: 0 });
-        continue;
-      }
-      for (let lado = 0; lado < 6; lado++) {
-        for (let k = 0; k < anillo; k++) {
-          const a1 = (lado * Math.PI) / 3;
-          const a2 = ((lado + 2) * Math.PI) / 3;
-          lista.push({
-            x: (Math.cos(a1) * anillo + Math.cos(a2) * k) * SEPARACION,
-            z: (Math.sin(a1) * anillo + Math.sin(a2) * k) * SEPARACION,
-          });
-        }
+      const h = holgura(p);
+      if (h > mejorHolgura) {
+        mejor = p;
+        mejorHolgura = h;
       }
     }
-    return lista.slice(0, n);
-  },
-
-  // Una cruz: dos filas que se cruzan en el medio.
-  cruz(n) {
-    const lista = [{ x: 0, z: 0 }];
-    const paso = SEPARACION * 1.5;
-    for (let k = 1; lista.length < n; k++) {
-      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (lista.length < n) lista.push({ x: dx * k * paso, z: dz * k * paso });
-    }
-    return lista;
-  },
-
-  // Una fila que atraviesa el círculo.
-  fila(n) {
-    const paso = SEPARACION * 1.15;
-    return Array.from({ length: n }, (_, i) => ({ x: (i - (n - 1) / 2) * paso, z: 0 }));
-  },
-
-  // Un anillo de bolinchas, con una en el medio.
-  anillo(n, zona) {
-    const r = Math.min(zona * 0.75, Math.max(((n - 1) * SEPARACION * 1.3) / (Math.PI * 2), 8));
-    const lista = [{ x: 0, z: 0 }];
-    for (let i = 0; i < n - 1; i++) {
-      const a = (i / (n - 1)) * Math.PI * 2;
-      lista.push({ x: Math.cos(a) * r, z: Math.sin(a) * r });
-    }
-    return lista;
-  },
-
-  // Triángulo, como las bolas del billar.
-  triangulo(n) {
-    const lista = [];
-    for (let fila = 0; lista.length < n; fila++) {
-      for (let k = 0; k <= fila && lista.length < n; k++) {
-        lista.push({ x: (k - fila / 2) * SEPARACION, z: fila * SEPARACION * 0.87 });
-      }
-    }
-    const filas = Math.ceil((Math.sqrt(8 * n + 1) - 1) / 2);
-    return lista.map((p) => ({ x: p.x, z: p.z - ((filas - 1) * SEPARACION * 0.87) / 2 }));
-  },
-
-  // Dos montoncitos separados.
-  dosMontones(n) {
-    const a = FORMACIONES.monton(Math.ceil(n / 2)).map((p) => ({ x: p.x - 10, z: p.z }));
-    const b = FORMACIONES.monton(Math.floor(n / 2)).map((p) => ({ x: p.x + 10, z: p.z }));
-    return [...a, ...b];
-  },
-};
-
-export const NOMBRES_FORMACIONES = {
-  sueltas: 'por todo el centro',
-  monton: 'en montón',
-  cruz: 'en cruz',
-  fila: 'en fila',
-  anillo: 'en anillo',
-  triangulo: 'en triángulo',
-  dosMontones: 'en dos montones',
-};
-
-// Elige una formación al azar, la gira y la corre un poco; descarta posiciones
-// que choquen con "estorbos" ([{ x, z, radio }]) o que se salgan de la zona.
-// Devuelve { nombre, posiciones } (puede traer menos de n si no entran todas).
-export function armarFormacion(n, zona, estorbos = []) {
-  const nombres = Object.keys(FORMACIONES);
-  for (let intento = 0; intento < 20; intento++) {
-    const nombre = nombres[Math.floor(Math.random() * nombres.length)];
-    const giro = Math.random() * Math.PI * 2;
-    const c = Math.cos(giro);
-    const s = Math.sin(giro);
-    // Corrida al azar, pero sin salir de la zona.
-    const base = FORMACIONES[nombre](n, zona, estorbos).map((p) => ({ x: p.x * c - p.z * s, z: p.x * s + p.z * c }));
-    const alcance = Math.max(...base.map((p) => Math.hypot(p.x, p.z)));
-    const margen = Math.max(zona - alcance, 0);
-    const a = Math.random() * Math.PI * 2;
-    const r = Math.sqrt(Math.random()) * margen;
-    const posiciones = base.map((p) => ({ x: p.x + Math.cos(a) * r, z: p.z + Math.sin(a) * r }));
-    const valen = posiciones.every(
-      (p) => Math.hypot(p.x, p.z) <= zona + 2 && estorbos.every((e) => Math.hypot(p.x - e.x, p.z - e.z) >= e.radio + 2.5)
-    );
-    if (valen && posiciones.length === n) return { nombre, posiciones };
+    lista.push(mejor);
   }
-  return { nombre: 'sueltas', posiciones: FORMACIONES.sueltas(n, zona, estorbos) };
+  return lista;
+}
+
+// ¿Se puede tirar en línea recta desde "desde" hasta "hasta" sin tocar ningún otro
+// obstáculo ([{ x, z, radio }])? radioTiro: radio de la bolincha que se tira.
+export function caminoLibre(desde, hasta, obstaculos, radioTiro, margen = 1.2) {
+  const dx = hasta.x - desde.x;
+  const dz = hasta.z - desde.z;
+  const largo = Math.hypot(dx, dz) || 1;
+  const ux = dx / largo;
+  const uz = dz / largo;
+  return obstaculos.every((o) => {
+    const cx = o.x - desde.x;
+    const cz = o.z - desde.z;
+    const avance = cx * ux + cz * uz;
+    if (avance <= 0 || avance >= largo) return Math.hypot(cx, cz) > o.radio + radioTiro + margen && Math.hypot(o.x - hasta.x, o.z - hasta.z) > 0.01;
+    const lado = Math.abs(cx * uz - cz * ux);
+    return lado > o.radio + radioTiro + margen;
+  });
 }

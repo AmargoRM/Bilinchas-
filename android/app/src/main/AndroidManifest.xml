@@ -33,9 +33,4 @@
          (src/actualizacion.js). Ningún otro permiso: ni cámara, ni ubicación, ni archivos.
          Antes de publicar en Google Play, quitarlo y apagar el aviso (CONFIG.desarrollo). -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Permiso para abrir el instalador de Android con el APK de prueba bajado
-         (ActualizadorPlugin.java). Android igual pide confirmación a la persona y solo
-         acepta un APK firmado con la misma llave. Google Play no lo permite en un juego:
-         QUITARLO antes de publicar, junto con el de internet. -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>

@@ -53,8 +53,9 @@ export function crearEscena(lienzo) {
     const alto = window.innerHeight;
     renderer.setSize(ancho, alto, false);
     camara.aspect = ancho / alto;
-    // En vertical se ve menos de ancho: abrir un poco el lente.
-    camara.fov = camara.aspect < 1 ? 58 : 46;
+    // En vertical se ve menos de ancho: abrir un poco el lente (sin pasarse: un lente muy
+    // abierto agranda lo que está cerca y achica lo lejano).
+    camara.fov = camara.aspect < 1 ? 50 : 42;
     camara.updateProjectionMatrix();
   }
   ajustarTamano();

@@ -10,7 +10,7 @@ import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, ha
 import { tx } from '../textos.js';
 import { botonUsarNueva } from '../ui/final.js';
 import { MAPAS_CIRCULO, buscarMapa, mapasDisponibles, proximoMapa, opcionesDeMapas, textoBloqueado } from '../mapas.js';
-import { armarFormacion, NOMBRES_FORMACIONES } from './formaciones.js';
+import { repartirDispersas, caminoLibre } from './formaciones.js';
 
 
 
@@ -189,25 +189,41 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     porExplotar = [];
     const enJuegoAhora = blancos.slice(0, reglas.bolinchas);
     const total = enJuegoAhora.length + explosivas.length;
-    const { nombre, posiciones } = armarFormacion(total, radio * CONFIG.circulo.zonaBolinchas, piedras);
-    // Las explosivas quedan escondidas en lugares al azar de la formación.
-    const lugares = posiciones.map((p, i) => i).sort(() => Math.random() - 0.5);
+    // Sueltas por todo el círculo; si la 1 no queda a la vista desde la salida, se reparte otra vez.
+    const radioTiro = CONFIG.bolinchas.boliche.diametro / 2; // el más grande que puede tirar
+    let posiciones = [];
+    let lugarDeLa1 = -1;
+    for (let intento = 0; intento < 40 && lugarDeLa1 < 0; intento++) {
+      posiciones = repartirDispersas(total, radio * CONFIG.circulo.zonaBolinchas, piedras, CONFIG.circulo.separacionMinima);
+      lugarDeLa1 = elegirLugarDeLa1(posiciones, intento < 30);
+    }
+    if (lugarDeLa1 < 0) lugarDeLa1 = 0;
+    // La 1 en un lugar a la vista; las explosivas y el resto, en los demás al azar.
+    const lugares = posiciones.map((p, i) => i).filter((i) => i !== lugarDeLa1).sort(() => Math.random() - 0.5);
+    function elegirLugarDeLa1(pos, exigente) {
+      const obst = [...pos.map((p) => ({ ...p, radio: CONFIG.bolinchas.normal.diametro / 2 })), ...piedras.map((p) => ({ ...p, radio: p.radio * 0.95 }))];
+      const buenos = pos
+        .map((p, i) => i)
+        .filter((i) => caminoLibre(salida, pos[i], obst.filter((o, k) => k !== i), radioTiro, exigente ? 2 : 1))
+        // que no quede pegada al borde de tiza más cercano a la salida (sería muy fácil o se sale)
+        .filter((i) => Math.hypot(pos[i].x, pos[i].z) > 4 || !exigente);
+      return buenos.length ? buenos[Math.floor(Math.random() * buenos.length)] : -1;
+    }
     explosivas.forEach((e, k) => {
       const p = posiciones[lugares[k]];
       if (!p) return;
       e.bolincha.colocar(p.x, p.z);
       e.activa = true;
     });
-    const resto = lugares.slice(explosivas.length);
+    const resto = [lugarDeLa1, ...lugares.slice(explosivas.length)];
     enJuegoAhora.forEach((b, i) => {
       const p = posiciones[resto[i]];
       if (!p) return;
       b.bolincha.colocar(p.x, p.z);
       b.enCirculo = true;
     });
-    // Si alguna no entró en la formación, va suelta.
+    // Si alguna no entró, va suelta.
     acomodar(enJuegoAhora.filter((b) => !b.enCirculo));
-    return nombre;
   }
 
   // Reparte bolinchas al azar dentro del círculo, sin que se toquen.
@@ -342,7 +358,9 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     }
 
     // La vista (y con ella la puntería) arranca mirando a la que toca.
-    controlCamara.mirarDesde(j.bolincha.posicion, objetivo() ? objetivo().bolincha.posicion.clone() : centro);
+    // En el primer tiro (libre) mira a la 1, que siempre queda a la vista desde la salida.
+    const mirar = objetivo() || (primerTiroDeLaPartida && blancos[0].enCirculo ? blancos[0] : null);
+    controlCamara.mirarDesde(j.bolincha.posicion, mirar ? mirar.bolincha.posicion.clone() : centro);
     fase = 'apuntar';
     hud.ayudaDeTiro(true);
   }
@@ -359,7 +377,7 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
       j.bolincha.quitar();
       j.enCancha = false;
     }
-    const formacion = armarCirculo();
+    armarCirculo();
     primerTiroDeLaPartida = true;
     escudoUsado = false;
     perdonUsado = false;
@@ -367,7 +385,7 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     ponerEnSalida(jugadores[turno]);
     enfocada = jugadores[turno].bolincha;
     controlCamara.mirarDesde(enfocada.posicion, centro, true);
-    hud.aviso(`${tx(`{Las} {bolinchas} están ${NOMBRES_FORMACIONES[formacion]}.`)} Empieza ${sujeto(jugadores[turno], false)}.`);
+    hud.aviso(`Empieza ${sujeto(jugadores[turno], false)}.`);
     seguirTirando();
   }
 

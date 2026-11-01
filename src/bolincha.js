@@ -15,7 +15,7 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', disen
   let anillo = null;
   if (aro) {
     anillo = new THREE.Mesh(
-      new THREE.RingGeometry(radio * 1.25, radio * 1.65, 32).rotateX(-Math.PI / 2),
+      new THREE.RingGeometry(radio * 1.12, radio * 1.3, 40).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({ color: aro, transparent: true, opacity: 0.6, depthWrite: false })
     );
     escena.add(anillo);
