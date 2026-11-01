@@ -17,6 +17,13 @@ Cada vez que se suben cambios a GitHub, el proceso automático
 En una computadora con Android Studio también se puede fabricar a mano:
 `npm run android` y después abrir la carpeta `android/` en Android Studio.
 
+## Descarga directa (sin iniciar sesión)
+
+Cada APK nuevo también queda en la página de descarga «prueba»:
+https://github.com/AmargoRM/Bilinchas-/releases/download/prueba/ojo-de-gato.apk
+Desde la versión 15, la app avisa al abrirse si hay uno más nuevo y lleva ahí.
+Esa dirección es pública: cualquiera que la tenga puede bajar el APK de prueba.
+
 ## Cómo instalarlo en el teléfono
 
 Android no deja instalar apps que no vienen de Google Play hasta que uno le

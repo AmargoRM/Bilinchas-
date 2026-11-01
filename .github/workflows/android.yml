@@ -1,6 +1,8 @@
 # Fabrica la app de Android (APK de prueba) cada vez que se suben cambios.
 # El archivo queda para descargar en la pestaña "Actions" de GitHub, en la
 # ejecución más reciente, sección "Artifacts" → "ojo-de-gato-apk".
+# Además se publica en la página de descarga fija "prueba" (Releases), que se
+# baja sin iniciar sesión: el aviso de versión nueva de la app lleva ahí.
 name: App Android (APK de prueba)
 
 on:
@@ -8,9 +10,9 @@ on:
     branches: [main, ccr-92d8eb7c-jnz2xm]
   workflow_dispatch:
 
-# Lo mínimo: el proceso solo puede leer el código, no cambiarlo.
+# Leer el código y publicar la página de descarga "prueba".
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   apk:
@@ -49,3 +51,15 @@ jobs:
           name: ojo-de-gato-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
+
+      - name: Publicar en la página de descarga "prueba"
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk ojo-de-gato.apk
+          gh release delete prueba --yes --cleanup-tag || true
+          gh release create prueba ojo-de-gato.apk \
+            --title "Versión de prueba ${{ github.run_number }}" \
+            --notes "APK de prueba número ${{ github.run_number }}. Se instala encima de la anterior y conserva el progreso." \
+            --prerelease --target "${{ github.sha }}"

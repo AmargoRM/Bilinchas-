@@ -95,6 +95,8 @@ export const CONFIG = {
     repositorio: 'AmargoRM/Bilinchas-',
     proceso: 'android.yml',
     rama: 'ccr-92d8eb7c-jnz2xm',
+    paginaDescarga: 'prueba', // la página de descarga (Release) que publica el proceso de GitHub
+    archivo: 'ojo-de-gato.apk',
   },
 
   // ---------------------------------------------------------------
