@@ -510,16 +510,16 @@ async function iniciar() {
   const anteriores = new Map();
   const vel = new THREE.Vector3();
   function sonidosDelCuadro() {
-    // El asfalto suena como el concreto.
-    const superficie = modo === modos.cano || modo.superficie === 'asfalto' ? 'concreto' : 'tierra';
     const enJuego = modo.todas.filter((b) => b.cuerpo.isEnabled());
     const yaSonaron = new Set();
-    let rodando = 0;
+    // Velocidad de las que ruedan apoyadas, por suelo (cada una suena según el suyo).
+    const rodando = { tierra: 0, asfalto: 0, concreto: 0 };
     for (const b of enJuego) {
       const v = b.cuerpo.linvel();
       vel.set(v.x, v.y, v.z);
       const antes = anteriores.get(b);
-      if (b.posicion.y < b.radio + 0.3) rodando += Math.hypot(v.x, v.z);
+      const superficie = b.superficie in rodando ? b.superficie : 'tierra';
+      if (b.posicion.y < b.radio + 0.3) rodando[superficie] += Math.hypot(v.x, v.z);
       if (antes) {
         const cambio = vel.distanceTo(antes);
         if (cambio > 25 && !yaSonaron.has(b)) {
@@ -539,7 +539,7 @@ async function iniciar() {
       }
     }
     for (const b of anteriores.keys()) if (!b.cuerpo.isEnabled()) anteriores.delete(b);
-    sonido.rodar(superficie === 'tierra' ? rodando : 0, superficie === 'concreto' ? rodando : 0);
+    sonido.rodar(rodando);
   }
 
   const reloj = new THREE.Clock();
@@ -548,7 +548,7 @@ async function iniciar() {
     if (enMenu) {
       efecto.mostrar(false);
       botonPoder.mostrar(false);
-      sonido.rodar(0, 0);
+      sonido.rodar();
       menu3d.actualizar(dt);
       renderer.render(menu3d.escena, menu3d.camara);
       return;
