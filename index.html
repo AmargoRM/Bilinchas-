@@ -9,6 +9,13 @@
   <body>
     <canvas id="lienzo"></canvas>
 
+    <!-- Versión nueva ya bajada: se ve en cualquier pantalla, también jugando. -->
+    <div id="version-lista" class="placa version-lista" role="status" hidden>
+      <span id="version-lista-texto"></span>
+      <button id="version-lista-actualizar" class="boton boton-claro" type="button">Actualizar</button>
+      <button id="version-lista-cerrar" class="boton boton-plano" type="button" aria-label="Más tarde">✕</button>
+    </div>
+
     <div id="hud">
       <div class="hud-arriba">
         <div class="placa marcador" aria-live="polite">

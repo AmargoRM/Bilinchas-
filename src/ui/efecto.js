@@ -4,6 +4,9 @@
 //   a un costado      = curva hacia ese lado
 // Solo se ve cuando es el turno de una persona. Después de cada tiro vuelve al centro.
 const CENTRO = 0.22; // cerca del medio cuenta como "sin efecto"
+// El punto se dibuja hasta el 76 % del radio: tocar ahí (o más afuera) es el efecto al máximo.
+// (Antes el máximo estaba recién en el borde y la guía de la Práctica daba solo un 76 %.)
+const ALCANCE = 0.76;
 
 export function crearSelectorEfecto() {
   const caja = document.getElementById('efecto');
@@ -13,8 +16,8 @@ export function crearSelectorEfecto() {
   let valor = { arriba: 0, costado: 0 };
 
   function mostrarValor() {
-    punto.style.left = `${50 + valor.costado * 38}%`;
-    punto.style.top = `${50 - valor.arriba * 38}%`;
+    punto.style.left = `${50 + valor.costado * ALCANCE * 50}%`;
+    punto.style.top = `${50 - valor.arriba * ALCANCE * 50}%`;
     const partes = [];
     if (valor.arriba > 0.25) partes.push('Seguir');
     if (valor.arriba < -0.25) partes.push('Retroceso');
@@ -26,14 +29,14 @@ export function crearSelectorEfecto() {
 
   function elegir(e) {
     const r = bola.getBoundingClientRect();
-    let x = ((e.clientX - r.left) / r.width) * 2 - 1;
-    let y = -(((e.clientY - r.top) / r.height) * 2 - 1);
+    let x = (((e.clientX - r.left) / r.width) * 2 - 1) / ALCANCE;
+    let y = -(((e.clientY - r.top) / r.height) * 2 - 1) / ALCANCE;
     const largo = Math.hypot(x, y);
     if (largo > 1) {
       x /= largo;
       y /= largo;
     }
-    valor = largo < CENTRO ? { arriba: 0, costado: 0 } : { arriba: y, costado: x };
+    valor = largo < CENTRO / ALCANCE ? { arriba: 0, costado: 0 } : { arriba: y, costado: x };
     mostrarValor();
   }
 
@@ -56,8 +59,8 @@ export function crearSelectorEfecto() {
     guia(valorGuia) {
       guia.hidden = !valorGuia;
       if (!valorGuia) return;
-      guia.style.left = `${50 + valorGuia.costado * 38}%`;
-      guia.style.top = `${50 - valorGuia.arriba * 38}%`;
+      guia.style.left = `${50 + valorGuia.costado * ALCANCE * 50}%`;
+      guia.style.top = `${50 - valorGuia.arriba * ALCANCE * 50}%`;
     },
 
     // El efecto elegido ({ arriba, costado } de −1 a 1), o null si no hay.

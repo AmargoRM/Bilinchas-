@@ -1588,6 +1588,32 @@ button {
   line-height: 1.25;
 }
 
+/* Versión nueva lista para instalar: arriba, en cualquier pantalla. */
+.version-lista {
+  position: fixed;
+  z-index: 1000;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(360px, calc(100% - 32px));
+  padding: 8px 10px 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-color: var(--amarillo);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+}
+
+.version-lista span {
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.version-lista .boton-plano {
+  padding: 6px 10px;
+}
+
 /* Guías de la Práctica: dónde tocar el efecto y qué fuerza usar. */
 .efecto-guia {
   position: absolute;

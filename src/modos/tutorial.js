@@ -12,11 +12,11 @@ const LIMITE_PATIO = 280;
 // Las lecciones. Posiciones en cm (la bolincha que tira mira hacia −z, hacia los blancos).
 //   blancos: bolinchas para pegarles   piedras: { x, z, radio }   aro: meta en el suelo
 //   poder: habilidad que se presta en esa lección   exito(r): ¿se logró? (r: lo que pasó)
-const LECCIONES = [
+export const LECCIONES = [
   {
     titulo: 'Tirar',
     texto: 'Toca tu {bolincha} (la de la flecha amarilla) y arrastra el dedo hacia atrás, como estirando una liga. La línea de tiza muestra hacia dónde sale y el aro blanco, dónde va a tocar. Arrastra hasta que la barra de la derecha llegue a la franja amarilla (entre 30 y 70 %) y suelta.',
-    tirador: [0, 40],
+    tirador: [0, 30],
     blancos: [[0, 0]],
     guia: { fuerza: [0.3, 0.7] },
     exito: (r) => r.blancoMovido(0) > 3,
@@ -26,49 +26,49 @@ const LECCIONES = [
     titulo: 'Curva',
     texto: '1) Abajo a la izquierda, en tu {bolincha} grande, toca el aro amarillo del borde derecho («Curva →»). 2) Arrastra apuntando a la marca amarilla del suelo, a la izquierda de la piedra. 3) Suelta con la fuerza en la franja amarilla (55 a 65 %). Va a doblar a la derecha y pegarles a las de atrás.',
     tirador: [0, 80],
-    blancos: [[-4, 0], [0, 0], [4, 0]],
+    blancos: [[-8, 0], [-4, 0], [0, 0], [4, 0], [8, 0]],
     piedras: [{ x: 0, z: 40, radio: 2.4 }],
     apuntar: { x: -10, z: 40 },
     guia: { efecto: { arriba: 0, costado: 1 }, fuerza: [0.55, 0.65] },
-    exito: (r) => [0, 1, 2].some((i) => r.blancoMovido(i) > 3),
+    exito: (r) => [0, 1, 2, 3, 4].some((i) => r.blancoMovido(i) > 3),
     pista: 'Revisa que diga «Curva →» abajo, que la línea pase por la marca amarilla y que la fuerza esté en la franja (55 a 65 %).',
   },
   {
     titulo: 'Retroceso',
-    texto: '1) En tu {bolincha} grande, toca el aro amarillo de abajo («Retroceso»). 2) Apunta derecho a la otra. 3) Suelta con la fuerza en la franja amarilla (50 a 60 %). Tu {bolincha} le pega y vuelve hacia atrás, hasta el aro de tiza.',
-    tirador: [0, 40],
+    texto: '1) En tu {bolincha} grande, toca el aro amarillo de abajo («Retroceso»). 2) Apunta derecho a la otra. 3) Suelta con la fuerza en la franja amarilla (50 a 65 %). Tu {bolincha} le pega de frente y vuelve hacia atrás: tiene que pasar la raya de tiza que está entre las dos.',
+    tirador: [0, 28],
     blancos: [[0, 0]],
-    aro: { x: 0, z: 36, radio: 18 },
-    guia: { efecto: { arriba: -1, costado: 0 }, fuerza: [0.5, 0.6] },
-    exito: (r) => r.blancoMovido(0) > 3 && r.tiradorEnAro(),
-    pista: 'Tiene que decir «Retroceso» abajo (toca bien el borde de abajo) y la fuerza entre 50 y 60 %.',
+    raya: { z: 8, volver: true },
+    guia: { efecto: { arriba: -1, costado: 0 }, fuerza: [0.5, 0.65] },
+    exito: (r) => r.blancoMovido(0) > 3 && r.tiradorPasoRaya(),
+    pista: 'Tiene que decir «Retroceso» abajo, la fuerza entre 50 y 65 % y el aro blanco justo encima de la otra (golpe de frente). Si no vuelve hasta la raya, un poco más fuerte.',
   },
   {
     titulo: 'Seguir',
-    texto: '1) En tu {bolincha} grande, toca el aro amarillo de arriba («Seguir»). 2) Apunta derecho a la otra. 3) Suelta con la fuerza en la franja amarilla (45 a 55 %). Tu {bolincha} le pega y sigue de largo hasta el aro de atrás.',
+    texto: '1) En tu {bolincha} grande, toca el aro amarillo de arriba («Seguir»). 2) Apunta derecho a la otra. 3) Suelta con la fuerza en la franja amarilla (50 a 75 %). Tu {bolincha} le pega y sigue de largo: tiene que pasar la raya de tiza que está detrás de la otra.',
     tirador: [0, 40],
     blancos: [[0, 0]],
-    aro: { x: 0, z: -24, radio: 15 },
-    guia: { efecto: { arriba: 1, costado: 0 }, fuerza: [0.45, 0.55] },
-    exito: (r) => r.blancoMovido(0) > 3 && r.tiradorEnAro(),
-    pista: 'Tiene que decir «Seguir» abajo (toca bien el borde de arriba). Si no llega al aro, un poco más fuerte; si se pasa, más suave.',
+    raya: { z: -12, volver: false },
+    guia: { efecto: { arriba: 1, costado: 0 }, fuerza: [0.5, 0.75] },
+    exito: (r) => r.blancoMovido(0) > 3 && r.tiradorPasoRaya(),
+    pista: 'Tiene que decir «Seguir» abajo (toca el aro amarillo de arriba) y la fuerza entre 50 y 75 %.',
   },
   {
     titulo: 'Salto',
-    texto: 'Una fila de {bolinchas} tapa el paso. 1) Toca el botón del rayo («Salto»): cambia a «Salto: listo». 2) Apunta derecho a la de atrás. 3) Suelta con la fuerza en la franja amarilla (50 a 75 %). Tu {bolincha} pasa por encima de la fila.',
+    texto: 'Una fila de {bolinchas} tapa el paso. 1) Toca el botón del rayo («Salto»): cambia a «Salto: listo». 2) Apunta derecho a la de atrás. 3) Suelta con la fuerza en la franja amarilla (55 a 75 %). Tu {bolincha} pasa por encima de la fila y les pega a las de atrás.',
     tirador: [0, 60],
-    blancos: [[0, 0], [-3.4, 30], [0, 30], [3.4, 30]],
+    blancos: [[-3.4, 0], [0, 0], [3.4, 0], [-3.4, 30], [0, 30], [3.4, 30]],
     poder: 'salto',
-    guia: { fuerza: [0.5, 0.75] },
-    exito: (r) => r.blancoMovido(0) > 3 && [1, 2, 3].every((i) => r.blancoMovido(i) < 2),
-    pista: 'Antes de tirar toca el botón del rayo hasta que diga «Salto: listo». Fuerza entre 50 y 75 %.',
+    guia: { fuerza: [0.55, 0.75] },
+    exito: (r) => [0, 1, 2].some((i) => r.blancoMovido(i) > 3) && [3, 4, 5].every((i) => r.blancoMovido(i) < 2),
+    pista: 'Antes de tirar toca el botón del rayo hasta que diga «Salto: listo». Fuerza entre 55 y 75 %.',
   },
 ];
 
 export function crearModoTutorial({ escena, fisica, hud, controlCamara, patio, mostrarPunteria = () => {}, efectos = {}, alSalir = () => {}, disenoDueno = () => null }) {
   const centro = new THREE.Vector3();
   const tirador = crearBolincha({ escena, fisica, posicion: centro, diseno: 'azul', aro: '#3b9be0' });
-  const blancos = Array.from({ length: 4 }, (_, i) => crearBolincha({ escena, fisica, posicion: centro, diseno: ['clasica', 'verde', 'cristal', 'agua'][i] }));
+  const blancos = Array.from({ length: 6 }, (_, i) => crearBolincha({ escena, fisica, posicion: centro, diseno: ['clasica', 'verde', 'cristal', 'agua', 'menta', 'clasica'][i] }));
   const todas = [tirador, ...blancos];
   let vestida = 'azul';
   let numero = 0; // lección actual
@@ -88,6 +88,13 @@ export function crearModoTutorial({ escena, fisica, hud, controlCamara, patio, m
   );
   aro.visible = false;
   escena.add(aro);
+  // Raya de tiza que hay que pasar (lecciones de retroceso y seguir).
+  const raya = new THREE.Mesh(
+    new THREE.PlaneGeometry(60, 1.4).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0xf6f1e4, transparent: true, opacity: 0.9, depthWrite: false })
+  );
+  raya.visible = false;
+  escena.add(raya);
   // Marca amarilla para apuntar (lección de curva).
   const mira = new THREE.Mesh(
     new THREE.RingGeometry(0.5, 1, 32).rotateX(-Math.PI / 2),
@@ -114,6 +121,8 @@ export function crearModoTutorial({ escena, fisica, hud, controlCamara, patio, m
     patio?.usarMapa('patio');
     patio?.usarRadio(null);
     patio?.ponerPiedras(l.piedras || []);
+    raya.visible = !!l.raya;
+    if (l.raya) raya.position.set(0, 0.05, l.raya.z);
     mira.visible = !!l.apuntar;
     if (l.apuntar) mira.position.set(l.apuntar.x, 0.06, l.apuntar.z);
     efectos.guiaTutorial?.(l.guia || null);
@@ -184,6 +193,8 @@ export function crearModoTutorial({ escena, fisica, hud, controlCamara, patio, m
         if (!b.cuerpo.isEnabled()) return 999;
         return Math.hypot(b.posicion.x - x, b.posicion.z - z);
       },
+      // Pasó la raya: hacia atrás (volver) o hacia adelante.
+      tiradorPasoRaya: () => !!l.raya && tirador.cuerpo.isEnabled() && (l.raya.volver ? tirador.posicion.z >= l.raya.z : tirador.posicion.z <= l.raya.z),
       tiradorEnAro: () => !!l.aro && tirador.cuerpo.isEnabled() && Math.hypot(tirador.posicion.x - l.aro.x, tirador.posicion.z - l.aro.z) <= l.aro.radio,
     };
     if (l.exito(r)) {
@@ -237,6 +248,7 @@ export function crearModoTutorial({ escena, fisica, hud, controlCamara, patio, m
       mostrarPunteria(null);
       for (const b of todas) b.quitar();
       aro.visible = false;
+      raya.visible = false;
       mira.visible = false;
       efectos.guiaTutorial?.(null);
     },

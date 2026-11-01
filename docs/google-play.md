@@ -80,9 +80,12 @@ más adelante obliga a cumplir esas reglas en ese momento.
 - La app de Android **no tiene ningún permiso**: se quitó el de internet que
   Capacitor trae por defecto. **Ojo (versiones de prueba):** desde la versión con aviso
   de actualización, el permiso de internet volvió, solo para preguntarle a GitHub si hay
-  un APK nuevo. Antes de publicar: poner `buscarActualizaciones: false` en
-  `src/config.js`, quitar el permiso de `AndroidManifest.xml` y sacar `https://api.github.com`
-  de la regla de seguridad en `vite.config.js`.
+  un APK nuevo. Además está el permiso `REQUEST_INSTALL_PACKAGES` (abrir el instalador
+  de Android con el APK de prueba bajado). Google Play **rechaza** juegos con ese permiso.
+  Antes de publicar: poner `buscarActualizaciones: false` en `src/config.js`, quitar los
+  dos permisos de `AndroidManifest.xml`, borrar `ActualizadorPlugin.java` (y su línea en
+  `MainActivity.java`) y sacar `https://api.github.com` de la regla de seguridad en
+  `vite.config.js`.
 - El juego armado lleva una regla de seguridad (CSP) que solo deja cargar sus
   propios archivos y bloquea cualquier conexión a internet.
 - No se usan datos de quien juega en ningún texto armado como HTML

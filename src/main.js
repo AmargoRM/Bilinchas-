@@ -27,7 +27,7 @@ import { crearPantallaColeccion } from './ui/coleccion.js';
 import { crearPantallaRuleta, hoy } from './ui/ruleta.js';
 import { crearPantallaMapas } from './ui/mapas-mundo.js';
 import { leerPreferencias, guardarPreferencias } from './jugadores.js';
-import { buscarActualizacion, consultarUltimaVersion, NUMERO_VERSION } from './actualizacion.js';
+import { consultarUltimaVersion, bajarVersion, instalarVersion, limpiarBajadas, NUMERO_VERSION } from './actualizacion.js';
 import { crearInstrucciones } from './ui/instrucciones.js';
 import { crearSelectorEfecto } from './ui/efecto.js';
 import { crearBotonPoder } from './ui/poder.js';
@@ -432,14 +432,61 @@ async function iniciar() {
   $('ajuste-version').textContent = NUMERO_VERSION ? `Versión de prueba ${NUMERO_VERSION}` : 'Versión armada a mano';
   $('ajuste-actualizar').hidden = !Capacitor.isNativePlatform(); // (en el navegador no hace falta)
   if (Capacitor.isNativePlatform()) {
-    // ¿Hay un APK de prueba más nuevo? Se avisa en el menú principal.
-    const avisar = ({ numero, direccion }) => {
-      $('aviso-version-texto').textContent = `Hay una versión nueva del juego (${numero}). Tú tienes la ${NUMERO_VERSION}.`;
+    // ¿Hay un APK de prueba más nuevo? Se baja solo, sin salir del juego, y cuando
+    // está listo aparece "Actualizar" arriba (en cualquier pantalla) y en el menú.
+    let bajandoNumero = 0;
+    let listaNumero = 0;
+    let ultimaDireccion = '';
+    const textoMenu = $('aviso-version-texto');
+    const botonMenu = $('aviso-version-descargar');
+    const mostrarLista = () => {
+      $('version-lista-texto').textContent = `La versión ${listaNumero} está lista.`;
+      $('version-lista').hidden = false;
+      textoMenu.textContent = `La versión nueva (${listaNumero}) ya está bajada. Tú tienes la ${NUMERO_VERSION}.`;
+      botonMenu.textContent = 'Actualizar';
+      botonMenu.hidden = false;
+      botonMenu.onclick = instalar;
       $('aviso-version').hidden = false;
-      // Capacitor abre las direcciones de afuera en el navegador del teléfono.
-      $('aviso-version-descargar').onclick = () => (window.location.href = direccion);
     };
-    buscarActualizacion(avisar);
+    async function instalar() {
+      const r = await instalarVersion(listaNumero);
+      if (r === 'permiso') {
+        $('version-lista-texto').textContent = 'Activa «Permitir de esta fuente», vuelve y toca Actualizar otra vez.';
+        $('version-lista').hidden = false;
+      } else if (r === 'error') {
+        // Plan B: bajarla con el navegador del teléfono, como antes.
+        window.location.href = ultimaDireccion;
+      }
+      // 'instalando': Android muestra su pantalla de instalar; al aceptar, el juego se cierra y se abre el nuevo.
+    }
+    async function preparar(r) {
+      ultimaDireccion = r.direccion;
+      if (listaNumero === r.numero) return mostrarLista();
+      if (bajandoNumero === r.numero) return;
+      bajandoNumero = r.numero;
+      $('aviso-version').hidden = false;
+      botonMenu.hidden = true;
+      textoMenu.textContent = `Bajando la versión nueva (${r.numero})…`;
+      const ok = await bajarVersion(r, (p) => {
+        textoMenu.textContent = `Bajando la versión nueva (${r.numero})… ${p} %`;
+      });
+      bajandoNumero = 0;
+      if (ok) {
+        listaNumero = r.numero;
+        mostrarLista();
+      } else {
+        textoMenu.textContent = `No se pudo bajar la versión ${r.numero}. Se intentará al volver a abrir el juego.`;
+        botonMenu.textContent = 'Bajar con el navegador';
+        botonMenu.hidden = false;
+        botonMenu.onclick = () => (window.location.href = r.direccion);
+      }
+    }
+    $('version-lista-actualizar').addEventListener('click', instalar);
+    $('version-lista-cerrar').addEventListener('click', () => ($('version-lista').hidden = true));
+    consultarUltimaVersion().then((r) => {
+      if (r && r.numero > NUMERO_VERSION) preparar(r);
+      else if (r) limpiarBajadas(); // ya tiene la última: se borra lo bajado antes
+    });
     // En Ajustes: buscar a mano y decir qué pasó.
     $('ajuste-actualizar').addEventListener('click', async () => {
       const nota = $('ajuste-actualizar-nota');
@@ -447,9 +494,8 @@ async function iniciar() {
       const r = await consultarUltimaVersion();
       if (!r) nota.textContent = 'No se pudo preguntar (¿hay internet?). Prueba otra vez en un rato.';
       else if (r.numero > NUMERO_VERSION) {
-        nota.textContent = `Hay una versión nueva: la ${r.numero}. Bajando…`;
-        avisar(r);
-        window.location.href = r.direccion;
+        nota.textContent = listaNumero === r.numero ? `La versión ${r.numero} ya está bajada: toca Actualizar arriba.` : `Hay una versión nueva: la ${r.numero}. Se está bajando; cuando esté lista aparece «Actualizar» arriba.`;
+        preparar(r);
       } else nota.textContent = `Tienes la más nueva (${NUMERO_VERSION}).`;
     });
     $('menu-salir').hidden = false;

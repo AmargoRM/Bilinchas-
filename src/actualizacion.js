@@ -4,6 +4,7 @@
 // que el proceso de GitHub actualiza en cada fabricación; no hace falta iniciar sesión).
 // Para publicar en Google Play: poner CONFIG.desarrollo.buscarActualizaciones en false
 // (y entonces la app puede volver a no tener permiso de internet).
+import { registerPlugin } from '@capacitor/core';
 import { CONFIG } from './config.js';
 
 /* global __NUMERO_VERSION__ */
@@ -31,4 +32,38 @@ export async function consultarUltimaVersion() {
     // sin internet: se vuelve a preguntar la próxima vez que se abra
     return null;
   }
+}
+
+// ---- Bajar sin salir del juego (solo en la app de Android) ----
+// Usa el complemento propio "Actualizador" (ActualizadorPlugin.java).
+const Actualizador = registerPlugin('Actualizador');
+
+// Baja el APK de la versión r en segundo plano. alProgreso(porcentaje) mientras baja.
+// Devuelve true si quedó listo para instalar.
+export async function bajarVersion(r, alProgreso) {
+  const oyente = await Actualizador.addListener('progreso', (p) => alProgreso?.(p.porcentaje));
+  try {
+    const x = await Actualizador.descargar({ url: r.direccion, numero: r.numero });
+    return !!x?.listo;
+  } catch {
+    return false;
+  } finally {
+    oyente.remove();
+  }
+}
+
+// Abre el instalador de Android. Devuelve 'instalando', 'permiso' (hay que dar permiso
+// y volver a tocar) o 'error'.
+export async function instalarVersion(numero) {
+  try {
+    const x = await Actualizador.instalar({ numero });
+    return x?.faltaPermiso ? 'permiso' : 'instalando';
+  } catch {
+    return 'error';
+  }
+}
+
+// Borra APKs bajados que ya no sirven (cuando no hay versión nueva).
+export function limpiarBajadas() {
+  Actualizador.limpiar().catch(() => {});
 }
