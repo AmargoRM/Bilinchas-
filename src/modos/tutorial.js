@@ -24,14 +24,13 @@ export const LECCIONES = [
   },
   {
     titulo: 'Curva',
-    texto: '1) Abajo a la izquierda, en tu {bolincha} grande, toca el aro amarillo del borde derecho («Curva →»). 2) Arrastra apuntando a la marca amarilla del suelo, a la izquierda de la piedra. 3) Suelta con la fuerza en la franja amarilla (55 a 65 %). Va a doblar a la derecha y pegarles a las de atrás.',
+    texto: '1) Abajo a la izquierda, en tu {bolincha} grande, toca el aro amarillo del borde derecho («Curva →»). 2) Arrastra con la fuerza en la franja amarilla (55 a 65 %). La línea de puntos muestra el camino de verdad: muévela hacia la izquierda hasta que rodee la piedra y termine en las {bolinchas} de atrás (aparece el aro blanco encima de una). 3) Suelta.',
     tirador: [0, 80],
     blancos: [[-8, 0], [-4, 0], [0, 0], [4, 0], [8, 0]],
     piedras: [{ x: 0, z: 40, radio: 2.4 }],
-    apuntar: { x: -10, z: 40 },
     guia: { efecto: { arriba: 0, costado: 1 }, fuerza: [0.55, 0.65] },
     exito: (r) => [0, 1, 2, 3, 4].some((i) => r.blancoMovido(i) > 3),
-    pista: 'Revisa que diga «Curva →» abajo, que la línea pase por la marca amarilla y que la fuerza esté en la franja (55 a 65 %).',
+    pista: 'Revisa que diga «Curva →» abajo. Antes de soltar, mira que la línea de puntos pase a la izquierda de la piedra, doble y termine con el aro blanco sobre una {bolincha}.',
   },
   {
     titulo: 'Retroceso',
@@ -55,7 +54,7 @@ export const LECCIONES = [
   },
   {
     titulo: 'Salto',
-    texto: 'Una fila de {bolinchas} tapa el paso. 1) Toca el botón del rayo («Salto»): cambia a «Salto: listo». 2) Apunta derecho a la de atrás. 3) Suelta con la fuerza en la franja amarilla (55 a 75 %). Tu {bolincha} pasa por encima de la fila y les pega a las de atrás.',
+    texto: 'Una fila de {bolinchas} tapa el paso. 1) Toca el botón del rayo («Salto»): cambia a «Salto: listo». 2) Apunta derecho a la de atrás (la línea se corta en la fila: es normal, el salto la pasa por encima). 3) Suelta con la fuerza en la franja amarilla (55 a 75 %). Tu {bolincha} pasa por encima de la fila y les pega a las de atrás.',
     tirador: [0, 60],
     blancos: [[-3.4, 0], [0, 0], [3.4, 0], [-3.4, 30], [0, 30], [3.4, 30]],
     poder: 'salto',
@@ -267,6 +266,8 @@ export function crearModoTutorial({ escena, fisica, hud, controlCamara, patio, m
     // bolincha de la Colección (así las fuerzas que se indican sirven siempre).
     turnoDelDueno: true,
     usaEstadisticas: false,
+    // La línea de puntería muestra el camino completo que va a hacer.
+    recorridoCompleto: true,
     // La habilidad que se presta en la lección (o null: ninguna, ni la de la Colección).
     get poderPrestado() {
       return HABILIDADES[leccion().poder] || null;
@@ -280,7 +281,7 @@ export function crearModoTutorial({ escena, fisica, hud, controlCamara, patio, m
       const l = leccion();
       return [
         ...blancos.filter((b) => b.cuerpo.isEnabled()).map((b) => ({ x: b.posicion.x, z: b.posicion.z, radio: b.radio })),
-        ...(l.piedras || []).map((p) => ({ x: p.x, z: p.z, radio: Math.sqrt((p.radio + tirador.radio) ** 2 - (tirador.radio - p.radio * 0.35) ** 2) - tirador.radio })),
+        ...(l.piedras || []).map((p) => ({ x: p.x, z: p.z, radio: Math.sqrt((p.radio + tirador.radio) ** 2 - (tirador.radio - p.radio * 0.35) ** 2) - tirador.radio + 0.6 })), // (+0,6 cm de holgura: si la línea pasa, pasa)
       ];
     },
 

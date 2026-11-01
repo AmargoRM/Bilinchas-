@@ -72,6 +72,10 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', disen
       cuerpo.setLinearDamping(s.frenado);
     },
 
+    get superficie() {
+      return superficie;
+    },
+
     usarSuperficie(nombre) {
       superficie = nombre;
       bolincha.aplicarConfig();

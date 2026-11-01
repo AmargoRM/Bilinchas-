@@ -198,6 +198,14 @@ async function iniciar() {
     obtenerBolincha: () => modo.tirador,
     obtenerEfecto: () => efecto.valor(),
     obtenerObstaculos: () => modo.obstaculosPunteria?.() || [],
+    // En la Práctica la línea muestra el camino entero; en las partidas, un tramo.
+    obtenerRecorridoCompleto: () => modo.recorridoCompleto === true,
+    // Lo mismo que se le aplica al tiro al soltar (estadísticas de su bolincha).
+    obtenerAjusteTiro: () => {
+      if (!modo.turnoDelDueno || modo.usaEstadisticas === false) return { fuerza: 1, efecto: 1 };
+      const { stats } = perfilDueno();
+      return { fuerza: multiplicador(stats, 'fuerza'), efecto: multiplicador(stats, 'efecto') };
+    },
     obtenerLargoPunteria: () => (modo.turnoDelDueno && modo.usaEstadisticas !== false ? multiplicador(perfilDueno().stats, 'punteria') : 1),
     puedeTirar: () => modo.puedeTirar(),
     alApuntar: (f) => hud.fuerza(f),

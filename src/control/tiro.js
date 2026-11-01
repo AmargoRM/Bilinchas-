@@ -5,8 +5,9 @@
 //   - tocar dos veces rápido en un lugar vacío: vuelve a la vista normal.
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
+import { predecirRecorrido } from '../prediccion.js';
 
-export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtenerBolincha, obtenerEfecto = () => null, obtenerLargoPunteria = () => 1, obtenerObstaculos = () => [], puedeTirar, alApuntar, alTirar }) {
+export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtenerBolincha, obtenerEfecto = () => null, obtenerLargoPunteria = () => 1, obtenerObstaculos = () => [], obtenerRecorridoCompleto = () => false, obtenerAjusteTiro = () => ({ fuerza: 1, efecto: 1 }), puedeTirar, alApuntar, alTirar }) {
   const t = CONFIG.tiro;
   let arrastre = null; // un dedo: { id, x, y, tipo: 'tiro' | 'camara' }
   const dedos = new Map(); // dedos apoyados: id → { x, y }
@@ -31,9 +32,10 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
     zonaCancelar.classList.remove('encima');
   }
 
-  // Línea corta de puntería: puntos de tiza.
+  // Línea de puntería: puntos de tiza sobre el camino que de verdad va a hacer
+  // (prediccion.js). Corta en las partidas; completa en la Práctica.
   const punteria = new THREE.Group();
-  const cantidadPuntos = 7;
+  const cantidadPuntos = 90;
   const materialPunto = new THREE.MeshBasicMaterial({ color: 0xf6f1e4, transparent: true, opacity: 0.9, depthWrite: false });
   const geoPunto = new THREE.CircleGeometry(0.32, 12);
   geoPunto.rotateX(-Math.PI / 2);
@@ -203,45 +205,67 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
       if (!apuntando) return;
       const bolincha = obtenerBolincha();
       const pos = bolincha.posicion;
-      // Primer choque en línea recta: el punto donde la distancia entre centros es la suma de radios.
-      let primero = Infinity;
-      for (const o of obtenerObstaculos()) {
-        const cx = o.x - pos.x;
-        const cz = o.z - pos.z;
-        const a = cx * direccion.x + cz * direccion.z; // avance hasta quedar al costado
-        if (a <= 0) continue;
-        const lado2 = cx * cx + cz * cz - a * a; // distancia de costado, al cuadrado
-        const suma = bolincha.radio + o.radio;
-        if (lado2 >= suma * suma) continue;
-        const d = a - Math.sqrt(suma * suma - lado2);
-        if (d > 0 && d < primero) primero = d;
-      }
-      if (primero < ALCANCE_FANTASMA) {
+      const completo = !externa && obtenerRecorridoCompleto();
+      // (más larga con el poder "Ojo fino"; la de la computadora, siempre normal)
+      const largo = completo ? Infinity : t.largoPunteria * (externa ? 1 : obtenerLargoPunteria());
+      const ajuste = externa ? { fuerza: 1, efecto: 1 } : obtenerAjusteTiro();
+      const ef = externa ? null : obtenerEfecto();
+      const fuerzaReal = Math.min((externa ? externa.fuerza : fuerza) * ajuste.fuerza, 1.5);
+      const r = predecirRecorrido({
+        desde: { x: pos.x, z: pos.z },
+        radio: bolincha.radio,
+        dir: { x: direccion.x, z: direccion.z },
+        fuerza: fuerzaReal,
+        efecto: ef ? { arriba: ef.arriba * ajuste.efecto, costado: ef.costado * ajuste.efecto } : null,
+        superficie: bolincha.superficie || 'tierra',
+        obstaculos: obtenerObstaculos(),
+        cada: 0.5,
+        largoMaximo: completo ? Infinity : ALCANCE_FANTASMA,
+      });
+      // Aro fantasma: dónde toca lo primero (siguiendo la curva).
+      if (r.choque) {
         fantasma.visible = true;
         fantasma.scale.setScalar(bolincha.radio);
-        fantasma.position.set(pos.x + direccion.x * primero, 0.06, pos.z + direccion.z * primero);
+        fantasma.position.set(r.choque.x, 0.06, r.choque.z);
+      }
+      // Puntos repartidos parejo a lo largo del camino (sin pisar la bolincha ni el aro).
+      const camino = [];
+      let acumulado = 0;
+      for (let i = 0; i < r.puntos.length; i++) {
+        if (i > 0) acumulado += Math.hypot(r.puntos[i].x - r.puntos[i - 1].x, r.puntos[i].z - r.puntos[i - 1].z);
+        camino.push(acumulado);
       }
       const inicio = bolincha.radio + 1;
-      // (más larga con el poder "Ojo fino"; la de la computadora, siempre normal)
-      const largo = t.largoPunteria * (externa ? 1 : obtenerLargoPunteria());
-      const tramo = (largo - inicio) / cantidadPuntos;
-      // Con curva, la línea se tuerce hacia ese lado (solo en el tiro de la persona).
-      const curva = externa ? 0 : obtenerEfecto()?.costado || 0;
-      const torcer = (d) => curva * 3 * (d / largo) ** 2;
-      // Derecha de la dirección, en el suelo.
-      const dx = -direccion.z;
-      const dz = direccion.x;
-      for (let i = 0; i < cantidadPuntos; i++) {
-        const d = inicio + tramo * i;
-        const lado = torcer(d);
-        punteria.children[i].position.set(pos.x + direccion.x * d + dx * lado, 0.05, pos.z + direccion.z * d + dz * lado);
+      const fin = Math.min(acumulado - (r.choque ? bolincha.radio * 1.2 : 0), largo);
+      const separacion = completo ? Math.max(3, (fin - inicio) / (cantidadPuntos - 1)) : (largo - inicio) / 7;
+      const enCamino = (d) => {
+        let i = 1;
+        while (i < camino.length - 1 && camino[i] < d) i++;
+        const a = r.puntos[i - 1];
+        const b = r.puntos[i] || a;
+        const tramo = camino[i] - camino[i - 1] || 1;
+        const k = Math.min(Math.max((d - camino[i - 1]) / tramo, 0), 1);
+        return { x: a.x + (b.x - a.x) * k, z: a.z + (b.z - a.z) * k };
+      };
+      let usados = 0;
+      for (let d = inicio; d <= fin && usados < cantidadPuntos; d += separacion) {
+        const q = enCamino(d);
+        punteria.children[usados++].position.set(q.x, 0.05, q.z);
       }
-      const dPunta = largo + 0.6;
-      const ladoPunta = torcer(dPunta);
-      punta.position.set(pos.x + direccion.x * dPunta + dx * ladoPunta, 0.06, pos.z + direccion.z * dPunta + dz * ladoPunta);
-      // La punta apunta según la tangente de la curva.
-      const pendiente = (curva * 6 * dPunta) / largo ** 2;
-      punta.rotation.y = Math.atan2(direccion.x + dx * pendiente, direccion.z + dz * pendiente);
+      // En la Práctica los puntos llegan lejos: se hacen más grandes para que se vean.
+      const tam = completo ? 1.7 : 1;
+      for (let i = 0; i < cantidadPuntos; i++) {
+        punteria.children[i].visible = i < usados;
+        punteria.children[i].scale.setScalar(tam);
+      }
+      punta.scale.setScalar(tam);
+      // Punta de flecha al final, mirando hacia donde va.
+      const dPunta = Math.max(fin + 0.6, inicio);
+      const q1 = enCamino(dPunta);
+      const q0 = enCamino(Math.max(dPunta - 2, 0));
+      punta.visible = fin > inicio;
+      punta.position.set(q1.x, 0.06, q1.z);
+      punta.rotation.y = Math.atan2(q1.x - q0.x, q1.z - q0.z);
     },
   };
 }
