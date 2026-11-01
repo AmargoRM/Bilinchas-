@@ -9,6 +9,8 @@ export async function crearFisica() {
   mundo.timestep = CONFIG.pasoFisica;
   // Trabajamos en centímetros: 100 unidades = 1 metro.
   mundo.lengthUnit = 100;
+  // Que solo choque lo que se toca de verdad (ver CONFIG.anticipacionChoques).
+  mundo.integrationParameters.normalizedPredictionDistance = CONFIG.anticipacionChoques;
 
   // El suelo y las paredes los crea cada escenario (patio.js, cano.js).
   // Notas importantes para quien los cree:
@@ -33,7 +35,7 @@ export async function crearFisica() {
   function avanzar(segundos, antesDePaso) {
     acumulado += Math.min(segundos, 0.1);
     let pasos = 0;
-    while (acumulado >= CONFIG.pasoFisica && pasos < 12) {
+    while (acumulado >= CONFIG.pasoFisica && pasos < 48) {
       if (antesDePaso) antesDePaso(CONFIG.pasoFisica);
       mundo.step();
       acumulado -= CONFIG.pasoFisica;

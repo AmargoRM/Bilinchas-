@@ -633,8 +633,9 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
       const candidatas = [...blancos.filter((b) => b.enCirculo && enJuego(b.bolincha)), ...explosivas.filter((e) => e.activa)];
       for (const c of candidatas) {
         let toca = false;
+        // Solo cuenta si se tocan de verdad (no si el motor apenas anticipa un choque).
         fisica.mundo.contactPair(colTirador, c.bolincha.cuerpo.collider(0), (m) => {
-          if (m.numContacts() > 0) toca = true;
+          for (let k = 0; k < m.numContacts(); k++) if (m.contactDist(k) < 0.15) toca = true;
         });
         if (toca) {
           primerContacto = c;

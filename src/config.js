@@ -17,9 +17,14 @@ export const CONFIG = {
   // Gravedad de la Tierra en cm/s². No conviene tocarla.
   gravedad: 981,
 
-  // Cada cuánto calcula la física (en segundos). 1/120 = 120 veces por
+  // Cada cuánto calcula la física (en segundos). 1/480 = 480 veces por
   // segundo. Más chico = más preciso pero más trabajo para el teléfono.
-  pasoFisica: 1 / 120,
+  // Con 1/120 una bolincha rápida avanza 3 cm por paso (casi dos bolinchas) y el
+  // motor "adivinaba" choques: empujaba bolinchas que pasaban a 1 cm sin tocarlas.
+  pasoFisica: 1 / 480,
+  // Desde qué distancia (en metros, por eso tan chico) el motor empieza a tener en
+  // cuenta un choque que va a pasar. 0.001 = 1 mm. Más grande = choques fantasma.
+  anticipacionChoques: 0.001,
 
   // ---------------------------------------------------------------
   // BOLINCHAS
