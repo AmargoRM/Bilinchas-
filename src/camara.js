@@ -13,6 +13,14 @@ export function crearCamara(camara) {
   let primeraVez = true;
   let mapa = null; // { cx, cz, ancho, largo } cuando se mira el mapa desde arriba
 
+  // Cerca y lejos de lo que dibuja la cámara (se cambia solo si hace falta).
+  function ajustarAlcance(cerca, lejos) {
+    if (camara.near === cerca && camara.far === lejos) return;
+    camara.near = cerca;
+    camara.far = lejos;
+    camara.updateProjectionMatrix();
+  }
+
   function adelante(v = new THREE.Vector3()) {
     return v.set(-Math.sin(giro), 0, -Math.cos(giro));
   }
@@ -70,8 +78,11 @@ export function crearCamara(camara) {
         const corrimiento = alto * tan * 0.16; // baja un poco el mapa en la pantalla
         camara.position.set(mapa.cx, alto, mapa.cz - corrimiento + 0.01);
         camara.lookAt(mapa.cx, 0, mapa.cz - corrimiento);
+        // Los mapas largos quedan más lejos de lo que la cámara dibuja normalmente.
+        ajustarAlcance(alto * 0.05, alto * 2);
         return;
       }
+      ajustarAlcance(0.5, 2000);
       const suave = primeraVez ? 1 : 1 - Math.exp(-dt * 6);
       primeraVez = false;
       objetivo.lerp(posBolincha, suave);

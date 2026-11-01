@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { resolverTiroCano } from './reglas-cano.js';
 import { planificarTiroCanal } from '../ia/rival.js';
-import { MAPAS, buscarMapa, mapasDisponibles, proximoMapa } from '../mapas.js';
+import { MAPAS, buscarMapa, mapasDisponibles, proximoMapa, opcionesDeMapas, textoBloqueado } from '../mapas.js';
 import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 import { tx } from '../textos.js';
 import { botonUsarNueva } from '../ui/final.js';
@@ -123,6 +123,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
   function empezarPartida() {
     ficha++;
     efectos.nuevaPartida?.();
+    efectos.vistaPrevia?.(null);
     traza = canal.usarMapa(mapa);
     jugadores = sentarJugadores(todos, preferencias.mesa, preferencias.tamanos, disenoDueno());
     huecosDelDueno = 0;
@@ -139,34 +140,41 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
   const jugar = () => instrucciones.antesDeJugar('cano', empezarPartida);
 
   // Elegir mapa y quién juega (las reglas se explican aparte, solo la primera vez).
-  function nuevaPartida() {
+  // mirando: el mapa que se está mirando en el selector (puede ser uno bloqueado).
+  function nuevaPartida(mirando = null) {
     fase = 'espera';
     mostrarPunteria(null);
     const nivel = nivelJugador();
     const disponibles = mapasDisponibles(MAPAS, nivel);
     mapa = buscarMapa(mapa.id, disponibles); // si el guardado todavía está bloqueado, el primero
-    traza = canal.usarMapa(mapa);
+    const visto = buscarMapa(typeof mirando === 'string' ? mirando : mapa.id, MAPAS);
+    const bloqueado = (visto.nivel || 1) > nivel;
+    // Se arma el que se mira (aunque esté bloqueado: así se ve cómo es); al jugar se arma el elegido.
+    traza = canal.usarMapa(visto);
+    efectos.vistaPrevia?.(traza.bordes); // detrás de la tarjeta, el mapa entero desde arriba
     const proximo = proximoMapa(MAPAS, nivel);
     hud.tarjeta({
       titulo: '¿Quién juega?',
       subtitulo: tx('{Caño}'),
-      texto: proximo ? `Próximo mapa: ${proximo.nombre}, en el nivel ${proximo.nivel}.` : '',
+      texto: bloqueado ? textoBloqueado(visto, nivel) : proximo ? `Próximo mapa: ${proximo.nombre}, en el nivel ${proximo.nivel}.` : '',
       selectores: [
         {
           etiqueta: 'Mapa',
-          opciones: disponibles.map((m) => ({ valor: m.id, texto: m.nombre })),
-          valor: mapa.id,
+          opciones: opcionesDeMapas(MAPAS, nivel),
+          valor: visto.id,
           alCambiar: (id) => {
-            mapa = buscarMapa(id, disponibles);
-            traza = canal.usarMapa(mapa);
-            preferencias.mapa = id;
-            guardarPreferencias(preferencias);
+            if ((buscarMapa(id, MAPAS).nivel || 1) <= nivel) {
+              mapa = buscarMapa(id, MAPAS);
+              preferencias.mapa = id;
+              guardarPreferencias(preferencias);
+            }
+            nuevaPartida(id);
           },
         },
         ...selectoresMesa(preferencias, () => guardarPreferencias(preferencias)),
       ],
       botones: [
-        { texto: 'Jugar', alElegir: jugar },
+        { texto: bloqueado ? '🔒 Bloqueado' : 'Jugar', alElegir: jugar, desactivado: bloqueado },
         { texto: 'Cómo se juega', secundario: true, alElegir: () => instrucciones.mostrarReglas('cano', nuevaPartida) },
         { texto: 'Volver', secundario: true, alElegir: () => alSalir('modos') },
       ],
@@ -314,6 +322,17 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
       return traza;
     },
     // Posiciones de las bolinchas en juego, con su color (para la vista de mapa).
+    // Lo que puede chocar la bolincha que tira (para el aro "fantasma" de la puntería).
+    obstaculosPunteria() {
+      const tira = jugadores[turno]?.bolincha;
+      const r = tira ? tira.radio : 0.8;
+      return [
+        ...todas.filter((b) => b !== tira && b.cuerpo.isEnabled()).map((b) => ({ x: b.posicion.x, z: b.posicion.z, radio: b.radio })),
+        // Piedra del caño: esfera con el centro 0,3 de su radio bajo el suelo.
+        ...(traza ? traza.obstaculos.filter((o) => o.tipo === 'piedra').map((o) => ({ x: o.x, z: o.z, radio: Math.sqrt((o.radio + r) ** 2 - (r + o.radio * 0.3) ** 2) - r })) : []),
+      ];
+    },
+
     marcas() {
       return jugadores.filter((j) => j.enCancha || j.fuera || j.enHueco).map((j) => ({ pos: j.bolincha.grupo.position, color: j.color }));
     },
@@ -322,6 +341,7 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
       ficha++;
       fase = 'espera';
       mostrarPunteria(null);
+      efectos.vistaPrevia?.(null);
       for (const j of todos) {
         j.enCancha = false;
         j.bolincha.quitar();
@@ -337,6 +357,9 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
     },
 
     puedeTirar: () => fase === 'apuntar',
+    get apuntaComputadora() {
+      return fase === 'computadora';
+    },
 
     // ¿Tira ahora la persona del Lugar 1? (la única con la bolincha de su colección y su poder)
     get turnoDelDueno() {

@@ -18,12 +18,14 @@ import { crearHud } from './ui/hud.js';
 import { cargarAjustesGuardados, crearPanelAjustes } from './ui/ajustes.js';
 import { crearModoCirculo } from './modos/circulo.js';
 import { crearModoCano } from './modos/cano.js';
+import { crearModoTutorial } from './modos/tutorial.js';
 import { crearExplosiones } from './efectos/explosion.js';
 import { crearMenu3d } from './escenario/menu3d.js';
 import { crearSonido } from './sonido.js';
 import { crearProgreso } from './progreso.js';
 import { crearPantallaColeccion } from './ui/coleccion.js';
 import { crearPantallaRuleta, hoy } from './ui/ruleta.js';
+import { buscarActualizacion, NUMERO_VERSION } from './actualizacion.js';
 import { crearInstrucciones } from './ui/instrucciones.js';
 import { crearSelectorEfecto } from './ui/efecto.js';
 import { crearBotonPoder } from './ui/poder.js';
@@ -68,6 +70,11 @@ async function iniciar() {
   const efectos = {
     hueco: () => sonido.hueco(),
     victoria: () => sonido.victoria(),
+    // Vista desde arriba de un mapa entero (detrás de la tarjeta para elegir mapa); null la quita.
+    vistaPrevia: (bordes) => {
+      controlCamara.vistaMapa(bordes);
+      escena.fog = bordes ? null : niebla;
+    },
     nuevaPartida: () => {
       botonPoder?.reiniciar();
       progreso.nuevas.length = 0; // lo ganado antes ya se ofreció en su partida
@@ -139,15 +146,27 @@ async function iniciar() {
     }),
   };
   let modo = modos.circulo;
+  modos.tutorial = crearModoTutorial({
+    escena,
+    fisica,
+    hud,
+    controlCamara,
+    patio: escenarios.circulo,
+    mostrarPunteria,
+    efectos,
+    alSalir: (a) => irA(a),
+    disenoDueno: delProgreso.disenoDueno,
+  });
   const todas = Object.values(modos).flatMap((m) => m.todas);
   // En qué escenario se juega cada modo.
-  const ESCENARIO_DE = { circulo: 'circulo', explosivas: 'circulo', cano: 'cano' };
+  const ESCENARIO_DE = { circulo: 'circulo', explosivas: 'circulo', tutorial: 'circulo', cano: 'cano' };
   crearPanelAjustes({ alCambiar: () => todas.forEach((b) => b.aplicarConfig()) });
 
   const efecto = crearSelectorEfecto();
   // Estadísticas y habilidad de la bolincha que usa la persona del Lugar 1.
   const perfilDueno = () => perfilDe(progreso.estado.elegido);
-  botonPoder = crearBotonPoder({ obtenerPoder: () => perfilDueno().habilidad });
+  // (en la Práctica, la habilidad la presta la lección)
+  botonPoder = crearBotonPoder({ obtenerPoder: () => ('poderPrestado' in modo ? modo.poderPrestado : perfilDueno().habilidad) });
   let conPesoExtra = null; // { bolincha, tiempo }: el poder "Peso" dura solo ese tiro
   control = crearControlTiro({
     lienzo,
@@ -156,6 +175,7 @@ async function iniciar() {
     controlCamara,
     obtenerBolincha: () => modo.tirador,
     obtenerEfecto: () => efecto.valor(),
+    obtenerObstaculos: () => modo.obstaculosPunteria?.() || [],
     obtenerLargoPunteria: () => (modo.turnoDelDueno ? multiplicador(perfilDueno().stats, 'punteria') : 1),
     puedeTirar: () => modo.puedeTirar(),
     alApuntar: (f) => hud.fuerza(f),
@@ -193,6 +213,29 @@ async function iniciar() {
   let vistaMapa = false;
   const niebla = escena.fog;
   const puntos = [];
+  // Flecha que flota sobre la bolincha que tira, para saber siempre cuál es.
+  const flechaTirador = (() => {
+    const lienzo = document.createElement('canvas');
+    lienzo.width = lienzo.height = 64;
+    const g = lienzo.getContext('2d');
+    g.beginPath();
+    g.moveTo(10, 14);
+    g.lineTo(54, 14);
+    g.lineTo(32, 54);
+    g.closePath();
+    g.fillStyle = '#ffd23f';
+    g.fill();
+    g.lineWidth = 5;
+    g.strokeStyle = '#1b1b1b';
+    g.stroke();
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(lienzo), sizeAttenuation: false, depthTest: false }));
+    s.scale.set(0.034, 0.034, 1);
+    s.renderOrder = 11;
+    s.visible = false;
+    escena.add(s);
+    return s;
+  })();
+
   function puntoDeColor() {
     const lienzo = document.createElement('canvas');
     lienzo.width = lienzo.height = 64;
@@ -286,6 +329,7 @@ async function iniciar() {
   $('menu-reglas').addEventListener('click', () => mostrarPantalla('pantalla-reglas'));
   $('menu-coleccion').addEventListener('click', () => mostrarPantalla('pantalla-coleccion'));
   $('menu-ruleta').addEventListener('click', () => mostrarPantalla('pantalla-ruleta'));
+  $('ruleta-menu').addEventListener('click', () => mostrarPantalla('menu-principal'));
   $('ajuste-privacidad').addEventListener('click', () => mostrarPantalla('pantalla-privacidad'));
   $('privacidad-volver').addEventListener('click', () => mostrarPantalla('pantalla-ajustes'));
   for (const b of document.querySelectorAll('[data-volver]')) b.addEventListener('click', () => mostrarPantalla('menu-principal'));
@@ -341,7 +385,15 @@ async function iniciar() {
   mostrarPais();
 
   // ---------------- Solo en la app de Android ----------------
+  $('ajuste-version').textContent = NUMERO_VERSION ? `Versión de prueba ${NUMERO_VERSION}` : 'Versión armada a mano';
   if (Capacitor.isNativePlatform()) {
+    // ¿Hay un APK de prueba más nuevo? Se avisa en el menú principal.
+    buscarActualizacion(({ numero, direccion }) => {
+      $('aviso-version-texto').textContent = `Hay una versión nueva del juego (${numero}). Tú tienes la ${NUMERO_VERSION}.`;
+      $('aviso-version').hidden = false;
+      // Capacitor abre las direcciones de afuera en el navegador del teléfono.
+      $('aviso-version-descargar').addEventListener('click', () => (window.location.href = direccion));
+    });
     $('menu-salir').hidden = false;
     $('menu-salir').addEventListener('click', () => App.exitApp());
     // Flecha "atrás" del teléfono: vuelve una pantalla; en el juego pide confirmar.
@@ -439,6 +491,13 @@ async function iniciar() {
       s.position.copy(marcas[i].pos).setY(12);
       s.material.color.set(marcas[i].color);
     });
+    // La flecha sobre la que tira (salta un poco para llamar la atención).
+    const tira = modo.tirador;
+    flechaTirador.visible = modo.puedeTirar() || modo.apuntaComputadora;
+    if (flechaTirador.visible) {
+      const p = tira.posicion;
+      flechaTirador.position.set(p.x, p.y + tira.radio + 2.6 + Math.sin(performance.now() / 180) * 0.5, p.z);
+    }
     seguirSombra(foco);
     control.actualizar();
     efecto.mostrar(modo.puedeTirar());
@@ -458,6 +517,7 @@ async function iniciar() {
   escenarios.cano.activar(false);
   modos.cano.retirar();
   modos.explosivas.retirar();
+  modos.tutorial.retirar();
   mostrarPantalla('portada');
   hud.listo();
 }

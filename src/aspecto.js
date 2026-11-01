@@ -49,23 +49,31 @@ function materialesPara(idDiseno, radio) {
       });
       return materiales.get(clave);
     }
+    // Los vidrios muy oscuros (galaxia, volcán...) se veían negros: el color que "tiñe"
+    // por dentro se aclara hasta un mínimo y el vidrio brilla un poco de su color,
+    // así se parecen al dibujo de la Colección.
+    const hsl = color.getHSL({});
+    const tinte = color.clone().setHSL(hsl.h, hsl.s, Math.max(hsl.l, 0.32));
+    const oscuro = hsl.l < 0.25;
     materiales.set(clave, {
       vidrio: new THREE.MeshPhysicalMaterial({
-        color: color.clone().lerp(new THREE.Color(0xffffff), d.claro),
+        color: tinte.clone().lerp(new THREE.Color(0xffffff), Math.max(d.claro, 0.12)),
+        emissive: oscuro ? tinte : 0x000000,
+        emissiveIntensity: oscuro ? 0.35 : 0,
         metalness: 0,
         roughness: d.esmerilado ?? 0.03,
         transmission: 1,
         thickness: radio * 2,
         ior: d.ior ?? 1.52,
-        attenuationColor: color,
-        attenuationDistance: radio * (3 + d.claro * 10),
+        attenuationColor: tinte,
+        attenuationDistance: radio * (4 + d.claro * 10),
         clearcoat: 1,
         clearcoatRoughness: 0.02,
         specularIntensity: 1,
         envMapIntensity: 1.5,
       }),
       petalos: d.vetas.map(
-        (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.3, side: THREE.DoubleSide, emissive: c, emissiveIntensity: 0.12 })
+        (c) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.3, side: THREE.DoubleSide, emissive: c, emissiveIntensity: 0.22 })
       ),
     });
   }

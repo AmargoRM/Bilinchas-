@@ -10,7 +10,8 @@ const REGLA_SEGURIDAD = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  "connect-src 'self' data: blob:",
+  // (api.github.com: solo para el aviso de versión nueva mientras está en desarrollo)
+  "connect-src 'self' data: blob: https://api.github.com",
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'none'",
@@ -26,6 +27,8 @@ const conReglaDeSeguridad = {
 // Modo "prueba": junta todo en un solo archivo HTML para probar en el teléfono.
 export default defineConfig(({ mode }) => ({
   base: './',
+  // El número de la fabricación en GitHub (0 si se arma a mano): para el aviso de versión nueva.
+  define: { __NUMERO_VERSION__: JSON.stringify(process.env.NUMERO_VERSION || '0') },
   plugins: mode === 'prueba' ? [viteSingleFile()] : [conReglaDeSeguridad],
   build: {
     outDir: mode === 'prueba' ? 'dist-prueba' : 'dist',

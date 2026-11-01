@@ -36,6 +36,9 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', disen
   // Giro con efecto: la velocidad a la que "rueda" la superficie de la bolincha (cm/s, en el suelo).
   // null = rueda normal (sin efecto). Mientras sea distinta de la velocidad, la bolincha patina.
   let giroEfecto = null;
+  // Curva: empuje de costado (+ a la derecha) y cuánto tiempo le queda.
+  let curvaEmpuje = 0;
+  let curvaRestante = 0;
 
   // ¿Está apoyada en el suelo o en una pared (algo que no se mueve)?
   function apoyada() {
@@ -93,15 +96,17 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', disen
       cuerpo.wakeUp();
       cuerpo.setLinvel({ x: direccion.x * v, y: 0, z: direccion.z * v }, true);
       giroEfecto = null;
-      if (efecto && (efecto.arriba || efecto.costado)) {
+      curvaRestante = 0;
+      if (efecto && efecto.arriba) {
+        // Seguir o retroceso: gira hacia adelante o hacia atrás distinto de lo que avanza.
         const e = CONFIG.efecto;
         const adelante = 1 + efecto.arriba * (efecto.arriba > 0 ? e.arriba : e.abajo);
-        const costado = efecto.costado * e.costado;
-        // Derecha de la dirección del tiro, en el suelo.
-        giroEfecto = {
-          x: (direccion.x * adelante - direccion.z * costado) * v,
-          z: (direccion.z * adelante + direccion.x * costado) * v,
-        };
+        giroEfecto = { x: direccion.x * adelante * v, z: direccion.z * adelante * v };
+      }
+      // Curva: va doblando mientras rueda (un arco, no un quiebre).
+      if (efecto && efecto.costado) {
+        curvaEmpuje = CONFIG.efecto.curvaEmpuje * efecto.costado;
+        curvaRestante = CONFIG.efecto.curvaDuracion;
       }
     },
 
@@ -130,6 +135,7 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', disen
       cuerpo.setTranslation({ x, y: radio, z }, true);
       cuerpo.setLinvel({ x: 0, y: 0, z: 0 }, true);
       giroEfecto = null;
+      curvaRestante = 0;
     },
 
     // Resistencia de la tierra al rodar: le quita una cantidad fija de velocidad
@@ -138,6 +144,25 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', disen
       if (!cuerpo.isEnabled() || cuerpo.isSleeping()) return;
       if (!apoyada()) return; // en el aire no hay roce con el suelo
       const v = cuerpo.linvel();
+      const rapidezCurva = Math.hypot(v.x, v.z);
+      if (curvaRestante > 0 && rapidezCurva > 5) {
+        // Empuje de costado parejo: gira la dirección según lo rápido que va
+        // (lenta, dobla más). No se pasa de 6° por paso.
+        curvaRestante -= dt;
+        const paso = THREE.MathUtils.clamp((curvaEmpuje * dt) / rapidezCurva, -0.1, 0.1);
+        const c = Math.cos(paso);
+        const s = Math.sin(paso);
+        // Girar la velocidad hacia la derecha (paso > 0) o la izquierda.
+        const x = v.x * c - v.z * s;
+        const z = v.z * c + v.x * s;
+        v.x = x;
+        v.z = z;
+        if (giroEfecto) {
+          const gx = giroEfecto.x * c - giroEfecto.z * s;
+          giroEfecto.z = giroEfecto.z * c + giroEfecto.x * s;
+          giroEfecto.x = gx;
+        }
+      }
       if (giroEfecto) {
         // Patina: el roce empuja la velocidad hacia el giro, y el giro hacia la velocidad
         // (una esfera maciza cambia su giro 2,5 veces más rápido que su velocidad).
@@ -198,6 +223,7 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', disen
     // La deja quieta y fuera de la física, pero visible (en un hueco, o afuera del caño).
     congelar(x, y, z) {
       giroEfecto = null;
+      curvaRestante = 0;
       cuerpo.setTranslation({ x, y, z }, false);
       cuerpo.setLinvel({ x: 0, y: 0, z: 0 }, false);
       cuerpo.setEnabled(false);
@@ -208,6 +234,7 @@ export function crearBolincha({ escena, fisica, posicion, tipo = 'normal', disen
     // Saca la bolincha del juego (por ejemplo, si se cayó fuera del patio).
     quitar() {
       giroEfecto = null;
+      curvaRestante = 0;
       cuerpo.setEnabled(false);
       grupo.visible = false;
       if (anillo) anillo.visible = false;

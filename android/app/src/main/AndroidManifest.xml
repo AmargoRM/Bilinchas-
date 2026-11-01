@@ -29,6 +29,8 @@
         </provider>
     </application>
 
-    <!-- Sin permisos: el juego no usa internet, cámara, ubicación ni nada del teléfono.
-         (Capacitor trae el permiso de INTERNET por defecto; se quitó a propósito.) -->
+    <!-- Internet: SOLO para preguntarle a GitHub si hay un APK de prueba más nuevo
+         (src/actualizacion.js). Ningún otro permiso: ni cámara, ni ubicación, ni archivos.
+         Antes de publicar en Google Play, quitarlo y apagar el aviso (CONFIG.desarrollo). -->
+    <uses-permission android:name="android.permission.INTERNET" />
 </manifest>

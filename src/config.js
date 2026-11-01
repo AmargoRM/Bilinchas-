@@ -75,12 +75,26 @@ export const CONFIG = {
   //   roce: cuánto agarra el suelo mientras patina (más alto = el efecto dura menos)
   //   arriba: "seguir": cuánto giro de más lleva hacia adelante (1 = el doble)
   //   abajo: "retroceso": cuánto giro hacia atrás (más de 1 = vuelve después del choque)
-  //   costado: "curva": cuánto giro de costado (cuánto se tuerce el camino)
+  //   curvaEmpuje: "curva": empuje de costado con el efecto al máximo (cm/s²). Es
+  //     parejo, así que dobla más cuando la bolincha va lenta (al final), como de verdad.
+  //   curvaDuracion: cuántos segundos dura el empuje de la curva
   efecto: {
     roce: 0.2,
     arriba: 1.2,
     abajo: 3.5,
-    costado: 0.7,
+    curvaEmpuje: 150,
+    curvaDuracion: 2,
+  },
+
+  // ---------------------------------------------------------------
+  // DESARROLLO: aviso de versión nueva del APK de prueba (src/actualizacion.js).
+  // Antes de publicar en Google Play, poner buscarActualizaciones en false.
+  // ---------------------------------------------------------------
+  desarrollo: {
+    buscarActualizaciones: true,
+    repositorio: 'AmargoRM/Bilinchas-',
+    proceso: 'android.yml',
+    rama: 'ccr-92d8eb7c-jnz2xm',
   },
 
   // ---------------------------------------------------------------

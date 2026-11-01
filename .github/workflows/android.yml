@@ -33,6 +33,9 @@ jobs:
 
       - name: Armar el juego web
         run: npm run build
+        env:
+          # La app sabe qué versión es (para el aviso de actualización).
+          NUMERO_VERSION: ${{ github.run_number }}
 
       - name: Copiar el juego a la app de Android
         run: npx cap sync android

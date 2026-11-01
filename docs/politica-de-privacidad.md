@@ -9,7 +9,11 @@ Esta política explica qué información usa el juego y qué hace con ella.
 
 - **El juego no recoge, no envía y no vende ningún dato personal.**
 - No tiene publicidad, ni estadísticas de uso, ni cuentas de usuario, ni compras.
-- No usa internet: la app de Android ni siquiera tiene permiso para conectarse.
+- **Versión de prueba:** mientras el juego está en desarrollo, al abrirse pregunta a
+  GitHub si hay un APK más nuevo. No envía ningún dato del jugador; GitHub, como
+  cualquier sitio, ve la dirección de internet del teléfono. **Antes de publicar en
+  Google Play se apaga** (CONFIG.desarrollo en src/config.js) y se vuelve a quitar el
+  permiso de internet; entonces este punto se borra de la política.
 - No pide acceso a la cámara, el micrófono, la ubicación, los contactos ni los archivos.
 
 ## Qué se guarda y dónde

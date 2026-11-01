@@ -328,16 +328,19 @@ function dibujar(traza, concreto) {
   const azar = azarFijo(41);
   for (const o of traza.obstaculos) {
     if (o.tipo === 'piedra') {
+      // El dibujo nunca es más chico que la piedra de la física (si no, se ve que
+      // la bolincha choca "en el aire"): solo se abulta un poquito.
       const geo = new THREE.IcosahedronGeometry(o.radio, 1);
       const v = geo.attributes.position;
       for (let i = 0; i < v.count; i++) {
-        const k = 0.85 + azar() * 0.25;
+        const k = 1 + azar() * 0.07;
         v.setXYZ(i, v.getX(i) * k, v.getY(i) * k, v.getZ(i) * k);
       }
       geo.computeVertexNormals();
       const piedra = new THREE.Mesh(
         geo,
-        new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(0.08, 0.12, 0.35 + azar() * 0.15), roughness: 0.95, flatShading: true })
+        // Café rojizo: se distingue del concreto gris.
+        new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(0.06, 0.45, 0.3 + azar() * 0.1), roughness: 0.9, flatShading: true })
       );
       piedra.position.set(o.x, -o.radio * 0.3, o.z);
       piedra.castShadow = true;
@@ -376,15 +379,23 @@ function dibujoHueco(o) {
   const g = lienzo.getContext('2d');
   const grad = g.createRadialGradient(tam / 2, tam / 2, 0, tam / 2, tam / 2, tam / 2);
   grad.addColorStop(0, 'rgba(8,6,4,1)');
-  grad.addColorStop(0.62, 'rgba(20,16,12,1)');
-  grad.addColorStop(0.8, 'rgba(60,54,46,0.9)');
-  grad.addColorStop(1, 'rgba(60,54,46,0)');
+  // Lo negro llega hasta donde la bolincha cae (un poco menos que el borde del hueco).
+  grad.addColorStop(0.68, 'rgba(20,16,12,1)');
+  grad.addColorStop(0.76, 'rgba(60,54,46,0.9)');
+  grad.addColorStop(0.8, 'rgba(60,54,46,0)');
   g.fillStyle = grad;
   g.fillRect(0, 0, tam, tam);
+  // Círculo de tiza alrededor, para que se note que es un hueco.
+  g.strokeStyle = 'rgba(245,242,232,0.9)';
+  g.lineWidth = 5;
+  g.setLineDash([9, 5]);
+  g.beginPath();
+  g.arc(tam / 2, tam / 2, tam * 0.45, 0, Math.PI * 2);
+  g.stroke();
   const t = new THREE.CanvasTexture(lienzo);
   t.colorSpace = THREE.SRGBColorSpace;
   const hueco = new THREE.Mesh(
-    new THREE.PlaneGeometry(o.radio * 2.6, o.radio * 2.6),
+    new THREE.PlaneGeometry(o.radio * 2.7, o.radio * 2.7),
     new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false })
   );
   hueco.rotation.x = -Math.PI / 2;

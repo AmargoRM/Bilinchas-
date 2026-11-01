@@ -65,6 +65,129 @@ export const MAPAS = [
       { recta: 260, obstaculos: [{ hueco: { en: 120, lado: 0, radio: 2.6 } }, { piedra: { en: 190, lado: 4, tamano: 2.4 } }] },
     ],
   },
+  // ---------- Mapas largos (se desbloquean subiendo de nivel) ----------
+  {
+    id: 'avenida',
+    nombre: 'La avenida',
+    nivel: 2,
+    descripcion: 'Un {caño} largo junto a la avenida: curvas suaves, piedras y huecos.',
+    meta: 40,
+    piezas: [
+      { recta: 350, obstaculos: [{ piedra: { en: 200, lado: 4, tamano: 2.2 } }] },
+      { gira: 'izquierda', radio: 120 },
+      { recta: 300, obstaculos: [{ hueco: { en: 150, lado: -3, radio: 2.6 } }] },
+      { gira: 'derecha', radio: 120 },
+      { recta: 400, obstaculos: [{ piedra: { en: 120, lado: -5, tamano: 2.4 } }, { hueco: { en: 280, lado: 3, radio: 2.8 } }] },
+      { gira: 'derecha', radio: 100 },
+      { recta: 250, obstaculos: [{ piedra: { en: 130, lado: 0, tamano: 2.0 } }] },
+      { gira: 'izquierda', radio: 100 },
+      { recta: 450, obstaculos: [{ hueco: { en: 200, lado: -4, radio: 2.6 } }, { piedra: { en: 330, lado: 5, tamano: 2.4 } }] },
+    ],
+  },
+  {
+    id: 'mercado',
+    nombre: 'El mercado',
+    nivel: 4,
+    descripcion: 'Da vueltas por detrás del mercado: muchas esquinas cuadradas para jugar a la banda.',
+    meta: 40,
+    piezas: [
+      { recta: 220, obstaculos: [{ piedra: { en: 110, lado: -4, tamano: 2.2 } }] },
+      { gira: 'derecha' },
+      { recta: 180, obstaculos: [{ hueco: { en: 90, lado: 3, radio: 2.6 } }] },
+      { gira: 'izquierda' },
+      { recta: 260, obstaculos: [{ piedra: { en: 80, lado: 6.5, tamano: 2.0 } }, { piedra: { en: 180, lado: -6.5, tamano: 2.0 } }] },
+      { gira: 'izquierda' },
+      { recta: 180, obstaculos: [{ hueco: { en: 100, lado: 0, radio: 2.8 } }] },
+      { gira: 'derecha' },
+      { recta: 240, obstaculos: [{ piedra: { en: 120, lado: 0, tamano: 2.4 } }] },
+      { gira: 'derecha' },
+      { recta: 160 },
+      { gira: 'izquierda' },
+      { recta: 300, obstaculos: [{ hueco: { en: 120, lado: -4, radio: 2.6 } }, { piedra: { en: 220, lado: 4, tamano: 2.2 } }] },
+      { gira: 'izquierda' },
+      { recta: 200, obstaculos: [{ piedra: { en: 100, lado: -3, tamano: 2.4 } }] },
+      { gira: 'derecha' },
+      { recta: 320, obstaculos: [{ hueco: { en: 160, lado: 3, radio: 2.8 } }] },
+    ],
+  },
+  {
+    id: 'quebrada',
+    nombre: 'La quebrada',
+    nivel: 6,
+    descripcion: 'Baja serpenteando hacia la quebrada: curvas cerradas y muchos huecos.',
+    meta: 40,
+    piezas: [
+      { recta: 300, obstaculos: [{ hueco: { en: 150, lado: 2, radio: 2.8 } }] },
+      { gira: 'izquierda', radio: 80 },
+      { recta: 200, obstaculos: [{ piedra: { en: 100, lado: -4, tamano: 2.4 } }] },
+      { gira: 'derecha', radio: 80 },
+      { recta: 200, obstaculos: [{ hueco: { en: 100, lado: -3, radio: 2.8 } }] },
+      { gira: 'derecha', radio: 80 },
+      { recta: 200, obstaculos: [{ hueco: { en: 90, lado: 4, radio: 2.6 } }, { piedra: { en: 160, lado: -4, tamano: 2.2 } }] },
+      { gira: 'izquierda', radio: 80 },
+      { recta: 300, obstaculos: [{ hueco: { en: 120, lado: 0, radio: 3.0 } }, { piedra: { en: 220, lado: 5, tamano: 2.4 } }] },
+      { gira: 'izquierda', radio: 60 },
+      { recta: 200, obstaculos: [{ piedra: { en: 100, lado: 0, tamano: 2.2 } }] },
+      { gira: 'derecha', radio: 60 },
+      { recta: 400, obstaculos: [{ hueco: { en: 150, lado: -4, radio: 2.8 } }, { hueco: { en: 300, lado: 4, radio: 2.8 } }] },
+    ],
+  },
+  {
+    id: 'cerro',
+    nombre: 'El cerro',
+    nivel: 7,
+    descripcion: 'El {caño} más largo del barrio, cerro abajo: rectas con piedras en zigzag y huecos.',
+    meta: 40,
+    piezas: [
+      { recta: 400, obstaculos: [{ piedra: { en: 120, lado: -5, tamano: 2.2 } }, { piedra: { en: 240, lado: 5, tamano: 2.2 } }, { piedra: { en: 340, lado: -4, tamano: 2.2 } }] },
+      { gira: 'derecha', radio: 150 },
+      { recta: 300, obstaculos: [{ hueco: { en: 150, lado: 0, radio: 2.8 } }] },
+      { gira: 'izquierda', radio: 150 },
+      { recta: 500, obstaculos: [{ piedra: { en: 100, lado: 4, tamano: 2.2 } }, { hueco: { en: 220, lado: -3, radio: 2.6 } }, { piedra: { en: 350, lado: -5, tamano: 2.4 } }, { hueco: { en: 450, lado: 4, radio: 2.6 } }] },
+      { gira: 'izquierda' },
+      { recta: 250, obstaculos: [{ piedra: { en: 130, lado: 0, tamano: 2.4 } }] },
+      { gira: 'derecha' },
+      { recta: 400, obstaculos: [{ hueco: { en: 120, lado: -4, radio: 2.8 } }, { piedra: { en: 250, lado: 4, tamano: 2.2 } }, { hueco: { en: 330, lado: 0, radio: 2.6 } }] },
+      { gira: 'derecha', radio: 100 },
+      { recta: 300, obstaculos: [{ piedra: { en: 150, lado: -5, tamano: 2.4 } }] },
+      { gira: 'izquierda', radio: 100 },
+      { recta: 500, obstaculos: [{ hueco: { en: 160, lado: 3, radio: 2.8 } }, { piedra: { en: 300, lado: -3, tamano: 2.2 } }, { hueco: { en: 420, lado: -4, radio: 2.8 } }] },
+    ],
+  },
+  {
+    id: 'laberinto',
+    nombre: 'El laberinto',
+    nivel: 8,
+    descripcion: 'Para los mejores: un zigzag de esquinas cuadradas que no se acaba.',
+    meta: 40,
+    piezas: [
+      { recta: 200, obstaculos: [{ piedra: { en: 100, lado: 4, tamano: 2.2 } }] },
+      { gira: 'derecha' },
+      { recta: 160, obstaculos: [{ hueco: { en: 80, lado: -3, radio: 2.6 } }] },
+      { gira: 'izquierda' },
+      { recta: 160 },
+      { gira: 'izquierda' },
+      { recta: 160, obstaculos: [{ piedra: { en: 80, lado: 0, tamano: 2.4 } }] },
+      { gira: 'derecha' },
+      { recta: 200, obstaculos: [{ hueco: { en: 100, lado: 4, radio: 2.8 } }] },
+      { gira: 'derecha' },
+      { recta: 160, obstaculos: [{ piedra: { en: 80, lado: -4, tamano: 2.2 } }] },
+      { gira: 'izquierda' },
+      { recta: 160, obstaculos: [{ hueco: { en: 80, lado: 3, radio: 2.6 } }] },
+      { gira: 'izquierda' },
+      { recta: 160 },
+      { gira: 'derecha' },
+      { recta: 250, obstaculos: [{ piedra: { en: 90, lado: 5, tamano: 2.2 } }, { hueco: { en: 170, lado: -4, radio: 2.8 } }] },
+      { gira: 'derecha' },
+      { recta: 160, obstaculos: [{ piedra: { en: 80, lado: 0, tamano: 2.4 } }] },
+      { gira: 'izquierda' },
+      { recta: 160 },
+      { gira: 'izquierda' },
+      { recta: 160, obstaculos: [{ hueco: { en: 80, lado: 0, radio: 2.8 } }] },
+      { gira: 'derecha' },
+      { recta: 350, obstaculos: [{ piedra: { en: 120, lado: -5, tamano: 2.2 } }, { hueco: { en: 240, lado: 4, radio: 2.8 } }] },
+    ],
+  },
 ];
 
 // Mapas del Modo Círculo: dónde se dibuja el círculo y de qué es el suelo
@@ -88,6 +211,19 @@ export function buscarMapa(id, lista = MAPAS) {
 export function mapasDisponibles(lista, nivel) {
   return lista.filter((m) => (m.nivel || 1) <= nivel);
 }
+
+// Opciones para el selector de mapas: todos, los bloqueados con candado y su nivel
+// (así se ve lo que viene).
+export function opcionesDeMapas(lista, nivel) {
+  return [...lista].sort((a, b) => (a.nivel || 1) - (b.nivel || 1)).map((m) => {
+    const bloqueada = (m.nivel || 1) > nivel;
+    return { valor: m.id, texto: bloqueada ? `🔒 ${m.nombre} · nivel ${m.nivel}` : m.nombre, bloqueada };
+  });
+}
+
+// Texto para un mapa bloqueado que se está mirando.
+export const textoBloqueado = (m, nivel) =>
+  `🔒 ${m.nombre} se desbloquea en el nivel ${m.nivel} (tú estás en el nivel ${nivel}). Detrás se ve cómo es.`;
 
 // El próximo mapa por desbloquear (o null si ya están todos).
 export function proximoMapa(lista, nivel) {

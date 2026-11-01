@@ -84,7 +84,7 @@ export function crearHud() {
     },
 
     // Tarjeta en el centro que espera a que el jugador toque un botón.
-    // botones: [{ texto, alElegir, secundario }]
+    // botones: [{ texto, alElegir, secundario, desactivado }]
     // selectores: [{ etiqueta, color, opciones: [{ valor, texto }], valor, alCambiar, extra }]
     //   cada selector es un botón que pasa a la opción siguiente al tocarlo.
     //   "extra" (opcional) es un segundo botón más chico con sus propias opciones.
@@ -127,7 +127,7 @@ export function crearHud() {
             let i = Math.max(def.opciones.findIndex((o) => o.valor === def.valor), 0);
             const mostrar = () => {
               btn.textContent = def.opciones[i].texto;
-              btn.classList.toggle('apagado', def.opciones[i].valor === 'nadie');
+              btn.classList.toggle('apagado', def.opciones[i].valor === 'nadie' || !!def.opciones[i].bloqueada);
             };
             mostrar();
             btn.addEventListener('click', () => {
@@ -164,6 +164,7 @@ export function crearHud() {
           btn.type = 'button';
           btn.className = 'boton ' + (b.secundario ? 'boton-secundario' : 'boton-principal');
           btn.textContent = b.texto;
+          btn.disabled = !!b.desactivado;
           btn.addEventListener('click', () => {
             tarjeta.hidden = true;
             b.alElegir();

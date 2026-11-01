@@ -79,6 +79,10 @@
         <h1 class="titulo"><span class="titulo-linea"><svg class="ojo" viewBox="0 0 100 100" aria-hidden="true"><defs><radialGradient id="vidrio-ojo-2" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#d8fff8" /><stop offset=".45" stop-color="#3fb6aa" /><stop offset="1" stop-color="#0d4c4a" /></radialGradient></defs><circle cx="50" cy="50" r="46" fill="url(#vidrio-ojo-2)" /><path d="M18 62C34 30 62 30 84 40 64 46 40 52 18 62Z" fill="#d8402c" /><path d="M20 58C40 44 62 52 82 46 62 60 40 66 20 58Z" fill="#f2cf4a" /><path d="M24 70C44 56 66 62 80 54 64 70 42 76 24 70Z" fill="#3fae5a" opacity=".85" /><ellipse cx="36" cy="28" rx="13" ry="7" fill="#fff" opacity=".7" transform="rotate(-25 36 28)" /></svg>jo</span><span class="titulo-linea titulo-de"><small>de</small> Gato</span></h1>
         <p class="titulo-sub">(Bolinchas, Canicas, Marbles)</p>
       </div>
+      <div id="aviso-version" class="placa aviso-version" hidden>
+        <p id="aviso-version-texto"></p>
+        <button id="aviso-version-descargar" class="boton boton-claro" type="button">Descargar</button>
+      </div>
       <p id="menu-nivel" class="menu-nivel"></p>
       <nav class="menu-botones" aria-label="Menú principal">
         <button id="menu-jugar" class="boton-menu" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>Jugar</button>
@@ -131,6 +135,18 @@
           <button id="modo-explosivas" class="boton-jugar" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>Jugar</button>
         </div>
       </article>
+      <article class="modo modo-tutorial" data-modo="tutorial">
+        <div class="modo-foto">
+          <div class="modo-titulo trazo">
+            <span class="modo-icono"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" /><path d="M10 20l14-7 14 7-14 7zM16 23v8c4 4 12 4 16 0v-8M38 20v10" /></svg></span>
+            <h3>Práctica</h3>
+          </div>
+        </div>
+        <div class="modo-pie">
+          <p>Aprende paso a paso: tirar, la curva, el retroceso, seguir y el salto.</p>
+          <button id="modo-tutorial" class="boton-jugar" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4l13 8-13 8z" /></svg>Jugar</button>
+        </div>
+      </article>
     </section>
 
     <section id="pantalla-ajustes" class="pantalla pantalla-lista" hidden>
@@ -140,6 +156,7 @@
         <div class="fila-ajuste"><span>País</span><button id="ajuste-pais" class="boton selector-boton boton-pais" type="button"></button></div>
         <p class="nota" id="ajuste-pais-nota"></p>
         <p class="nota">La fuerza, el frenado y el rebote se ajustan durante el juego, con el botón del engranaje.</p>
+        <p class="nota" id="ajuste-version"></p>
         <div class="fila-ajuste"><span>Privacidad</span><button id="ajuste-privacidad" class="boton selector-boton" type="button">Ver</button></div>
       </div>
     </section>
@@ -150,7 +167,8 @@
         <ul>
           <li>Este juego no recoge, no envía y no vende ningún dato personal.</li>
           <li>No tiene publicidad, estadísticas, cuentas ni compras.</li>
-          <li>No usa internet, ni la cámara, el micrófono, la ubicación o tus archivos.</li>
+          <li>No usa la cámara, el micrófono, la ubicación ni tus archivos.</li>
+          <li>Mientras el juego está en prueba, al abrirlo le pregunta a GitHub si hay una versión nueva. Solo eso: no envía datos tuyos (GitHub, como cualquier página, ve la dirección de internet del teléfono).</li>
           <li>Tu progreso y tus ajustes se guardan solo en este teléfono. Se borran al desinstalar el juego o con «Borrar mi progreso».</li>
           <li>Si tienes activada la copia de seguridad de Android, el teléfono puede incluir estos datos en tu copia de Google. Eso lo maneja Android, no el juego.</li>
         </ul>
@@ -212,6 +230,7 @@
         <div class="detalle-botones">
           <button id="ruleta-usar" class="boton boton-claro" type="button">Usar</button>
           <button id="ruleta-coleccion" class="boton boton-plano" type="button">Ver la colección</button>
+          <button id="ruleta-menu" class="boton boton-plano" type="button">Volver al menú</button>
         </div>
       </div>
     </section>

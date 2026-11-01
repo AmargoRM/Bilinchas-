@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 
-export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtenerBolincha, obtenerEfecto = () => null, obtenerLargoPunteria = () => 1, puedeTirar, alApuntar, alTirar }) {
+export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtenerBolincha, obtenerEfecto = () => null, obtenerLargoPunteria = () => 1, obtenerObstaculos = () => [], puedeTirar, alApuntar, alTirar }) {
   const t = CONFIG.tiro;
   let arrastre = null; // un dedo: { id, x, y, tipo: 'tiro' | 'camara' }
   const dedos = new Map(); // dedos apoyados: id → { x, y }
@@ -44,6 +44,15 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
     materialPunto
   );
   punteria.add(punta);
+  // Aro "fantasma": dónde queda tu bolincha en el momento de tocar lo primero que
+  // encuentre en su camino (como en los juegos de pool). Si no aparece, no toca nada.
+  const fantasma = new THREE.Mesh(
+    new THREE.RingGeometry(0.55, 1.15, 32).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, depthWrite: false, depthTest: false })
+  );
+  fantasma.visible = false;
+  escena.add(fantasma);
+  const ALCANCE_FANTASMA = 120; // cm: más lejos no se dibuja
   punteria.visible = false;
   escena.add(punteria);
 
@@ -190,9 +199,28 @@ export function crearControlTiro({ lienzo, escena, camara, controlCamara, obtene
       if (externa) direccion.copy(externa.direccion);
       const apuntando = externa || (arrastre && arrastre.tipo === 'tiro' && fuerza >= t.fuerzaMinima);
       punteria.visible = !!apuntando;
+      fantasma.visible = false;
       if (!apuntando) return;
       const bolincha = obtenerBolincha();
       const pos = bolincha.posicion;
+      // Primer choque en línea recta: el punto donde la distancia entre centros es la suma de radios.
+      let primero = Infinity;
+      for (const o of obtenerObstaculos()) {
+        const cx = o.x - pos.x;
+        const cz = o.z - pos.z;
+        const a = cx * direccion.x + cz * direccion.z; // avance hasta quedar al costado
+        if (a <= 0) continue;
+        const lado2 = cx * cx + cz * cz - a * a; // distancia de costado, al cuadrado
+        const suma = bolincha.radio + o.radio;
+        if (lado2 >= suma * suma) continue;
+        const d = a - Math.sqrt(suma * suma - lado2);
+        if (d > 0 && d < primero) primero = d;
+      }
+      if (primero < ALCANCE_FANTASMA) {
+        fantasma.visible = true;
+        fantasma.scale.setScalar(bolincha.radio);
+        fantasma.position.set(pos.x + direccion.x * primero, 0.06, pos.z + direccion.z * primero);
+      }
       const inicio = bolincha.radio + 1;
       // (más larga con el poder "Ojo fino"; la de la computadora, siempre normal)
       const largo = t.largoPunteria * (externa ? 1 : obtenerLargoPunteria());

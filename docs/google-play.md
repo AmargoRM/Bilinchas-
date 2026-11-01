@@ -78,7 +78,11 @@ más adelante obliga a cumplir esas reglas en ese momento.
 ## 7. Revisión de seguridad y privacidad (hecha el 19-10-2026)
 
 - La app de Android **no tiene ningún permiso**: se quitó el de internet que
-  Capacitor trae por defecto.
+  Capacitor trae por defecto. **Ojo (versiones de prueba):** desde la versión con aviso
+  de actualización, el permiso de internet volvió, solo para preguntarle a GitHub si hay
+  un APK nuevo. Antes de publicar: poner `buscarActualizaciones: false` en
+  `src/config.js`, quitar el permiso de `AndroidManifest.xml` y sacar `https://api.github.com`
+  de la regla de seguridad en `vite.config.js`.
 - El juego armado lleva una regla de seguridad (CSP) que solo deja cargar sus
   propios archivos y bloquea cualquier conexión a internet.
 - No se usan datos de quien juega en ningún texto armado como HTML

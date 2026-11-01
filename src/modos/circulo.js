@@ -9,7 +9,7 @@ import { planificarTiro } from '../ia/rival.js';
 import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
 import { tx } from '../textos.js';
 import { botonUsarNueva } from '../ui/final.js';
-import { MAPAS_CIRCULO, buscarMapa, mapasDisponibles, proximoMapa } from '../mapas.js';
+import { MAPAS_CIRCULO, buscarMapa, mapasDisponibles, proximoMapa, opcionesDeMapas, textoBloqueado } from '../mapas.js';
 import { armarFormacion, NOMBRES_FORMACIONES } from './formaciones.js';
 
 
@@ -374,7 +374,8 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
   const jugar = () => instrucciones.antesDeJugar(variante, empezarPartida);
 
   // Elegir quién juega (las reglas se explican aparte, solo la primera vez).
-  function nuevaPartida() {
+  // mirando: el mapa que se está mirando en el selector (puede ser uno bloqueado).
+  function nuevaPartida(mirando = null) {
     fase = 'espera';
     mostrarPunteria(null);
     usarMapa(preferencias.mapaCirculo);
@@ -384,25 +385,30 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     controlCamara.mirarDesde(salida, centro, true);
     const nivel = nivelJugador();
     const proximo = proximoMapa(MAPAS_CIRCULO, nivel);
+    const visto = buscarMapa(typeof mirando === 'string' ? mirando : mapa.id, MAPAS_CIRCULO);
+    const bloqueado = (visto.nivel || 1) > nivel;
+    if (bloqueado) patio?.usarMapa(visto.id); // se ve el lugar, pero todavía no se puede jugar ahí
     hud.tarjeta({
       titulo: '¿Quién juega?',
       subtitulo: nombreModo,
-      texto: proximo ? `Próximo mapa: ${proximo.nombre}, en el nivel ${proximo.nivel}.` : '',
+      texto: bloqueado ? textoBloqueado(visto, nivel) : proximo ? `Próximo mapa: ${proximo.nombre}, en el nivel ${proximo.nivel}.` : '',
       selectores: [
         {
           etiqueta: 'Mapa',
-          opciones: mapasDisponibles(MAPAS_CIRCULO, nivel).map((m) => ({ valor: m.id, texto: m.nombre })),
-          valor: mapa.id,
+          opciones: opcionesDeMapas(MAPAS_CIRCULO, nivel),
+          valor: visto.id,
           alCambiar: (id) => {
-            usarMapa(id);
-            preferencias.mapaCirculo = id;
-            guardarPreferencias(preferencias);
+            if ((buscarMapa(id, MAPAS_CIRCULO).nivel || 1) <= nivel) {
+              preferencias.mapaCirculo = id;
+              guardarPreferencias(preferencias);
+            }
+            nuevaPartida(id);
           },
         },
         ...selectoresMesa(preferencias, () => guardarPreferencias(preferencias)),
       ],
       botones: [
-        { texto: 'Jugar', alElegir: jugar },
+        { texto: bloqueado ? '🔒 Bloqueado' : 'Jugar', alElegir: jugar, desactivado: bloqueado },
         { texto: 'Cómo se juega', secundario: true, alElegir: () => instrucciones.mostrarReglas(variante, nuevaPartida) },
         { texto: 'Volver', secundario: true, alElegir: () => alSalir('modos') },
       ],
@@ -540,6 +546,23 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     nuevaPartida,
     empezarPartida,
 
+    // Lo que puede chocar la bolincha que tira (para el aro "fantasma" de la puntería).
+    obstaculosPunteria() {
+      const tira = jugadores[turno]?.bolincha;
+      const r = tira ? tira.radio : 0.8;
+      return [
+        ...todas.filter((b) => b !== tira && enJuego(b)).map((b) => ({ x: b.posicion.x, z: b.posicion.z, radio: b.radio })),
+        // Piedra: esfera con el centro a 0,35 de su radio sobre el suelo; a la altura
+        // de la bolincha alcanza un poco menos.
+        ...piedras.map((p) => ({ x: p.x, z: p.z, radio: Math.sqrt((p.radio + r) ** 2 - (r - p.radio * 0.35) ** 2) - r })),
+      ];
+    },
+
+    // Puntos de color sobre las bolinchas de los jugadores (en la vista desde arriba).
+    marcas() {
+      return jugadores.filter((j) => j.enCancha && enJuego(j.bolincha)).map((j) => ({ pos: j.bolincha.grupo.position, color: j.color }));
+    },
+
     // Lo que muestra la vista desde arriba: el círculo con un margen.
     get traza() {
       const m = radio + 12;
@@ -571,6 +594,9 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     },
 
     puedeTirar: () => fase === 'apuntar',
+    get apuntaComputadora() {
+      return fase === 'computadora';
+    },
 
     // Después de cada paso de la física: ¿a qué le pegó primero el tirador?
     alPaso() {
@@ -622,7 +648,7 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
         const p = b.bolincha.posicion;
         b.etiqueta.position.set(p.x, p.y + b.bolincha.radio + 1.4, p.z);
         const esLaQueToca = b === toca;
-        b.etiqueta.scale.setScalar(esLaQueToca ? 0.042 : 0.028);
+        b.etiqueta.scale.setScalar(esLaQueToca ? 0.032 : 0.021);
         b.etiqueta.material.color.set(esLaQueToca ? 0xffd23f : 0xffffff);
       }
 

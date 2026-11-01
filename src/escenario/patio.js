@@ -121,8 +121,9 @@ function crearPiedra(semilla) {
   const geo = new THREE.IcosahedronGeometry(1, 2);
   const pos = geo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
-    const k = 0.85 + azar() * 0.3;
-    pos.setXYZ(i, pos.getX(i) * k, pos.getY(i) * k * 0.8, pos.getZ(i) * k);
+    // Nunca más chica que la piedra de la física (radio 1): solo se abulta un poquito.
+    const k = 1 + azar() * 0.06;
+    pos.setXYZ(i, pos.getX(i) * k, pos.getY(i) * k, pos.getZ(i) * k);
   }
   geo.computeVertexNormals();
   const tono = 0.18 + azar() * 0.1;
