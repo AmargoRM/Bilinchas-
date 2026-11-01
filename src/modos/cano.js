@@ -4,9 +4,9 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { resolverTiroCano } from './reglas-cano.js';
 import { planificarTiroCanal } from '../ia/rival.js';
-import { MAPAS, buscarMapa, mapasDisponibles, proximoMapa, opcionesDeMapas, textoBloqueado } from '../mapas.js';
-import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
-import { tx } from '../textos.js';
+import { MAPAS, buscarMapa, mapasDisponibles } from '../mapas.js';
+import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, sujeto, leerPreferencias, guardarPreferencias, rivalDe, ponerRival } from '../jugadores.js';
+import { pantallaPartida } from '../ui/partida.js';
 import { botonUsarNueva } from '../ui/final.js';
 
 const metros = (cm) => `${(Math.max(cm, 0) / 100).toFixed(1).replace('.', ',')} m`;
@@ -148,36 +148,33 @@ export function crearModoCano({ escena, fisica, hud, controlCamara, canal, mostr
     const disponibles = mapasDisponibles(MAPAS, nivel);
     mapa = buscarMapa(mapa.id, disponibles); // si el guardado todavía está bloqueado, el primero
     const visto = buscarMapa(typeof mirando === 'string' ? mirando : mapa.id, MAPAS);
-    const bloqueado = (visto.nivel || 1) > nivel;
     // Se arma el que se mira (aunque esté bloqueado: así se ve cómo es); al jugar se arma el elegido.
     traza = canal.usarMapa(visto);
     efectos.vistaPrevia?.(traza.bordes); // detrás de la tarjeta, el mapa entero desde arriba
-    const proximo = proximoMapa(MAPAS, nivel);
-    hud.tarjeta({
-      titulo: '¿Quién juega?',
-      subtitulo: tx('{Caño}'),
-      texto: bloqueado ? textoBloqueado(visto, nivel) : proximo ? `Próximo mapa: ${proximo.nombre}, en el nivel ${proximo.nivel}.` : '',
-      selectores: [
-        {
-          etiqueta: 'Mapa',
-          opciones: opcionesDeMapas(MAPAS, nivel),
-          valor: visto.id,
-          alCambiar: (id) => {
-            if ((buscarMapa(id, MAPAS).nivel || 1) <= nivel) {
-              mapa = buscarMapa(id, MAPAS);
-              preferencias.mapa = id;
-              guardarPreferencias(preferencias);
-            }
-            nuevaPartida(id);
-          },
-        },
-        ...selectoresMesa(preferencias, () => guardarPreferencias(preferencias)),
-      ],
-      botones: [
-        { texto: bloqueado ? '🔒 Bloqueado' : 'Jugar', alElegir: jugar, desactivado: bloqueado },
-        { texto: 'Cómo se juega', secundario: true, alElegir: () => instrucciones.mostrarReglas('cano', nuevaPartida) },
-        { texto: 'Volver', secundario: true, alElegir: () => alSalir('modos') },
-      ],
+    const { rival, cuantos } = rivalDe(preferencias);
+    ponerRival(preferencias, rival, cuantos);
+    pantallaPartida().mostrar({
+      titulo: '{Caño}',
+      mapas: MAPAS,
+      mapaId: visto.id,
+      nivel,
+      rival,
+      cuantos,
+      alCambiarMapa: (id) => {
+        if ((buscarMapa(id, MAPAS).nivel || 1) <= nivel) {
+          mapa = buscarMapa(id, MAPAS);
+          preferencias.mapa = id;
+          guardarPreferencias(preferencias);
+        }
+        nuevaPartida(id);
+      },
+      alCambiar: (r) => {
+        ponerRival(preferencias, r.rival, r.cuantos);
+        guardarPreferencias(preferencias);
+      },
+      alJugar: jugar,
+      alReglas: () => instrucciones.mostrarReglas('cano', () => nuevaPartida()),
+      alVolver: () => alSalir('modos'),
     });
   }
 

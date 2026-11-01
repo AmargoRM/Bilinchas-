@@ -6,10 +6,11 @@ import { crearBolincha } from '../bolincha.js';
 import { DISENOS_CIRCULO } from '../disenos.js';
 import { resolverTiro, ganador } from './reglas-circulo.js';
 import { planificarTiro } from '../ia/rival.js';
-import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, selectoresMesa, sujeto, leerPreferencias, guardarPreferencias } from '../jugadores.js';
+import { crearJugadores, bolinchasDe, resultadoParaProgreso, sentarJugadores, hayVariasPersonas, sujeto, leerPreferencias, guardarPreferencias, rivalDe, ponerRival } from '../jugadores.js';
+import { pantallaPartida } from '../ui/partida.js';
 import { tx } from '../textos.js';
 import { botonUsarNueva } from '../ui/final.js';
-import { MAPAS_CIRCULO, buscarMapa, mapasDisponibles, proximoMapa, opcionesDeMapas, textoBloqueado } from '../mapas.js';
+import { MAPAS_CIRCULO, buscarMapa, mapasDisponibles } from '../mapas.js';
 import { repartirDispersas, caminoLibre } from './formaciones.js';
 
 
@@ -402,34 +403,32 @@ export function crearModoCirculo({ variante = 'circulo', escena, fisica, hud, co
     enfocada = { posicion: salida };
     controlCamara.mirarDesde(salida, centro, true);
     const nivel = nivelJugador();
-    const proximo = proximoMapa(MAPAS_CIRCULO, nivel);
     const visto = buscarMapa(typeof mirando === 'string' ? mirando : mapa.id, MAPAS_CIRCULO);
-    const bloqueado = (visto.nivel || 1) > nivel;
-    if (bloqueado) patio?.usarMapa(visto.id); // se ve el lugar, pero todavía no se puede jugar ahí
-    hud.tarjeta({
-      titulo: '¿Quién juega?',
-      subtitulo: nombreModo,
-      texto: bloqueado ? textoBloqueado(visto, nivel) : proximo ? `Próximo mapa: ${proximo.nombre}, en el nivel ${proximo.nivel}.` : '',
-      selectores: [
-        {
-          etiqueta: 'Mapa',
-          opciones: opcionesDeMapas(MAPAS_CIRCULO, nivel),
-          valor: visto.id,
-          alCambiar: (id) => {
-            if ((buscarMapa(id, MAPAS_CIRCULO).nivel || 1) <= nivel) {
-              preferencias.mapaCirculo = id;
-              guardarPreferencias(preferencias);
-            }
-            nuevaPartida(id);
-          },
-        },
-        ...selectoresMesa(preferencias, () => guardarPreferencias(preferencias)),
-      ],
-      botones: [
-        { texto: bloqueado ? '🔒 Bloqueado' : 'Jugar', alElegir: jugar, desactivado: bloqueado },
-        { texto: 'Cómo se juega', secundario: true, alElegir: () => instrucciones.mostrarReglas(variante, nuevaPartida) },
-        { texto: 'Volver', secundario: true, alElegir: () => alSalir('modos') },
-      ],
+    if ((visto.nivel || 1) > nivel) patio?.usarMapa(visto.id); // se ve el lugar, pero todavía no se puede jugar ahí
+    const { rival, cuantos } = rivalDe(preferencias);
+    ponerRival(preferencias, rival, cuantos);
+    pantallaPartida().mostrar({
+      titulo: nombreModo,
+      mapas: MAPAS_CIRCULO,
+      modoMapa: 'circulo',
+      mapaId: visto.id,
+      nivel,
+      rival,
+      cuantos,
+      alCambiarMapa: (id) => {
+        if ((buscarMapa(id, MAPAS_CIRCULO).nivel || 1) <= nivel) {
+          preferencias.mapaCirculo = id;
+          guardarPreferencias(preferencias);
+        }
+        nuevaPartida(id);
+      },
+      alCambiar: (r) => {
+        ponerRival(preferencias, r.rival, r.cuantos);
+        guardarPreferencias(preferencias);
+      },
+      alJugar: jugar,
+      alReglas: () => instrucciones.mostrarReglas(variante, () => nuevaPartida()),
+      alVolver: () => alSalir('modos'),
     });
   }
 

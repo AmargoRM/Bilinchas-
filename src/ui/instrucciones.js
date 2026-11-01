@@ -1,9 +1,13 @@
 // Instrucciones de cada modo: se muestran la primera vez que se juega,
 // y después solo las novedades de dificultad que trae cada nivel nuevo.
-import { REGLAS, NOVEDADES, NOMBRES_MODOS, NOVEDADES_DE } from '../reglas.js';
+import { REGLAS, PASOS, NOVEDADES, NOMBRES_MODOS, NOVEDADES_DE } from '../reglas.js';
 import { tx } from '../textos.js';
 
 const CLAVE = 'ojo-de-gato.instrucciones';
+
+// Insignia con el número de nivel (para las reglas que llegan al subir de nivel).
+const dibujoNivel = (n) =>
+  `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="none" stroke="#f2cf4a" stroke-width="4"/><text x="32" y="41" text-anchor="middle" font-size="24" font-weight="700" fill="#f2cf4a" font-family="sans-serif">${Number(n)}</text></svg>`;
 
 // nivel(): número del nivel actual de quien juega (1 = el primero).
 export function crearInstrucciones({ hud, nivel }) {
@@ -29,7 +33,11 @@ export function crearInstrucciones({ hud, nivel }) {
     hud.tarjeta({
       titulo: 'Cómo se juega',
       subtitulo: tx(NOMBRES_MODOS[modo]),
-      lista: [...REGLAS[modo], ...extra.map((n) => n.texto)].map(tx),
+      pasos: [
+        ...PASOS[modo].map((p) => ({ ...p, titulo: tx(p.titulo), detalle: tx(p.detalle) })),
+        // Lo que ya trae el nivel (círculo más grande, piedras...): solo el título.
+        ...extra.map((n) => ({ dibujo: dibujoNivel(n.nivel), titulo: tx(n.titulo), detalle: '' })),
+      ],
       botones: [{ texto: boton, alElegir: alCerrar }],
     });
   }

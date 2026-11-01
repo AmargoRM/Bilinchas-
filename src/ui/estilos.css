@@ -1711,3 +1711,247 @@ button {
   border-radius: 10px;
   margin-bottom: 6px;
 }
+
+/* ---------- Pantalla para elegir la partida (src/ui/partida.js) ---------- */
+.partida-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;
+  /* Casi opaco: que no se asomen los botones del juego que quedan detrás. */
+  background: rgba(6, 20, 18, 0.9);
+}
+.partida {
+  box-sizing: border-box;
+  width: min(420px, 100%);
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: max(18px, env(safe-area-inset-top, 0px)) 16px max(20px, env(safe-area-inset-bottom, 0px));
+}
+.partida-cabeza {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.partida-titulo {
+  flex: 1;
+  margin: 0;
+  font-family: var(--letra-titulo);
+  font-weight: 400;
+  font-size: 30px;
+}
+.partida-redondo {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--placa);
+  border: 1px solid var(--placa-borde);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  font-weight: 700;
+}
+.partida-redondo svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.partida-mapa {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  touch-action: pan-y;
+}
+.partida-dibujo svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.partida-mapa-nombre {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  font-family: var(--letra-titulo);
+  font-size: 22px;
+  text-shadow: 0 2px 6px #000;
+  pointer-events: none;
+}
+.partida-candado {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  font-size: 16px;
+  font-weight: 600;
+  pointer-events: none;
+}
+.partida-flecha {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  font-size: 26px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+}
+.partida-flecha.izquierda {
+  left: 8px;
+}
+.partida-flecha.derecha {
+  right: 8px;
+}
+.partida-puntos {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-top: -6px;
+}
+.partida-puntos i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+}
+.partida-puntos i.si {
+  background: var(--amarillo);
+}
+.partida-rotulo {
+  margin: 0 0 -6px;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tiza-suave);
+}
+.partida-rivales {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.partida-rival {
+  background: var(--placa);
+  border: 2px solid var(--placa-borde);
+  border-radius: 16px;
+  padding: 10px 2px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 17px;
+  font-weight: 600;
+}
+.partida-rival svg {
+  width: 44px;
+  height: 44px;
+}
+.partida-rival.si {
+  border-color: var(--amarillo);
+  background: rgba(242, 207, 74, 0.14);
+}
+.partida-cuantos {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.partida-bola {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+  opacity: 0.28;
+  box-shadow: inset -6px -8px 0 rgba(0, 0, 0, 0.18), inset 6px 6px 0 rgba(255, 255, 255, 0.25);
+}
+.partida-bola.si {
+  opacity: 1;
+}
+.partida-jugar {
+  margin-top: auto;
+  min-height: 64px;
+  border-radius: 20px;
+  background: var(--verde-fuerza);
+  color: var(--fondo);
+  font-family: var(--letra-titulo);
+  font-size: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 7px 0 #12855f;
+}
+.partida-jugar svg {
+  width: 26px;
+  height: 26px;
+  fill: currentColor;
+}
+.partida-jugar:disabled {
+  background: #3a4a47;
+  color: var(--tiza-suave);
+  box-shadow: none;
+  font-family: var(--letra);
+  font-weight: 700;
+  font-size: 24px;
+}
+
+/* Reglas en dibujos (tarjeta "Cómo se juega"). */
+.tarjeta-pasos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.paso {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--placa-borde);
+}
+.paso-dibujo svg {
+  display: block;
+  width: 54px;
+  height: 54px;
+}
+.paso b {
+  display: block;
+  font-size: 21px;
+  line-height: 1.1;
+}
+.paso small {
+  display: block;
+  font-size: 16px;
+  color: var(--tiza-suave);
+}
+
+/* Ayuda al tirar: el gesto dibujado y dos palabras. */
+.ayuda {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 40px;
+  font-size: 20px;
+  font-weight: 600;
+}
+.ayuda svg {
+  width: 34px;
+  height: 34px;
+  flex: none;
+}

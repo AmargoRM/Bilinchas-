@@ -1,7 +1,6 @@
 // Jugadores compartidos por todos los modos: colores, nombres y la "mesa"
 // (quién se sienta en cada uno de los 4 lugares: persona, computadora o nadie).
 import { crearBolincha } from './bolincha.js';
-import { tx } from './textos.js';
 
 export const MAX_JUGADORES = 4;
 
@@ -108,28 +107,17 @@ export function sujeto(j, mayuscula = true) {
   return j.nombre;
 }
 
-// Selectores de la mesa para la tarjeta de inicio: quién juega en cada lugar y con qué tira.
-// "alCambiar" se llama después de cada cambio (para guardar las preferencias).
-export function selectoresMesa(preferencias, alCambiar) {
-  return COLORES_JUGADORES.map((c, i) => ({
-    etiqueta: `${i + 1}`,
-    color: c.color,
-    // Los dos primeros lugares siempre juegan: tiene que haber al menos dos jugadores.
-    opciones: i < 2 ? ASIENTOS.filter((a) => a.valor !== 'nadie') : ASIENTOS,
-    valor: preferencias.mesa[i],
-    alCambiar: (v) => {
-      preferencias.mesa[i] = v;
-      alCambiar();
-    },
-    extra: {
-      opciones: TAMANOS.map((t) => ({ ...t, texto: tx(t.texto) })),
-      valor: preferencias.tamanos[i],
-      alCambiar: (v) => {
-        preferencias.tamanos[i] = v;
-        alCambiar();
-      },
-    },
-  }));
+// La mesa vista como en la pantalla de partida: contra quién ('facil' | 'medio' |
+// 'dificil' | 'amigos') y cuántos rivales (1 a 3). En el Lugar 1 siempre hay una persona.
+export function rivalDe(preferencias) {
+  const otros = preferencias.mesa.slice(1).filter((a) => a !== 'nadie');
+  const primero = otros[0] || 'medio';
+  return { rival: primero === 'persona' ? 'amigos' : primero, cuantos: Math.max(1, Math.min(MAX_JUGADORES - 1, otros.length)) };
+}
+export function ponerRival(preferencias, rival, cuantos) {
+  const quien = rival === 'amigos' ? 'persona' : rival;
+  preferencias.mesa = Array.from({ length: MAX_JUGADORES }, (_, i) => (i === 0 ? 'persona' : i <= cuantos ? quien : 'nadie'));
+  preferencias.tamanos = [...TAMANOS_INICIALES];
 }
 
 // Recuerda la mesa y el mapa elegidos en este teléfono (comodidad; si falla, no pasa nada).

@@ -27,6 +27,7 @@ import { crearPantallaColeccion } from './ui/coleccion.js';
 import { crearPantallaRuleta, hoy } from './ui/ruleta.js';
 import { crearPantallaMapas } from './ui/mapas-mundo.js';
 import { leerPreferencias, guardarPreferencias } from './jugadores.js';
+import { pantallaPartida } from './ui/partida.js';
 import { buscarActualizacion, consultarUltimaVersion, NUMERO_VERSION } from './actualizacion.js';
 import { crearInstrucciones } from './ui/instrucciones.js';
 import { crearSelectorEfecto } from './ui/efecto.js';
@@ -485,6 +486,8 @@ async function iniciar() {
         pantallaColeccion.cerrar();
       } else if (pantallaActual === 'pantalla-privacidad') {
         mostrarPantalla('pantalla-ajustes');
+      } else if (pantallaPartida().abierta) {
+        pantallaPartida().volver();
       } else if (enMenu) {
         mostrarPantalla('menu-principal');
       } else if (apretoUnaVez) {

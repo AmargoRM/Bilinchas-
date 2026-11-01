@@ -1,7 +1,7 @@
 // La información en pantalla: marcador, barra de fuerza, avisos, tarjetas y botones.
 import { tx } from '../textos.js';
 import { CONFIG } from '../config.js';
-const AYUDA_TIRO = 'Toca tu {bolincha} y arrastra hacia atrás para tirar.\nPara cancelar, suelta el dedo en el recuadro de arriba.';
+const AYUDA_TIRO = 'Arrastra hacia atrás';
 // Después de esta cantidad de tiros, la ayuda de cómo tirar deja de aparecer.
 const TIROS_CON_AYUDA = 2;
 
@@ -27,7 +27,12 @@ export function crearHud() {
     if (enMapa) texto = null;
     else if (quiereAyudaTiro && !apuntando && tirosHechos < TIROS_CON_AYUDA) texto = tx(AYUDA_TIRO);
     ayuda.hidden = !texto;
-    if (texto) ayuda.textContent = texto;
+    if (texto) {
+      // Una flecha que muestra el gesto, y dos palabras.
+      ayuda.innerHTML =
+        '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="12" r="7" fill="#6fd3c8"/><path d="M24 22 v14" stroke="#f2cf4a" stroke-width="4" stroke-linecap="round" stroke-dasharray="3 5"/><path d="M17 34 l7 8 l7 -8" fill="none" stroke="#f2cf4a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      ayuda.append(texto);
+    }
   }
 
   return {
@@ -88,7 +93,7 @@ export function crearHud() {
     // selectores: [{ etiqueta, color, opciones: [{ valor, texto }], valor, alCambiar, extra }]
     //   cada selector es un botón que pasa a la opción siguiente al tocarlo.
     //   "extra" (opcional) es un segundo botón más chico con sus propias opciones.
-    tarjeta({ titulo, subtitulo = '', texto = '', lista = [], pregunta = '', selectores = [], botones, color = null }) {
+    tarjeta({ titulo, subtitulo = '', texto = '', lista = [], pasos = [], pregunta = '', selectores = [], botones, color = null }) {
       $('tarjeta-titulo').textContent = titulo;
       $('tarjeta-titulo').style.color = color || '';
       $('tarjeta-subtitulo').textContent = subtitulo;
@@ -104,6 +109,29 @@ export function crearHud() {
         })
       );
       ul.hidden = lista.length === 0;
+      // Pasos con dibujo: [{ dibujo (SVG en texto, propio del juego), titulo, detalle }]
+      const cajaPasos = $('tarjeta-pasos');
+      cajaPasos.replaceChildren(
+        ...pasos.map((p) => {
+          const fila = document.createElement('div');
+          fila.className = 'paso';
+          const dibujo = document.createElement('span');
+          dibujo.className = 'paso-dibujo';
+          dibujo.innerHTML = p.dibujo; // dibujos fijos de src/reglas.js, nunca texto de afuera
+          const textos = document.createElement('span');
+          const b = document.createElement('b');
+          b.textContent = p.titulo;
+          textos.append(b);
+          if (p.detalle) {
+            const d = document.createElement('small');
+            d.textContent = p.detalle;
+            textos.append(d);
+          }
+          fila.append(dibujo, textos);
+          return fila;
+        })
+      );
+      cajaPasos.hidden = pasos.length === 0;
       const cajaSel = $('tarjeta-selectores');
       cajaSel.replaceChildren(
         ...selectores.map((s, k) => {
